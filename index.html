@@ -1,0 +1,1605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>CT Equipment System</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy: #0A1628;
+  --navy2: #112240;
+  --navy3: #1A3356;
+  --blue: #1D6AE5;
+  --blue2: #2979FF;
+  --teal: #00BFA5;
+  --green: #00C853;
+  --amber: #FFB300;
+  --red: #F44336;
+  --orange: #FF6D00;
+  --white: #FFFFFF;
+  --off: #F0F4FF;
+  --text1: #E8EEFF;
+  --text2: #8BA0CC;
+  --text3: #4A6080;
+  --border: rgba(255,255,255,0.08);
+  --border2: rgba(255,255,255,0.15);
+  --card: rgba(255,255,255,0.04);
+  --card2: rgba(255,255,255,0.08);
+  --radius: 12px;
+  --radius2: 8px;
+  --radius3: 6px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; font-family: 'DM Sans', sans-serif; background: var(--navy); color: var(--text1); overflow-x: hidden; }
+body { min-height: 100vh; }
+
+/* ── SCREENS ── */
+.screen { display: none; min-height: 100vh; flex-direction: column; }
+.screen.active { display: flex; }
+
+/* ── LOGIN ── */
+#login-screen {
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--navy);
+  position: relative;
+  overflow: hidden;
+}
+#login-screen::before {
+  content: '';
+  position: absolute;
+  width: 600px; height: 600px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(29,106,229,0.15) 0%, transparent 70%);
+  top: -200px; left: -200px;
+  pointer-events: none;
+}
+#login-screen::after {
+  content: '';
+  position: absolute;
+  width: 400px; height: 400px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(0,191,165,0.1) 0%, transparent 70%);
+  bottom: -100px; right: -100px;
+  pointer-events: none;
+}
+.login-box {
+  width: 100%;
+  max-width: 360px;
+  background: var(--navy2);
+  border: 1px solid var(--border2);
+  border-radius: 20px;
+  padding: 36px 28px;
+  position: relative;
+  z-index: 1;
+}
+.login-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 28px;
+}
+.login-logo-icon {
+  width: 40px; height: 40px;
+  background: var(--blue);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+}
+.login-logo-text { font-size: 16px; font-weight: 600; color: var(--white); line-height: 1.2; }
+.login-logo-sub { font-size: 11px; color: var(--text2); }
+.login-title { font-size: 22px; font-weight: 600; color: var(--white); margin-bottom: 6px; }
+.login-sub { font-size: 13px; color: var(--text2); margin-bottom: 24px; }
+.field-label { font-size: 11px; font-weight: 500; color: var(--text2); letter-spacing: .05em; text-transform: uppercase; margin-bottom: 6px; }
+.field-input {
+  width: 100%;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius2);
+  padding: 12px 14px;
+  font-size: 14px;
+  color: var(--white);
+  font-family: 'DM Sans', sans-serif;
+  margin-bottom: 14px;
+  outline: none;
+  transition: border-color .2s;
+}
+.field-input:focus { border-color: var(--blue); }
+.field-input::placeholder { color: var(--text3); }
+.btn-login {
+  width: 100%;
+  background: var(--blue);
+  color: var(--white);
+  border: none;
+  border-radius: var(--radius2);
+  padding: 13px;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: 'DM Sans', sans-serif;
+  cursor: pointer;
+  margin-top: 4px;
+  transition: background .2s, transform .1s;
+}
+.btn-login:active { transform: scale(0.98); }
+.btn-login:hover { background: var(--blue2); }
+.login-error { color: var(--red); font-size: 12px; margin-top: 8px; text-align: center; display: none; }
+
+/* ── TOP BAR ── */
+.topbar {
+  background: var(--navy2);
+  border-bottom: 1px solid var(--border);
+  padding: 0 16px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  flex-shrink: 0;
+}
+.topbar-back {
+  width: 32px; height: 32px;
+  border-radius: var(--radius3);
+  background: var(--card2);
+  border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  font-size: 16px;
+  color: var(--text2);
+  transition: background .2s;
+  flex-shrink: 0;
+}
+.topbar-back:hover { background: var(--card); }
+.topbar-title { font-size: 15px; font-weight: 600; color: var(--white); flex: 1; }
+.topbar-user {
+  display: flex; align-items: center; gap: 8px;
+}
+.topbar-avatar {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: var(--blue);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 600; color: var(--white);
+}
+.topbar-role {
+  font-size: 10px; color: var(--text2);
+  background: var(--card2);
+  border: 1px solid var(--border);
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+.notif-badge {
+  background: var(--red);
+  color: var(--white);
+  font-size: 10px; font-weight: 700;
+  min-width: 18px; height: 18px;
+  border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0 4px;
+}
+
+/* ── CONTENT ── */
+.content { flex: 1; padding: 16px; overflow-y: auto; }
+.content-section { margin-bottom: 20px; }
+.section-title {
+  font-size: 10px; font-weight: 600;
+  color: var(--text2); letter-spacing: .08em;
+  text-transform: uppercase; margin-bottom: 10px;
+}
+
+/* ── KPI GRID ── */
+.kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+.kpi-card {
+  background: var(--card2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  cursor: pointer;
+  transition: border-color .2s, background .2s;
+  position: relative;
+  overflow: hidden;
+}
+.kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 3px; height: 100%;
+}
+.kpi-card.green::before { background: var(--green); }
+.kpi-card.blue::before { background: var(--blue); }
+.kpi-card.amber::before { background: var(--amber); }
+.kpi-card.red::before { background: var(--red); }
+.kpi-card.teal::before { background: var(--teal); }
+.kpi-card:hover, .kpi-card.expanded { background: var(--card); border-color: var(--border2); }
+.kpi-label { font-size: 10px; color: var(--text2); margin-bottom: 4px; }
+.kpi-value { font-size: 26px; font-weight: 600; color: var(--white); line-height: 1; }
+.kpi-value.green { color: var(--green); }
+.kpi-value.blue { color: var(--blue2); }
+.kpi-value.amber { color: var(--amber); }
+.kpi-value.red { color: var(--red); }
+.kpi-value.teal { color: var(--teal); }
+.kpi-sub { font-size: 10px; color: var(--text3); margin-top: 3px; }
+.kpi-hint { font-size: 9px; color: var(--text3); margin-top: 4px; }
+
+/* ── CARD ── */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+.card-item {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px;
+  cursor: pointer;
+  transition: background .15s;
+}
+.card-item:last-child { border-bottom: none; }
+.card-item:hover { background: var(--card2); }
+.card-item-icon {
+  width: 32px; height: 32px;
+  border-radius: var(--radius3);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; flex-shrink: 0;
+}
+.card-item-body { flex: 1; min-width: 0; }
+.card-item-title { font-size: 13px; font-weight: 500; color: var(--white); }
+.card-item-sub { font-size: 11px; color: var(--text2); margin-top: 2px; }
+.card-item-right { flex-shrink: 0; display: flex; align-items: center; gap: 6px; }
+.arrow { font-size: 12px; color: var(--text3); transition: transform .2s; }
+.arrow.open { transform: rotate(90deg); }
+
+/* ── EXPAND PANEL ── */
+.expand-panel {
+  background: rgba(255,255,255,0.03);
+  border-top: 1px solid var(--border);
+  padding: 10px 14px;
+  display: none;
+}
+.expand-panel.open { display: block; }
+.eq-list-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+.eq-list-item:last-child { border-bottom: none; }
+.eq-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.eq-name { color: var(--text2); flex: 1; }
+.eq-id { color: var(--white); font-family: 'DM Mono', monospace; font-size: 11px; }
+
+/* ── BADGE ── */
+.badge {
+  display: inline-flex; align-items: center;
+  padding: 3px 8px; border-radius: 999px;
+  font-size: 10px; font-weight: 500;
+  flex-shrink: 0;
+}
+.badge.green { background: rgba(0,200,83,.15); color: #4dff90; border: 1px solid rgba(0,200,83,.3); }
+.badge.blue { background: rgba(29,106,229,.2); color: #6fa8ff; border: 1px solid rgba(29,106,229,.3); }
+.badge.amber { background: rgba(255,179,0,.15); color: #ffd54f; border: 1px solid rgba(255,179,0,.3); }
+.badge.red { background: rgba(244,67,54,.15); color: #ff8a80; border: 1px solid rgba(244,67,54,.3); }
+.badge.teal { background: rgba(0,191,165,.15); color: #64ffda; border: 1px solid rgba(0,191,165,.3); }
+.badge.gray { background: rgba(255,255,255,.08); color: var(--text2); border: 1px solid var(--border2); }
+
+/* ── BUTTONS ── */
+.btn {
+  border: none; border-radius: var(--radius2);
+  padding: 11px 16px; font-size: 13px; font-weight: 600;
+  font-family: 'DM Sans', sans-serif;
+  cursor: pointer; width: 100%; margin-bottom: 8px;
+  transition: opacity .2s, transform .1s;
+}
+.btn:active { transform: scale(0.98); }
+.btn:last-child { margin-bottom: 0; }
+.btn.primary { background: var(--blue); color: var(--white); }
+.btn.danger { background: var(--red); color: var(--white); }
+.btn.success { background: var(--green); color: var(--navy); }
+.btn.warning { background: var(--amber); color: var(--navy); }
+.btn.ghost { background: var(--card2); color: var(--text1); border: 1px solid var(--border2); }
+.btn-row { display: flex; gap: 8px; }
+.btn-row .btn { margin-bottom: 0; }
+
+/* ── FORM ── */
+.form-group { margin-bottom: 14px; }
+.form-label { font-size: 11px; color: var(--text2); font-weight: 500; letter-spacing: .04em; text-transform: uppercase; margin-bottom: 6px; display: block; }
+.form-input {
+  width: 100%;
+  background: var(--card2);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius2);
+  padding: 11px 13px;
+  font-size: 13px; color: var(--white);
+  font-family: 'DM Sans', sans-serif;
+  outline: none; transition: border-color .2s;
+}
+.form-input:focus { border-color: var(--blue); }
+.form-input::placeholder { color: var(--text3); }
+.form-select {
+  width: 100%;
+  background: var(--card2);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius2);
+  padding: 11px 13px;
+  font-size: 13px; color: var(--white);
+  font-family: 'DM Sans', sans-serif;
+  outline: none; appearance: none;
+  cursor: pointer;
+}
+.form-textarea {
+  width: 100%;
+  background: var(--card2);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius2);
+  padding: 11px 13px;
+  font-size: 13px; color: var(--white);
+  font-family: 'DM Sans', sans-serif;
+  outline: none; resize: none;
+  transition: border-color .2s;
+}
+.form-textarea:focus { border-color: var(--blue); }
+
+/* ── ALERT BAR ── */
+.alert-bar {
+  border-radius: var(--radius2);
+  padding: 10px 12px;
+  font-size: 12px;
+  display: flex; align-items: flex-start; gap: 8px;
+  margin-bottom: 8px;
+}
+.alert-bar.red { background: rgba(244,67,54,.1); border: 1px solid rgba(244,67,54,.25); color: #ff8a80; }
+.alert-bar.amber { background: rgba(255,179,0,.1); border: 1px solid rgba(255,179,0,.25); color: #ffd54f; }
+.alert-bar.blue { background: rgba(29,106,229,.1); border: 1px solid rgba(29,106,229,.25); color: #6fa8ff; }
+
+/* ── UTIL BAR ── */
+.util-bar-wrap { background: var(--navy); border-radius: 4px; height: 6px; overflow: hidden; margin-top: 4px; }
+.util-bar-fill { height: 100%; border-radius: 4px; transition: width .5s; }
+
+/* ── LOADING ── */
+.loading {
+  display: flex; align-items: center; justify-content: center;
+  padding: 40px; color: var(--text3); font-size: 13px; gap: 8px;
+}
+.spinner {
+  width: 16px; height: 16px;
+  border: 2px solid var(--border2);
+  border-top-color: var(--blue);
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── EMPTY ── */
+.empty { text-align: center; padding: 32px 16px; color: var(--text3); font-size: 13px; }
+
+/* ── BOTTOM NAV ── */
+.bottom-nav {
+  background: var(--navy2);
+  border-top: 1px solid var(--border);
+  display: flex;
+  padding: 8px 0;
+  flex-shrink: 0;
+}
+.nav-item {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; gap: 3px;
+  padding: 4px;
+  cursor: pointer; transition: color .2s;
+  color: var(--text3); font-size: 9px; font-weight: 500;
+}
+.nav-item.active { color: var(--blue2); }
+.nav-icon { font-size: 18px; }
+
+/* ── MODAL ── */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.7);
+  z-index: 200;
+  display: none; align-items: flex-end; justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--navy2);
+  border: 1px solid var(--border2);
+  border-radius: 20px 20px 0 0;
+  padding: 20px;
+  width: 100%; max-width: 480px;
+  max-height: 85vh; overflow-y: auto;
+}
+.modal-title { font-size: 16px; font-weight: 600; color: var(--white); margin-bottom: 16px; }
+.modal-close { float: right; background: none; border: none; color: var(--text2); font-size: 20px; cursor: pointer; margin-top: -4px; }
+
+/* ── DEPT PILL ── */
+.dept-pill { padding: 2px 8px; border-radius: 999px; font-size: 10px; font-weight: 500; }
+.dept-dwo { background: rgba(124,58,237,.2); color: #c4b5fd; border: 1px solid rgba(124,58,237,.3); }
+.dept-uc { background: rgba(0,200,83,.15); color: #4dff90; border: 1px solid rgba(0,200,83,.3); }
+.dept-sawcod { background: rgba(255,109,0,.15); color: #ffab40; border: 1px solid rgba(255,109,0,.3); }
+.dept-all { background: rgba(255,255,255,.08); color: var(--text2); border: 1px solid var(--border2); }
+
+/* ── ANIMATIONS ── */
+.fade-in { animation: fadeIn .25s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+</head>
+<body>
+
+<!-- ══ LOGIN ══ -->
+<div id="login-screen" class="screen active">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="login-logo-icon">🛢</div>
+      <div>
+        <div class="login-logo-text">CT Equipment</div>
+        <div class="login-logo-sub">Management System</div>
+      </div>
+    </div>
+    <div class="login-title">Sign in</div>
+    <div class="login-sub">Enter your credentials to access your dashboard</div>
+    <div class="form-group">
+      <label class="form-label">Username</label>
+      <input type="text" class="field-input" id="login-username" placeholder="Mohamed.Baligh" autocomplete="username">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Password</label>
+      <input type="password" class="field-input" id="login-password" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="btn-login" id="login-btn" onclick="doLogin()">Sign in</button>
+    <div class="login-error" id="login-error">Invalid username or password</div>
+  </div>
+</div>
+
+<!-- ══ MAIN APP ══ -->
+<div id="app-screen" class="screen">
+  <div class="topbar">
+    <div class="topbar-back" id="topbar-back" style="display:none" onclick="goBack()">←</div>
+    <div class="topbar-title" id="topbar-title">Dashboard</div>
+    <div class="topbar-user">
+      <div class="topbar-avatar" id="topbar-avatar">M</div>
+      <div class="topbar-role" id="topbar-role">Cell Leader</div>
+    </div>
+    <div class="notif-badge" id="notif-badge" style="display:none">0</div>
+  </div>
+
+  <!-- VIEWS -->
+  <div class="content" id="main-content">
+    <div class="loading"><div class="spinner"></div> Loading...</div>
+  </div>
+
+  <!-- BOTTOM NAV (shown for most roles) -->
+  <div class="bottom-nav" id="bottom-nav" style="display:none">
+    <div class="nav-item active" id="nav-home" onclick="navTo('home')">
+      <div class="nav-icon">⊞</div>Dashboard
+    </div>
+    <div class="nav-item" id="nav-jobs" onclick="navTo('jobs')">
+      <div class="nav-icon">📋</div>Jobs
+    </div>
+    <div class="nav-item" id="nav-eq" onclick="navTo('equipment')">
+      <div class="nav-icon">⚙</div>Equipment
+    </div>
+    <div class="nav-item" id="nav-alerts" onclick="navTo('alerts')">
+      <div class="nav-icon">🔔</div>Alerts
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL ══ -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal" id="modal-content"></div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════
+const API = 'https://script.google.com/macros/s/AKfycbxzUp3TylmC-rMZX4FqC3jcgBtENCkedeyVAfzMbnQZW_SCVTnGEphm9I9zg-ELCOj6/exec';
+
+let USER = null;
+let NAV_STACK = [];
+let CURRENT_VIEW = 'home';
+let CACHE = {};
+
+// ═══════════════════════════════════════════
+// API
+// ═══════════════════════════════════════════
+async function apiGet(params) {
+  const url = API + '?' + new URLSearchParams(params);
+  const res = await fetch(url);
+  return res.json();
+}
+
+async function apiPost(data) {
+  const res = await fetch(API, {
+    method: 'POST',
+    body: JSON.stringify(data)
+  });
+  return res.json();
+}
+
+// ═══════════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════════
+async function doLogin() {
+  const btn = document.getElementById('login-btn');
+  const err = document.getElementById('login-error');
+  const username = document.getElementById('login-username').value.trim();
+  const password = document.getElementById('login-password').value.trim();
+
+  if (!username || !password) return;
+
+  btn.textContent = 'Signing in...';
+  btn.disabled = true;
+  err.style.display = 'none';
+
+  try {
+    const res = await apiGet({ action: 'login', username, password });
+    if (res.success) {
+      USER = res;
+      showApp();
+    } else {
+      err.style.display = 'block';
+      btn.textContent = 'Sign in';
+      btn.disabled = false;
+    }
+  } catch (e) {
+    err.textContent = 'Connection error. Try again.';
+    err.style.display = 'block';
+    btn.textContent = 'Sign in';
+    btn.disabled = false;
+  }
+}
+
+document.getElementById('login-password').addEventListener('keypress', e => {
+  if (e.key === 'Enter') doLogin();
+});
+
+// ═══════════════════════════════════════════
+// APP INIT
+// ═══════════════════════════════════════════
+function showApp() {
+  document.getElementById('login-screen').classList.remove('active');
+  document.getElementById('app-screen').classList.add('active');
+
+  const initials = USER.fullName.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
+  document.getElementById('topbar-avatar').textContent = initials;
+  document.getElementById('topbar-role').textContent = USER.role;
+
+  setupNav();
+  loadView('home');
+}
+
+function setupNav() {
+  const role = USER.role;
+  const nav = document.getElementById('bottom-nav');
+
+  if (role === 'QAQC Manager') {
+    nav.innerHTML = `
+      <div class="nav-item active" id="nav-home" onclick="navTo('home')"><div class="nav-icon">⊞</div>Dashboard</div>
+      <div class="nav-item" id="nav-jobs" onclick="navTo('qaqc')"><div class="nav-icon">✅</div>Approvals</div>
+      <div class="nav-item" id="nav-eq" onclick="navTo('equipment')"><div class="nav-icon">⚙</div>Equipment</div>
+    `;
+  } else if (role === 'Ticketing') {
+    nav.innerHTML = `
+      <div class="nav-item active" id="nav-home" onclick="navTo('home')"><div class="nav-icon">⊞</div>Tickets</div>
+      <div class="nav-item" id="nav-jobs" onclick="navTo('history')"><div class="nav-icon">📋</div>History</div>
+    `;
+  } else if (role === 'MNT Manager') {
+    nav.innerHTML = `
+      <div class="nav-item active" id="nav-home" onclick="navTo('home')"><div class="nav-icon">⊞</div>Dashboard</div>
+      <div class="nav-item" id="nav-jobs" onclick="navTo('mnt')"><div class="nav-icon">🔧</div>MNT</div>
+      <div class="nav-item" id="nav-alerts" onclick="navTo('alerts')"><div class="nav-icon">🔔</div>PM Alerts</div>
+    `;
+  }
+  nav.style.display = 'flex';
+}
+
+// ═══════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════
+function navTo(view, params) {
+  NAV_STACK = [{ view, params }];
+  document.getElementById('topbar-back').style.display = 'none';
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const navEl = document.getElementById('nav-home');
+  if (navEl) navEl.classList.add('active');
+  loadView(view, params);
+}
+
+function pushView(view, params, title) {
+  NAV_STACK.push({ view, params, title });
+  document.getElementById('topbar-back').style.display = 'flex';
+  loadView(view, params, title);
+}
+
+function goBack() {
+  if (NAV_STACK.length > 1) {
+    NAV_STACK.pop();
+    const prev = NAV_STACK[NAV_STACK.length - 1];
+    if (NAV_STACK.length === 1) {
+      document.getElementById('topbar-back').style.display = 'none';
+    }
+    loadView(prev.view, prev.params, prev.title);
+  }
+}
+
+async function loadView(view, params, title) {
+  CURRENT_VIEW = view;
+  const content = document.getElementById('main-content');
+  content.innerHTML = '<div class="loading"><div class="spinner"></div> Loading...</div>';
+
+  if (title) document.getElementById('topbar-title').textContent = title;
+
+  try {
+    switch(view) {
+      case 'home': await renderHome(content); break;
+      case 'jobs': await renderJobs(content); break;
+      case 'equipment': await renderEquipment(content); break;
+      case 'alerts': await renderAlerts(content); break;
+      case 'qaqc': await renderQAQC(content); break;
+      case 'mnt': await renderMNT(content); break;
+      case 'history': await renderHistory(content); break;
+      case 'job-detail': await renderJobDetail(content, params); break;
+      case 'pkg-detail': await renderPkgDetail(content, params); break;
+      case 'create-job': renderCreateJob(content); break;
+      default: content.innerHTML = '<div class="empty">View not found</div>';
+    }
+  } catch(e) {
+    content.innerHTML = `<div class="empty">Error loading. Please try again.<br><small>${e.message}</small></div>`;
+  }
+}
+
+// ═══════════════════════════════════════════
+// HOME VIEWS BY ROLE
+// ═══════════════════════════════════════════
+async function renderHome(content) {
+  const role = USER.role;
+  document.getElementById('topbar-title').textContent = 'Dashboard';
+
+  if (role === 'Cell Leader') await renderCellLeaderHome(content);
+  else if (role === 'Asset Manager') await renderAssetManagerHome(content);
+  else if (role === 'MNT Manager') await renderMNTManagerHome(content);
+  else if (role === 'QAQC Manager') await renderQAQCHome(content);
+  else if (role === 'FSM') await renderFSMHome(content);
+  else if (role === 'Operation Manager') await renderOpManagerHome(content);
+  else if (role === 'Ticketing') await renderTicketingHome(content);
+  else content.innerHTML = '<div class="empty">No dashboard available</div>';
+}
+
+// ── CELL LEADER ──
+async function renderCellLeaderHome(content) {
+  const [jobsRes, pkgRes, pmRes] = await Promise.all([
+    apiGet({ action: 'getJobs', department: USER.department }),
+    apiGet({ action: 'getPackages', department: USER.department }),
+    apiGet({ action: 'getPMAlerts', department: USER.department })
+  ]);
+
+  const jobs = jobsRes.jobs || [];
+  const running = jobs.filter(j => j.status === 'Running' || j.status === 'Exemption');
+  const completed = jobs.filter(j => j.status === 'Completed');
+  const pmAlerts = (pmRes.alerts || []).filter(a => a.daysLeft <= 30);
+
+  content.innerHTML = `
+    <div class="fade-in">
+      <div class="kpi-grid">
+        <div class="kpi-card green" onclick="toggleKPI('running-detail')">
+          <div class="kpi-label">Jobs running</div>
+          <div class="kpi-value green">${running.length}</div>
+          <div class="kpi-sub">${USER.department} department</div>
+          <div class="kpi-hint">tap to view ▸</div>
+        </div>
+        <div class="kpi-card blue" onclick="toggleKPI('completed-detail')">
+          <div class="kpi-label">Jobs completed</div>
+          <div class="kpi-value blue">${completed.length}</div>
+          <div class="kpi-sub">this year</div>
+          <div class="kpi-hint">tap to view ▸</div>
+        </div>
+      </div>
+
+      <div id="running-detail" style="display:none" class="content-section">
+        <div class="section-title">Running jobs</div>
+        <div class="card">
+          ${running.length === 0 ? '<div class="empty">No running jobs</div>' :
+            running.map(j => `
+              <div class="card-item" onclick="pushView('job-detail', ${JSON.stringify(j)}, '${j.jobId}')">
+                <div class="card-item-icon" style="background:rgba(0,200,83,.15)">📋</div>
+                <div class="card-item-body">
+                  <div class="card-item-title">${j.jobId} · ${j.wellNumber}</div>
+                  <div class="card-item-sub">${j.packageId} · Mob ${j.mobDate} · ${j.daysOnJob || '?'} days</div>
+                </div>
+                <div class="card-item-right">
+                  <span class="badge ${j.status === 'Exemption' ? 'amber' : 'green'}">${j.status}</span>
+                  <span class="arrow">›</span>
+                </div>
+              </div>
+            `).join('')}
+        </div>
+      </div>
+
+      <div id="completed-detail" style="display:none" class="content-section">
+        <div class="section-title">Completed jobs</div>
+        <div class="card">
+          ${completed.length === 0 ? '<div class="empty">No completed jobs</div>' :
+            completed.map(j => `
+              <div class="card-item">
+                <div class="card-item-icon" style="background:rgba(29,106,229,.15)">✓</div>
+                <div class="card-item-body">
+                  <div class="card-item-title">${j.jobId} · ${j.wellNumber}</div>
+                  <div class="card-item-sub">${j.packageId} · ${j.mobDate} → ${j.demobDate}</div>
+                </div>
+                <span class="badge blue">Done</span>
+              </div>
+            `).join('')}
+        </div>
+      </div>
+
+      ${pmAlerts.length > 0 ? `
+        <div class="content-section">
+          <div class="section-title">PM alerts — contact Asset Manager</div>
+          ${pmAlerts.map(a => `
+            <div class="alert-bar ${a.status === 'Overdue' ? 'red' : 'amber'}">
+              ⚠ ${a.equipmentId} ${a.pmType} — ${a.status === 'Overdue' ? 'OVERDUE' : a.daysLeft + ' days left'}
+            </div>
+          `).join('')}
+        </div>
+      ` : ''}
+
+      <div class="content-section">
+        <div class="section-title">Actions</div>
+        <button class="btn primary" onclick="pushView('create-job', null, 'New Job Assignment')">+ New Job Assignment</button>
+        <button class="btn ghost" onclick="pushView('jobs', null, 'All Jobs')">View all jobs</button>
+      </div>
+    </div>
+  `;
+}
+
+// ── ASSET MANAGER ──
+async function renderAssetManagerHome(content) {
+  const [poolRes, crRes, mntRes, pmRes] = await Promise.all([
+    apiGet({ action: 'getPool' }),
+    apiGet({ action: 'getJobs', department: 'All' }),
+    apiGet({ action: 'getMNT' }),
+    apiGet({ action: 'getPMAlerts', department: 'All' })
+  ]);
+
+  const pool = poolRes.pool || {};
+  const poolTotal = Object.values(pool).reduce((s, arr) => s + arr.length, 0);
+  const mntRecords = (mntRes.records || []).filter(r => r.status === 'Under MNT');
+  const pmAlerts = (pmRes.alerts || []).filter(a => a.daysLeft <= 30);
+  const jobs = crRes.jobs || [];
+  const running = jobs.filter(j => j.status === 'Running' || j.status === 'Exemption');
+
+  content.innerHTML = `
+    <div class="fade-in">
+      <div class="kpi-grid">
+        <div class="kpi-card teal" onclick="toggleKPI('pool-detail')">
+          <div class="kpi-label">Pool available</div>
+          <div class="kpi-value teal">${poolTotal}</div>
+          <div class="kpi-sub">ready to assign</div>
+          <div class="kpi-hint">tap to view ▸</div>
+        </div>
+        <div class="kpi-card amber" onclick="toggleKPI('mnt-eq-detail')">
+          <div class="kpi-label">Under MNT</div>
+          <div class="kpi-value amber">${mntRecords.length}</div>
+          <div class="kpi-sub">equipment</div>
+          <div class="kpi-hint">tap to view ▸</div>
+        </div>
+        <div class="kpi-card green" onclick="toggleKPI('running-am-detail')">
+          <div class="kpi-label">Jobs running</div>
+          <div class="kpi-value green">${running.length}</div>
+          <div class="kpi-sub">all departments</div>
+          <div class="kpi-hint">tap to view ▸</div>
+        </div>
+        <div class="kpi-card red" onclick="toggleKPI('pm-detail')">
+          <div class="kpi-label">PM alerts</div>
+          <div class="kpi-value red">${pmAlerts.length}</div>
+          <div class="kpi-sub">need attention</div>
+          <div class="kpi-hint">tap to view ▸</div>
+        </div>
+      </div>
+
+      <div id="pool-detail" style="display:none" class="content-section">
+        <div class="section-title">Pool — available equipment</div>
+        ${Object.keys(pool).length === 0 ? '<div class="empty">No pool equipment available</div>' :
+          Object.entries(pool).map(([type, items]) => `
+            <div class="section-title" style="margin-top:8px">${type}</div>
+            <div class="card">
+              ${items.map(eq => `
+                <div class="card-item">
+                  <div class="card-item-icon" style="background:rgba(0,191,165,.15)">⚙</div>
+                  <div class="card-item-body">
+                    <div class="card-item-title">${eq.id}</div>
+                    <div class="card-item-sub">${eq.name}</div>
+                  </div>
+                  <span class="badge teal">Pool</span>
+                </div>
+              `).join('')}
+            </div>
+          `).join('')}
+      </div>
+
+      <div id="mnt-eq-detail" style="display:none" class="content-section">
+        <div class="section-title">Equipment under MNT</div>
+        <div class="card">
+          ${mntRecords.length === 0 ? '<div class="empty">No equipment under MNT</div>' :
+            mntRecords.map(r => `
+              <div class="card-item">
+                <div class="card-item-icon" style="background:rgba(255,179,0,.15)">🔧</div>
+                <div class="card-item-body">
+                  <div class="card-item-title">${r.equipmentId} — ${r.type}</div>
+                  <div class="card-item-sub">${r.mntType} · ${r.startDate}</div>
+                </div>
+                <span class="badge amber">MNT</span>
+              </div>
+            `).join('')}
+        </div>
+      </div>
+
+      <div id="running-am-detail" style="display:none" class="content-section">
+        <div class="section-title">All running jobs</div>
+        <div class="card">
+          ${running.length === 0 ? '<div class="empty">No running jobs</div>' :
+            running.map(j => `
+              <div class="card-item">
+                <div class="card-item-icon" style="background:rgba(0,200,83,.15)">📋</div>
+                <div class="card-item-body">
+                  <div class="card-item-title">${j.jobId} · ${j.wellNumber}</div>
+                  <div class="card-item-sub">${j.packageId} · ${deptPill(j.department)}</div>
+                </div>
+                <span class="badge ${j.status === 'Exemption' ? 'amber' : 'green'}">${j.status}</span>
+              </div>
+            `).join('')}
+        </div>
+      </div>
+
+      <div id="pm-detail" style="display:none" class="content-section">
+        <div class="section-title">PM due alerts</div>
+        ${pmAlerts.map(a => `
+          <div class="alert-bar ${a.status === 'Overdue' ? 'red' : 'amber'}">
+            ⚠ ${a.equipmentId} (${a.type}) — ${a.pmType} — ${a.status === 'Overdue' ? 'OVERDUE' : a.daysLeft + ' days'}
+          </div>
+        `).join('')}
+      </div>
+
+      <div class="content-section">
+        <div class="section-title">Actions</div>
+        <button class="btn ghost" onclick="pushView('equipment', null, 'Equipment Master')">View all equipment</button>
+        <button class="btn ghost" onclick="pushView('jobs', null, 'All Jobs')">View all jobs</button>
+      </div>
+    </div>
+  `;
+}
+
+// ── MNT MANAGER ──
+async function renderMNTManagerHome(content) {
+  const [mntRes, pmRes] = await Promise.all([
+    apiGet({ action: 'getMNT' }),
+    apiGet({ action: 'getPMAlerts', department: 'All' })
+  ]);
+
+  const underMNT = (mntRes.records || []).filter(r => r.status === 'Under MNT');
+  const awaitingQAQC = (mntRes.records || []).filter(r => r.status === 'Awaiting QAQC');
+  const pmAlerts = pmRes.alerts || [];
+
+  content.innerHTML = `
+    <div class="fade-in">
+      <div class="kpi-grid">
+        <div class="kpi-card amber" onclick="toggleKPI('mnt-under-detail')">
+          <div class="kpi-label">Under MNT</div>
+          <div class="kpi-value amber">${underMNT.length}</div>
+          <div class="kpi-sub">in progress</div>
+          <div class="kpi-hint">tap to view ▸</div>
+        </div>
+        <div class="kpi-card red" onclick="toggleKPI('pm-mnt-detail')">
+          <div class="kpi-label">PM due soon</div>
+          <div class="kpi-value red">${pmAlerts.length}</div>
+          <div class="kpi-sub">next 30 days</div>
+          <div class="kpi-hint">tap to view ▸</div>
+        </div>
+      </div>
+
+      <div id="mnt-under-detail" style="display:none" class="content-section">
+        <div class="section-title">Equipment under MNT — mark done</div>
+        ${underMNT.map(r => `
+          <div class="card" style="margin-bottom:8px">
+            <div class="card-item" style="cursor:default">
+              <div class="card-item-icon" style="background:rgba(255,179,0,.15)">🔧</div>
+              <div class="card-item-body">
+                <div class="card-item-title">${r.equipmentId}</div>
+                <div class="card-item-sub">${r.mntType} · Started ${r.startDate}</div>
+                <div class="card-item-sub" style="margin-top:2px;color:var(--text3);font-size:10px">${r.notes || ''}</div>
+              </div>
+              <span class="badge amber">MNT</span>
+            </div>
+            <div style="padding:10px 14px;border-top:1px solid var(--border)">
+              <button class="btn success" onclick="markMNTDone('${r.mntId}', '${r.equipmentId}')">Mark done → Send to QAQC</button>
+            </div>
+          </div>
+        `).join('')}
+        ${underMNT.length === 0 ? '<div class="empty">No equipment under MNT</div>' : ''}
+      </div>
+
+      <div id="pm-mnt-detail" style="display:none" class="content-section">
+        <div class="section-title">PM due alerts</div>
+        ${pmAlerts.length === 0 ? '<div class="empty">No alerts</div>' :
+          pmAlerts.map(a => `
+            <div class="alert-bar ${a.status === 'Overdue' ? 'red' : 'amber'}">
+              ⚠ ${a.equipmentId} — ${a.pmType} — ${a.status === 'Overdue' ? 'OVERDUE' : a.daysLeft + ' days left'}
+            </div>
+          `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+// ── QAQC ──
+async function renderQAQCHome(content) {
+  const mntRes = await apiGet({ action: 'getMNT' });
+  const awaiting = (mntRes.records || []).filter(r => r.status === 'Awaiting QAQC');
+
+  content.innerHTML = `
+    <div class="fade-in">
+      <div class="kpi-grid">
+        <div class="kpi-card amber" onclick="toggleKPI('qaqc-pending-detail')">
+          <div class="kpi-label">Awaiting approval</div>
+          <div class="kpi-value amber">${awaiting.length}</div>
+          <div class="kpi-sub">equipment</div>
+          <div class="kpi-hint">tap to view ▸</div>
+        </div>
+      </div>
+
+      <div id="qaqc-pending-detail" style="display:none" class="content-section">
+        <div class="section-title">Equipment awaiting QAQC</div>
+        ${awaiting.length === 0 ? '<div class="empty">No pending approvals</div>' :
+          awaiting.map(r => `
+            <div class="card" style="margin-bottom:8px">
+              <div class="card-item" style="cursor:default">
+                <div class="card-item-icon" style="background:rgba(255,179,0,.15)">⚙</div>
+                <div class="card-item-body">
+                  <div class="card-item-title">${r.equipmentId}</div>
+                  <div class="card-item-sub">${r.mntType} · Done ${r.actualDone}</div>
+                  <div class="card-item-sub" style="margin-top:2px;font-size:10px">${r.notes || ''}</div>
+                </div>
+              </div>
+              <div style="padding:10px 14px;border-top:1px solid var(--border)">
+                <div class="form-group">
+                  <label class="form-label">Notes / Rejection reason</label>
+                  <textarea class="form-textarea" id="qaqc-reason-${r.mntId}" rows="2" placeholder="Enter notes..."></textarea>
+                </div>
+                <div class="btn-row">
+                  <button class="btn success" onclick="qaqcDecision('${r.mntId}', 'Approved')">Approve → Pool</button>
+                  <button class="btn danger" onclick="qaqcDecision('${r.mntId}', 'Rejected')">Reject → MNT</button>
+                </div>
+              </div>
+            </div>
+          `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+// ── FSM ──
+async function renderFSMHome(content) {
+  const [jobsRes, pmRes] = await Promise.all([
+    apiGet({ action: 'getJobs', department: USER.department }),
+    apiGet({ action: 'getPMAlerts', department: USER.department })
+  ]);
+
+  const jobs = jobsRes.jobs || [];
+  const running = jobs.filter(j => j.status === 'Running' || j.status === 'Exemption');
+  const completed = jobs.filter(j => j.status === 'Completed');
+  const pmAlerts = (pmRes.alerts || []).filter(a => a.daysLeft <= 30);
+
+  content.innerHTML = `
+    <div class="fade-in">
+      <div class="kpi-grid">
+        <div class="kpi-card green" onclick="toggleKPI('fsm-running')">
+          <div class="kpi-label">Jobs running</div>
+          <div class="kpi-value green">${running.length}</div>
+          <div class="kpi-sub">${USER.department}</div>
+          <div class="kpi-hint">tap to view ▸</div>
+        </div>
+        <div class="kpi-card blue" onclick="toggleKPI('fsm-completed')">
+          <div class="kpi-label">Completed</div>
+          <div class="kpi-value blue">${completed.length}</div>
+          <div class="kpi-sub">this year</div>
+          <div class="kpi-hint">tap to view ▸</div>
+        </div>
+      </div>
+
+      <div id="fsm-running" style="display:none" class="content-section">
+        <div class="section-title">Running jobs — ${USER.department}</div>
+        <div class="card">
+          ${running.length === 0 ? '<div class="empty">No running jobs</div>' :
+            running.map(j => `
+              <div class="card-item">
+                <div class="card-item-icon" style="background:rgba(0,200,83,.15)">📋</div>
+                <div class="card-item-body">
+                  <div class="card-item-title">${j.jobId} · ${j.wellNumber} / ${j.rigNumber}</div>
+                  <div class="card-item-sub">${j.packageId} · ${j.mobDate} · ${j.daysOnJob || '?'} days</div>
+                </div>
+                <span class="badge ${j.status === 'Exemption' ? 'amber' : 'green'}">${j.status}</span>
+              </div>
+            `).join('')}
+        </div>
+      </div>
+
+      <div id="fsm-completed" style="display:none" class="content-section">
+        <div class="section-title">Completed jobs</div>
+        <div class="card">
+          ${completed.length === 0 ? '<div class="empty">No completed jobs</div>' :
+            completed.map(j => `
+              <div class="card-item">
+                <div class="card-item-body">
+                  <div class="card-item-title">${j.jobId} · ${j.wellNumber}</div>
+                  <div class="card-item-sub">${j.mobDate} → ${j.demobDate}</div>
+                </div>
+                <span class="badge blue">Done</span>
+              </div>
+            `).join('')}
+        </div>
+      </div>
+
+      ${pmAlerts.length > 0 ? `
+        <div class="content-section">
+          <div class="section-title">PM alerts — ${USER.department}</div>
+          ${pmAlerts.map(a => `
+            <div class="alert-bar ${a.status === 'Overdue' ? 'red' : 'amber'}">
+              ⚠ ${a.equipmentId} — ${a.pmType} — ${a.status === 'Overdue' ? 'OVERDUE' : a.daysLeft + ' days'}
+            </div>
+          `).join('')}
+        </div>
+      ` : ''}
+    </div>
+  `;
+}
+
+// ── OPERATION MANAGER ──
+async function renderOpManagerHome(content) {
+  const dashRes = await apiGet({ action: 'getDashboard', department: 'All' });
+  const d = dashRes;
+  const kpis = d.kpis || {};
+  const mntPerf = d.mntPerformance || [];
+  const pmAlerts = d.pmAlerts || [];
+  const runningJobs = d.runningJobs || [];
+  const tickets = d.recentTickets || [];
+
+  content.innerHTML = `
+    <div class="fade-in">
+      <div class="kpi-grid">
+        <div class="kpi-card green" onclick="toggleKPI('op-running')">
+          <div class="kpi-label">Packages running</div>
+          <div class="kpi-value green">${kpis.packagesRunning || 0} <span style="font-size:14px;color:var(--text2)">/ ${kpis.totalPackages || 14}</span></div>
+          <div class="kpi-hint">tap to view ▸</div>
+        </div>
+        <div class="kpi-card blue" onclick="toggleKPI('op-tickets')">
+          <div class="kpi-label">Ticketing</div>
+          <div class="kpi-value blue">${kpis.underTicketing || 0} <span style="font-size:14px;color:var(--text2)">pending</span></div>
+          <div class="kpi-hint">tap to view ▸</div>
+        </div>
+        <div class="kpi-card amber" onclick="toggleKPI('op-exemptions')">
+          <div class="kpi-label">Exemptions</div>
+          <div class="kpi-value amber">${kpis.activeExemptions || 0}</div>
+          <div class="kpi-sub">active</div>
+          <div class="kpi-hint">tap to view ▸</div>
+        </div>
+        <div class="kpi-card red" onclick="toggleKPI('op-mnt')">
+          <div class="kpi-label">MNT alerts</div>
+          <div class="kpi-value red">${mntPerf.filter(m => m.alert).length}</div>
+          <div class="kpi-sub">over 25%</div>
+          <div class="kpi-hint">tap to view ▸</div>
+        </div>
+      </div>
+
+      <div id="op-running" style="display:none" class="content-section">
+        <div class="section-title">Active jobs — all departments</div>
+        <div class="card">
+          ${runningJobs.length === 0 ? '<div class="empty">No running jobs</div>' :
+            runningJobs.map(j => `
+              <div class="card-item">
+                <div class="card-item-body">
+                  <div class="card-item-title">${j.jobId} · ${j.wellNumber} / ${j.rigNumber}</div>
+                  <div class="card-item-sub">${j.packageId} · ${j.cellLeader} · ${j.daysOnJob || '?'} days</div>
+                </div>
+                <span class="badge ${j.status === 'Exemption' ? 'amber' : 'green'}">${j.status}</span>
+              </div>
+            `).join('')}
+        </div>
+      </div>
+
+      <div id="op-tickets" style="display:none" class="content-section">
+        <div class="section-title">Recent tickets</div>
+        <div class="card">
+          ${tickets.map(t => `
+            <div class="card-item">
+              <div class="card-item-body">
+                <div class="card-item-title">${t.ticketId} · ${t.jobId}</div>
+                <div class="card-item-sub">${t.packageId} · Completed ${t.completionDate}</div>
+              </div>
+              <span class="badge ${t.status === 'Done' ? 'green' : t.status === 'Acknowledged' ? 'blue' : 'red'}">${t.status}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+      <div id="op-exemptions" style="display:none" class="content-section">
+        <div class="section-title">Active exemptions</div>
+        <button class="btn ghost" onclick="pushView('alerts', null, 'Alerts')">View exemptions</button>
+      </div>
+
+      <div id="op-mnt" style="display:none" class="content-section">
+        <div class="section-title">MNT performance</div>
+        <div class="card">
+          ${mntPerf.map(m => `
+            <div class="card-item" style="flex-direction:column;align-items:flex-start;cursor:default">
+              <div style="display:flex;justify-content:space-between;width:100%;margin-bottom:4px">
+                <span style="font-size:12px;color:var(--text1)">${m.type}</span>
+                <span style="font-size:12px;font-weight:600;color:${m.alert ? 'var(--red)' : 'var(--green)'}">${m.pct}% ${m.alert ? '⚠' : ''}</span>
+              </div>
+              <div class="util-bar-wrap" style="width:100%">
+                <div class="util-bar-fill" style="width:${m.pct}%;background:${m.alert ? 'var(--red)' : 'var(--green)'}"></div>
+              </div>
+              <div style="font-size:10px;color:var(--text3);margin-top:3px">${m.underMnt} / ${m.total} under MNT</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+      ${pmAlerts.length > 0 ? `
+        <div class="content-section">
+          <div class="section-title">PM alerts — fleet wide</div>
+          ${pmAlerts.slice(0,5).map(a => `
+            <div class="alert-bar ${a.status === 'Overdue' ? 'red' : 'amber'}">
+              ⚠ ${a.equipmentId} (${a.department}) — ${a.pmType} — ${a.status === 'Overdue' ? 'OVERDUE' : a.daysLeft + ' days'}
+            </div>
+          `).join('')}
+        </div>
+      ` : ''}
+    </div>
+  `;
+}
+
+// ── TICKETING ──
+async function renderTicketingHome(content) {
+  const res = await apiGet({ action: 'getTickets' });
+  const tickets = res.tickets || [];
+  const notAck = tickets.filter(t => t.status === 'Not Acknowledged');
+  const acked = tickets.filter(t => t.status === 'Acknowledged');
+  const done = tickets.filter(t => t.status === 'Done');
+
+  content.innerHTML = `
+    <div class="fade-in">
+      <div class="kpi-grid">
+        <div class="kpi-card red" onclick="toggleKPI('tkt-not-ack')">
+          <div class="kpi-label">Not acknowledged</div>
+          <div class="kpi-value red">${notAck.length}</div>
+          <div class="kpi-hint">tap to view ▸</div>
+        </div>
+        <div class="kpi-card blue" onclick="toggleKPI('tkt-acked')">
+          <div class="kpi-label">In progress</div>
+          <div class="kpi-value blue">${acked.length}</div>
+          <div class="kpi-hint">tap to view ▸</div>
+        </div>
+        <div class="kpi-card green" onclick="toggleKPI('tkt-done')">
+          <div class="kpi-label">Tickets done</div>
+          <div class="kpi-value green">${done.length}</div>
+          <div class="kpi-hint">tap to view ▸</div>
+        </div>
+      </div>
+
+      <div id="tkt-not-ack" style="display:none" class="content-section">
+        <div class="section-title">Awaiting acknowledgement</div>
+        ${notAck.length === 0 ? '<div class="empty">All acknowledged</div>' :
+          notAck.map(t => `
+            <div class="card" style="margin-bottom:8px">
+              <div class="card-item" style="cursor:default">
+                <div class="card-item-icon" style="background:rgba(244,67,54,.15)">🎫</div>
+                <div class="card-item-body">
+                  <div class="card-item-title">${t.ticketId} · ${t.jobId}</div>
+                  <div class="card-item-sub">${t.wellNumber} · ${t.packageId} · ${t.completionDate}</div>
+                </div>
+              </div>
+              <div style="padding:10px 14px;border-top:1px solid var(--border)">
+                <button class="btn primary" onclick="acknowledgeTicket('${t.ticketId}')">Acknowledge — start ticket</button>
+              </div>
+            </div>
+          `).join('')}
+      </div>
+
+      <div id="tkt-acked" style="display:none" class="content-section">
+        <div class="section-title">In progress</div>
+        ${acked.length === 0 ? '<div class="empty">No tickets in progress</div>' :
+          acked.map(t => `
+            <div class="card" style="margin-bottom:8px">
+              <div class="card-item" style="cursor:default">
+                <div class="card-item-icon" style="background:rgba(29,106,229,.15)">🎫</div>
+                <div class="card-item-body">
+                  <div class="card-item-title">${t.ticketId} · ${t.jobId}</div>
+                  <div class="card-item-sub">${t.wellNumber} · ${t.packageId} · Ack ${t.acknowledgedDate}</div>
+                </div>
+              </div>
+              <div style="padding:10px 14px;border-top:1px solid var(--border)">
+                <button class="btn success" onclick="doneTicket('${t.ticketId}')">Mark ticket done</button>
+              </div>
+            </div>
+          `).join('')}
+      </div>
+
+      <div id="tkt-done" style="display:none" class="content-section">
+        <div class="section-title">Completed tickets</div>
+        <div class="card">
+          ${done.length === 0 ? '<div class="empty">No completed tickets</div>' :
+            done.map(t => `
+              <div class="card-item">
+                <div class="card-item-body">
+                  <div class="card-item-title">${t.ticketId} · ${t.jobId}</div>
+                  <div class="card-item-sub">${t.wellNumber} · Done ${t.ticketDoneDate}</div>
+                </div>
+                <span class="badge green">Done</span>
+              </div>
+            `).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ═══════════════════════════════════════════
+// DETAIL VIEWS
+// ═══════════════════════════════════════════
+async function renderJobDetail(content, job) {
+  content.innerHTML = `
+    <div class="fade-in">
+      <div class="content-section">
+        <div class="section-title">Job info</div>
+        <div class="card">
+          <div class="card-item" style="cursor:default"><div class="card-item-body"><div class="card-item-title">Job ID</div></div><span style="font-size:12px;color:var(--text2)">${job.jobId}</span></div>
+          <div class="card-item" style="cursor:default"><div class="card-item-body"><div class="card-item-title">Well / Rig</div></div><span style="font-size:12px;color:var(--text2)">${job.wellNumber} / ${job.rigNumber}</span></div>
+          <div class="card-item" style="cursor:default"><div class="card-item-body"><div class="card-item-title">Package</div></div><span style="font-size:12px;color:var(--text2)">${job.packageId}</span></div>
+          <div class="card-item" style="cursor:default"><div class="card-item-body"><div class="card-item-title">Mob date</div></div><span style="font-size:12px;color:var(--text2)">${job.mobDate}</span></div>
+          <div class="card-item" style="cursor:default"><div class="card-item-body"><div class="card-item-title">Days on job</div></div><span style="font-size:12px;color:var(--text2)">${job.daysOnJob || 'Ongoing'}</span></div>
+          <div class="card-item" style="cursor:default"><div class="card-item-body"><div class="card-item-title">Status</div></div><span class="badge ${job.status === 'Exemption' ? 'amber' : job.status === 'Completed' ? 'blue' : 'green'}">${job.status}</span></div>
+        </div>
+      </div>
+
+      <div class="content-section">
+        <div class="section-title">Equipment (${(job.equipment || []).length} units)</div>
+        <div class="card">
+          ${(job.equipment || []).map(eq => `
+            <div class="eq-list-item" style="padding:8px 14px">
+              <div class="eq-dot" style="background:${eq.status === 'Running' ? 'var(--green)' : eq.status === 'Exemption' ? 'var(--amber)' : 'var(--blue2)'}"></div>
+              <span class="eq-name">${eq.type}</span>
+              <span class="eq-id">${eq.equipmentId}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+      ${job.status !== 'Completed' && USER.role === 'Cell Leader' ? `
+        <div class="content-section">
+          <div class="section-title">Actions</div>
+          <button class="btn danger" onclick="openFaultModal('${job.jobId}', '${job.packageId}')">Report fault / swap equipment</button>
+          <button class="btn warning" onclick="openExemptionModal('${job.jobId}', '${job.packageId}')">Request exemption</button>
+          <button class="btn ghost" onclick="openDemobModal('${job.jobId}', '${job.wellNumber}', '${job.packageId}', '${job.mobDate}')">Enter demob date</button>
+        </div>
+      ` : ''}
+    </div>
+  `;
+}
+
+async function renderEquipment(content) {
+  document.getElementById('topbar-title').textContent = 'Equipment';
+  const res = await apiGet({ action: 'getEquipment', department: USER.department === 'All' ? 'All' : USER.department });
+  const equipment = res.equipment || [];
+  const byType = {};
+  equipment.forEach(eq => {
+    if (!byType[eq.type]) byType[eq.type] = [];
+    byType[eq.type].push(eq);
+  });
+
+  content.innerHTML = `
+    <div class="fade-in">
+      ${Object.entries(byType).map(([type, items]) => `
+        <div class="content-section">
+          <div class="section-title">${type} (${items.length})</div>
+          <div class="card">
+            ${items.map(eq => `
+              <div class="card-item" style="cursor:default">
+                <div class="card-item-icon" style="background:${eq.status === 'Active' ? 'rgba(0,200,83,.15)' : eq.status === 'Under MNT' ? 'rgba(255,179,0,.15)' : 'rgba(29,106,229,.15)'}">⚙</div>
+                <div class="card-item-body">
+                  <div class="card-item-title">${eq.id}</div>
+                  <div class="card-item-sub">${eq.location || eq.department}</div>
+                </div>
+                <span class="badge ${eq.status === 'Active' ? 'green' : eq.status === 'Under MNT' ? 'amber' : 'blue'}">${eq.status}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+async function renderAlerts(content) {
+  document.getElementById('topbar-title').textContent = 'Alerts';
+  const [pmRes, exRes] = await Promise.all([
+    apiGet({ action: 'getPMAlerts', department: USER.department || 'All' }),
+    apiGet({ action: 'getExemptions' })
+  ]);
+
+  const pmAlerts = pmRes.alerts || [];
+  const exemptions = (exRes.exemptions || []).filter(e => e.status && e.status.includes('Active'));
+
+  content.innerHTML = `
+    <div class="fade-in">
+      <div class="content-section">
+        <div class="section-title">PM alerts (${pmAlerts.length})</div>
+        ${pmAlerts.length === 0 ? '<div class="empty">No PM alerts</div>' :
+          pmAlerts.map(a => `
+            <div class="alert-bar ${a.status === 'Overdue' ? 'red' : 'amber'}">
+              <div>
+                <div style="font-weight:600">${a.equipmentId} — ${a.pmType}</div>
+                <div style="font-size:11px;opacity:.8">${a.type} · ${a.department} · ${a.status === 'Overdue' ? 'OVERDUE' : a.daysLeft + ' days left'}</div>
+              </div>
+            </div>
+          `).join('')}
+      </div>
+
+      <div class="content-section">
+        <div class="section-title">Active exemptions (${exemptions.length})</div>
+        ${exemptions.length === 0 ? '<div class="empty">No active exemptions</div>' :
+          exemptions.map(e => `
+            <div class="card" style="margin-bottom:8px">
+              <div class="card-item" style="cursor:default">
+                <div class="card-item-body">
+                  <div class="card-item-title">${e.exemptionId} — ${e.equipmentId}</div>
+                  <div class="card-item-sub">${e.packageId} · ${e.reason}</div>
+                  <div class="card-item-sub" style="margin-top:2px">Expires: ${e.expiryDate} · Days left: ${e.daysRemaining || '?'}</div>
+                </div>
+                <span class="badge amber">${e.status}</span>
+              </div>
+            </div>
+          `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function renderCreateJob(content) {
+  content.innerHTML = `
+    <div class="fade-in">
+      <div class="content-section">
+        <div class="section-title">Job details</div>
+        <div class="form-group">
+          <label class="form-label">Well Number</label>
+          <input type="text" class="form-input" id="cj-well" placeholder="W-2241">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Rig Number</label>
+          <input type="text" class="form-input" id="cj-rig" placeholder="R-15">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Package ID</label>
+          <input type="text" class="form-input" id="cj-pkg" placeholder="PKG-724">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Mobilization Date</label>
+          <input type="date" class="form-input" id="cj-mob">
+        </div>
+      </div>
+      <button class="btn primary" onclick="submitCreateJob()">Create Job Assignment</button>
+      <button class="btn ghost" onclick="goBack()">Cancel</button>
+    </div>
+  `;
+  document.getElementById('cj-mob').value = new Date().toISOString().split('T')[0];
+}
+
+async function renderJobs(content) {
+  document.getElementById('topbar-title').textContent = 'Jobs';
+  const res = await apiGet({ action: 'getJobs', department: USER.department === 'All' ? 'All' : USER.department });
+  const jobs = res.jobs || [];
+
+  content.innerHTML = `
+    <div class="fade-in">
+      <div class="card">
+        ${jobs.length === 0 ? '<div class="empty">No jobs found</div>' :
+          jobs.map(j => `
+            <div class="card-item" onclick="pushView('job-detail', ${JSON.stringify(j).replace(/"/g, '&quot;')}, '${j.jobId}')">
+              <div class="card-item-icon" style="background:${j.status === 'Running' ? 'rgba(0,200,83,.15)' : j.status === 'Exemption' ? 'rgba(255,179,0,.15)' : 'rgba(29,106,229,.15)'}">📋</div>
+              <div class="card-item-body">
+                <div class="card-item-title">${j.jobId} · ${j.wellNumber}</div>
+                <div class="card-item-sub">${j.packageId} · ${j.mobDate}</div>
+              </div>
+              <div class="card-item-right">
+                <span class="badge ${j.status === 'Running' ? 'green' : j.status === 'Exemption' ? 'amber' : 'blue'}">${j.status}</span>
+                <span class="arrow">›</span>
+              </div>
+            </div>
+          `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+// ═══════════════════════════════════════════
+// ACTIONS
+// ═══════════════════════════════════════════
+function openFaultModal(jobId, pkgId) {
+  document.getElementById('modal-content').innerHTML = `
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <div class="modal-title">Report fault / swap equipment</div>
+    <div class="form-group">
+      <label class="form-label">Equipment with fault</label>
+      <input type="text" class="form-input" id="fault-old" placeholder="e.g. PU-014">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Replacement equipment</label>
+      <input type="text" class="form-input" id="fault-new" placeholder="e.g. PU-021">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Equipment type</label>
+      <input type="text" class="form-input" id="fault-type" placeholder="e.g. Fluid Pump">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Reason</label>
+      <textarea class="form-textarea" id="fault-reason" rows="3" placeholder="Describe the fault..."></textarea>
+    </div>
+    <button class="btn danger" onclick="submitFault('${jobId}', '${pkgId}')">Submit fault report</button>
+  `;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+async function submitFault(jobId, pkgId) {
+  const oldEq = document.getElementById('fault-old').value.trim();
+  const newEq = document.getElementById('fault-new').value.trim();
+  const type = document.getElementById('fault-type').value.trim();
+  const reason = document.getElementById('fault-reason').value.trim();
+  if (!oldEq || !reason) return alert('Please fill all fields');
+
+  const res = await apiPost({
+    action: 'reportFault', jobId, packageId: pkgId,
+    equipmentId: oldEq, equipmentType: type,
+    oldEquipment: oldEq, newEquipment: newEq,
+    department: USER.department, cellLeader: USER.fullName,
+    reason, mntManager: 'Tanveer.Hussain'
+  });
+  closeModal();
+  alert('Fault reported. Change request sent to Asset Manager & FSM. MNT Manager notified.');
+  loadView('home');
+}
+
+function openDemobModal(jobId, wellNumber, pkgId, mobDate) {
+  document.getElementById('modal-content').innerHTML = `
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <div class="modal-title">Enter demob date</div>
+    <div class="form-group">
+      <label class="form-label">Demob date</label>
+      <input type="date" class="form-input" id="demob-date" value="${new Date().toISOString().split('T')[0]}">
+    </div>
+    <button class="btn primary" onclick="submitDemob('${jobId}', '${wellNumber}', '${pkgId}', '${mobDate}')">Confirm demob — close job</button>
+  `;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+async function submitDemob(jobId, wellNumber, pkgId, mobDate) {
+  const demobDate = document.getElementById('demob-date').value;
+  if (!demobDate) return;
+  const res = await apiPost({
+    action: 'demoJob', jobId, wellNumber, packageId: pkgId,
+    department: USER.department, mobDate, demobDate
+  });
+  closeModal();
+  alert(`Job closed. Ticket ${res.ticketId} created for Ticketing Team.`);
+  loadView('home');
+}
+
+function openExemptionModal(jobId, pkgId) {
+  document.getElementById('modal-content').innerHTML = `
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <div class="modal-title">Request exemption</div>
+    <div class="form-group">
+      <label class="form-label">Equipment ID</label>
+      <input type="text" class="form-input" id="ex-eq" placeholder="e.g. CC-706">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Reason</label>
+      <textarea class="form-textarea" id="ex-reason" rows="3" placeholder="Why can't this equipment be replaced now?"></textarea>
+    </div>
+    <button class="btn warning" onclick="submitExemption('${jobId}', '${pkgId}')">Submit exemption request</button>
+  `;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+async function submitExemption(jobId, pkgId) {
+  const eqId = document.getElementById('ex-eq').value.trim();
+  const reason = document.getElementById('ex-reason').value.trim();
+  if (!eqId || !reason) return alert('Please fill all fields');
+  const res = await apiPost({
+    action: 'requestExemption', jobId, packageId: pkgId,
+    equipmentId: eqId, department: USER.department, reason
+  });
+  closeModal();
+  alert(`Exemption ${res.exemptionId} submitted. Sent to MNT Manager, Asset Manager, FSM & Operation Manager.`);
+  loadView('home');
+}
+
+async function submitCreateJob() {
+  const well = document.getElementById('cj-well').value.trim();
+  const rig = document.getElementById('cj-rig').value.trim();
+  const pkg = document.getElementById('cj-pkg').value.trim();
+  const mob = document.getElementById('cj-mob').value;
+  if (!well || !rig || !pkg || !mob) return alert('Please fill all fields');
+
+  const res = await apiPost({
+    action: 'createJob', wellNumber: well, rigNumber: rig,
+    packageId: pkg, department: USER.department,
+    cellLeader: USER.fullName, mobDate: mob
+  });
+
+  if (res.success) {
+    alert(`Job ${res.jobId} created successfully!`);
+    goBack();
+    loadView('home');
+  } else {
+    alert('Error: ' + (res.error || 'Unknown error'));
+  }
+}
+
+async function markMNTDone(mntId, eqId) {
+  const res = await apiPost({ action: 'markMNTDone', mntId, equipmentId: eqId });
+  alert(`${eqId} marked as done. Sent to QAQC Manager for approval.`);
+  loadView('home');
+}
+
+async function qaqcDecision(mntId, decision) {
+  const reason = document.getElementById('qaqc-reason-' + mntId)?.value || '';
+  const res = await apiPost({ action: 'qaqcDecision', mntId, decision, reason });
+  alert(decision === 'Approved' ? 'Equipment approved → moved to Pool' : 'Rejected → returned to MNT Manager');
+  loadView('home');
+}
+
+async function acknowledgeTicket(ticketId) {
+  await apiPost({ action: 'acknowledgeTicket', ticketId });
+  alert('Ticket acknowledged. You can now start working on it.');
+  loadView('home');
+}
+
+async function doneTicket(ticketId) {
+  await apiPost({ action: 'doneTicket', ticketId });
+  alert('Ticket marked as done!');
+  loadView('home');
+}
+
+// ═══════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════
+function toggleKPI(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const isOpen = el.style.display !== 'none';
+  document.querySelectorAll('[id$="-detail"],[id^="op-"],[id^="fsm-"],[id^="tkt-"],[id^="mnt-"],[id^="pool-"],[id^="pm-"],[id^="qaqc-"],[id^="running-"]').forEach(e => {
+    e.style.display = 'none';
+  });
+  if (!isOpen) el.style.display = 'block';
+}
+
+function deptPill(dept) {
+  const map = { 'D&WO': 'dept-dwo', 'UC': 'dept-uc', 'SAWCOD': 'dept-sawcod' };
+  return `<span class="dept-pill ${map[dept] || 'dept-all'}">${dept}</span>`;
+}
+
+function closeModal(e) {
+  if (!e || e.target === document.getElementById('modal-overlay')) {
+    document.getElementById('modal-overlay').classList.remove('open');
+  }
+}
+
+function openModal() {
+  document.getElementById('modal-overlay').classList.add('open');
+}
+</script>
+</body>
+</html>
