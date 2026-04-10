@@ -510,20 +510,52 @@ let CURRENT_VIEW = 'home';
 let CACHE = {};
 
 // ═══════════════════════════════════════════
-// API
+// API — with caching
 // ═══════════════════════════════════════════
-async function apiGet(params) {
+const CACHE_TTL = 60000; // 1 minute cache
+const CACHE_STORE = {};
+
+async function apiGet(params, forceRefresh) {
+  const key = JSON.stringify(params);
+  const now = Date.now();
+
+  if (!forceRefresh && CACHE_STORE[key] && (now - CACHE_STORE[key].time < CACHE_TTL)) {
+    return CACHE_STORE[key].data;
+  }
+
   const url = API + '?' + new URLSearchParams(params);
   const res = await fetch(url);
-  return res.json();
+  const data = await res.json();
+  CACHE_STORE[key] = { data, time: now };
+  return data;
 }
 
 async function apiPost(data) {
+  // Clear relevant cache after any write
+  Object.keys(CACHE_STORE).forEach(k => delete CACHE_STORE[k]);
   const res = await fetch(API, {
     method: 'POST',
     body: JSON.stringify(data)
   });
   return res.json();
+}
+
+// Pre-load all data after login
+async function preloadData() {
+  const dept = USER.department;
+  const promises = [
+    apiGet({ action: 'getJobs', department: dept }),
+    apiGet({ action: 'getEquipment', department: dept }),
+    apiGet({ action: 'getPMAlerts', department: dept }),
+    apiGet({ action: 'getMNT' }),
+    apiGet({ action: 'getTickets' }),
+    apiGet({ action: 'getExemptions' }),
+  ];
+  if (dept === 'All') {
+    promises.push(apiGet({ action: 'getPool' }));
+    promises.push(apiGet({ action: 'getDashboard', department: 'All' }));
+  }
+  await Promise.all(promises);
 }
 
 // ═══════════════════════════════════════════
@@ -566,7 +598,7 @@ document.getElementById('login-password').addEventListener('keypress', e => {
 // ═══════════════════════════════════════════
 // APP INIT
 // ═══════════════════════════════════════════
-function showApp() {
+async function showApp() {
   document.getElementById('login-screen').classList.remove('active');
   document.getElementById('app-screen').classList.add('active');
 
@@ -574,7 +606,14 @@ function showApp() {
   document.getElementById('topbar-avatar').textContent = initials;
   document.getElementById('topbar-role').textContent = USER.role;
 
+  // Show loading while preloading
+  document.getElementById('main-content').innerHTML = '<div class="loading"><div class="spinner"></div> Loading your data...</div>';
+  document.getElementById('bottom-nav').style.display = 'none';
+
   setupNav();
+
+  // Preload all data in background
+  await preloadData();
   loadView('home');
 }
 
