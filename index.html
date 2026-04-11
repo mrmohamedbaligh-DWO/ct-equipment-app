@@ -204,7 +204,7 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:
 .ni-icon{font-size:20px}
 
 /* MODAL */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:200;display:none;align-items:flex-end;justify-content:center}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:300;display:none;align-items:flex-end;justify-content:center}
 .modal-overlay.open{display:flex}
 .modal{background:var(--s2);border-radius:20px 20px 0 0;border-top:1px solid var(--border2);padding:20px;width:100%;max-width:480px;max-height:88vh;overflow-y:auto}
 .modal-handle{width:36px;height:4px;background:var(--s3);border-radius:2px;margin:0 auto 16px}
@@ -326,7 +326,16 @@ function setupNav(){
 }
 
 // ─── NAV ───────────────────────────────────
-function navTo(v,p){NAV=[{v,p}];document.getElementById('tb-back').style.display='none';document.querySelectorAll('.ni').forEach(n=>n.classList.remove('active'));const h=document.getElementById('n1');if(h)h.classList.add('active');loadView(v,p);}
+function navTo(v,p){
+  NAV=[{v,p}];
+  document.getElementById('tb-back').style.display='none';
+  document.getElementById('tb-title').textContent='Dashboard';
+  document.querySelectorAll('.ni').forEach(n=>n.classList.remove('active'));
+  const h=document.getElementById('n1');if(h)h.classList.add('active');
+  // Restore bottom nav visibility
+  document.getElementById('bnav').style.display='flex';
+  loadView(v,p);
+}
 function pushView(v,p,title){
   NAV.push({v,p,title});
   const back=document.getElementById('tb-back');
@@ -349,6 +358,9 @@ async function loadView(v,p,title){
   OKPI=null;const c=document.getElementById('mc');
   c.innerHTML='<div class="loading"><div class="spinner"></div><span>Loading...</span></div>';
   if(title)document.getElementById('tb-title').textContent=title;
+  // Always keep bottom nav visible
+  const bnav=document.getElementById('bnav');
+  if(bnav)bnav.style.display='flex';
   try{
     if(v==='home')await renderHome(c);
     else if(v==='jobs')await renderJobs(c);
@@ -362,6 +374,14 @@ async function loadView(v,p,title){
   }catch(e){c.innerHTML=`<div class="empty">Error: ${e.message}</div>`;}
 }
 
+function togDept(id){
+  const el=document.getElementById(id);
+  const arr=document.getElementById(id+'arr');
+  if(!el)return;
+  const open=el.style.display!=='none';
+  el.style.display=open?'none':'block';
+  if(arr)arr.textContent=open?'▸':'▾';
+}
 function toggleKPI(id){
   const el=document.getElementById(id);if(!el)return;
   if(OKPI&&OKPI!==id){const prev=document.getElementById(OKPI);if(prev)prev.style.display='none';}
@@ -402,7 +422,7 @@ function donut(data,total,cx,cy,r,sw){
 async function renderCL(c){
   const[jR,pmR]=await Promise.all([get({action:'getJobs',department:USER.department}),get({action:'getPMAlerts',department:USER.department})]);
   const jobs=jR.jobs||[],running=jobs.filter(j=>j.status==='Running'||j.status==='Exemption'),done=jobs.filter(j=>j.status==='Completed');
-  const pm=(pmR.alerts||[]).filter(a=>a.daysLeft<=30);
+  const _pmRaw=(pmR.alerts||[]).filter(a=>a.daysLeft<=30);const _pmSeen=new Set();const pm=_pmRaw.filter(a=>{const k=a.equipmentId+a.pmType;if(_pmSeen.has(k))return false;_pmSeen.add(k);return true;});
   // Utilization per package
   const pkgUtil={};
   jobs.forEach(j=>{
@@ -441,7 +461,7 @@ async function renderCL(c){
       <div class="leg-h"><div class="leg-sq" style="background:var(--red)"></div>MNT</div>
       <div class="leg-h"><div class="leg-sq" style="background:var(--blue)"></div>Pool</div>
     </div>
-    ${running.map(j=>{const u=pkgUtil[j.packageId]||{onJob:0,mnt:0,pool:0,total:1};const t=u.total||1;const op=Math.round(u.onJob/t*100),mp=Math.round(u.mnt/t*100),pp=Math.round(u.pool/t*100);return`
+    ${[...new Map(running.map(j=>[j.packageId,j])).values()].map(j=>{const u=pkgUtil[j.packageId]||{onJob:0,mnt:0,pool:0,total:1};const t=u.total||1;const op=Math.round(u.onJob/t*100),mp=Math.round(u.mnt/t*100),pp=Math.round(u.pool/t*100);return`
       <div class="urow">
         <div class="upkg">${j.packageId}</div>
         <div class="ubar">
@@ -452,7 +472,7 @@ async function renderCL(c){
         <div class="upct" style="color:${op>70?'var(--green)':op>50?'var(--amber)':'var(--red)'}">${op}%</div>
       </div>`;}).join('')}
   </div></div>`:''}
-  ${pm.length>0?`<div class="slbl" style="margin-top:4px">PM alerts — contact Asset Manager</div>${pm.map(a=>`<div class="alert ${a.status==='Overdue'?'r':'a'}"><span class="alert-icon">${a.status==='Overdue'?'🔴':'⚠️'}</span><div><strong>${a.equipmentId}</strong> ${a.pmType} — ${a.status==='Overdue'?'OVERDUE':a.daysLeft+' days left'}</div></div>`).join('')}`:''}
+  ${pm.length>0?`<div class="slbl" style="margin-top:4px">PM alerts — contact Asset Manager</div>${pm.map(a=>`<div class="alert ${a.status==='Overdue'?'r':'a'}"><span class="alert-icon">${a.status==='Overdue'?'🔴':'⚠️'}</span><div><strong>${a.equipmentId}</strong> ${a.pmType} — Due ${a.dueDate} — ${a.status==='Overdue'?'OVERDUE':a.daysLeft+' days left'}</div></div>`).join('')}`:''}
   <div class="divider"></div>
   <button class="btn primary" onclick="pushView('create-job',null,'New Job Assignment')">+ New Job Assignment</button>
   <button class="btn ghost" onclick="navTo('jobs')">View all jobs</button>`;
@@ -465,7 +485,7 @@ async function renderAM(c){
   const[poolR,mntR,jR,pmR]=await Promise.all([get({action:'getPool'}),get({action:'getMNT'}),get({action:'getJobs',department:'All'}),get({action:'getPMAlerts',department:'All'})]);
   const pool=poolR.pool||{},poolTotal=Object.values(pool).reduce((s,a)=>s+a.length,0);
   const mntRecs=(mntR.records||[]).filter(r=>r.status==='Under MNT');
-  const pm=(pmR.alerts||[]).filter(a=>a.daysLeft<=30);
+  const _pmRaw=(pmR.alerts||[]).filter(a=>a.daysLeft<=30);const _pmSeen=new Set();const pm=_pmRaw.filter(a=>{const k=a.equipmentId+a.pmType;if(_pmSeen.has(k))return false;_pmSeen.add(k);return true;});
   const jobs=jR.jobs||[],running=jobs.filter(j=>j.status==='Running'||j.status==='Exemption');
   // Fleet status counts
   const onJob=running.reduce((s,j)=>s+(j.equipment||[]).length,0);
@@ -479,40 +499,69 @@ async function renderAM(c){
     <div class="kpi g" onclick="toggleKPI('am-run')"><div class="kpi-lbl">Jobs running <span class="kpi-tap">tap ▸</span></div><div class="kpi-val g">${running.length}</div><div class="kpi-sub">all depts</div></div>
     <div class="kpi r" onclick="toggleKPI('am-pm')"><div class="kpi-lbl">PM alerts <span class="kpi-tap">tap ▸</span></div><div class="kpi-val r">${pm.length}</div><div class="kpi-sub">need action</div></div>
   </div>
-  <!-- Fleet donut -->
-  <div class="slbl">Fleet status overview</div>
-  <div class="card"><div class="card-body">
-    <div class="donut-wrap">
-      <svg width="110" height="110" viewBox="0 0 110 110" style="flex-shrink:0">
-        <circle cx="55" cy="55" r="42" fill="none" stroke="var(--s3)" stroke-width="16"/>
-        ${donut([{val:onJob,color:'var(--green)'},{val:mntCnt,color:'var(--red)'},{val:poolCnt,color:'var(--blue)'}],total,55,55,42,16)}
-        <text x="55" y="51" text-anchor="middle" font-size="16" font-weight="700" fill="var(--t1)">${total}</text>
-        <text x="55" y="63" text-anchor="middle" font-size="9" fill="var(--t3)">units</text>
-      </svg>
-      <div class="donut-legend">
-        <div class="leg"><div class="leg-dot" style="background:var(--green)"></div><div class="leg-lbl">On Job</div><div class="leg-val">${onJob}</div><div class="leg-pct">${Math.round(onJob/total*100)}%</div></div>
-        <div class="leg"><div class="leg-dot" style="background:var(--red)"></div><div class="leg-lbl">Under MNT</div><div class="leg-val">${mntCnt}</div><div class="leg-pct">${Math.round(mntCnt/total*100)}%</div></div>
-        <div class="leg"><div class="leg-dot" style="background:var(--blue)"></div><div class="leg-lbl">Pool</div><div class="leg-val">${poolCnt}</div><div class="leg-pct">${Math.round(poolCnt/total*100)}%</div></div>
-      </div>
+  <!-- Fleet donut + Package util donut -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+    <div>
+      <div class="slbl">Fleet status</div>
+      <div class="card"><div class="card-body" style="padding:10px">
+        <svg width="100%" height="120" viewBox="0 0 110 120">
+          <circle cx="55" cy="55" r="42" fill="none" stroke="var(--s3)" stroke-width="16"/>
+          ${donut([{val:onJob,color:'var(--green)'},{val:mntCnt,color:'var(--red)'},{val:poolCnt,color:'var(--blue)'}],total,55,55,42,16)}
+          <text x="55" y="51" text-anchor="middle" font-size="14" font-weight="700" fill="var(--t1)">${total}</text>
+          <text x="55" y="63" text-anchor="middle" font-size="8" fill="var(--t3)">units</text>
+          <circle cx="12" cy="85" r="5" fill="var(--green)"/><text x="20" y="89" font-size="8" fill="var(--t2)">Job ${onJob}</text>
+          <circle cx="12" cy="100" r="5" fill="var(--red)"/><text x="20" y="104" font-size="8" fill="var(--t2)">MNT ${mntCnt}</text>
+          <circle cx="60" cy="85" r="5" fill="var(--blue)"/><text x="68" y="89" font-size="8" fill="var(--t2)">Pool ${poolCnt}</text>
+        </svg>
+      </div></div>
     </div>
-  </div></div>
+    <div>
+      <div class="slbl">Package util</div>
+      <div class="card"><div class="card-body" style="padding:10px">
+        ${running.length>0?`<svg width="100%" height="120" viewBox="0 0 110 120">
+          <circle cx="55" cy="55" r="42" fill="none" stroke="var(--s3)" stroke-width="16"/>
+          ${donut([{val:running.length,color:'var(--green)'},{val:Math.max(0,14-running.length-2),color:'var(--blue)'},{val:2,color:'var(--red)'}],14,55,55,42,16)}
+          <text x="55" y="51" text-anchor="middle" font-size="14" font-weight="700" fill="var(--t1)">14</text>
+          <text x="55" y="63" text-anchor="middle" font-size="8" fill="var(--t3)">packages</text>
+          <circle cx="12" cy="85" r="5" fill="var(--green)"/><text x="20" y="89" font-size="8" fill="var(--t2)">Run ${running.length}</text>
+          <circle cx="12" cy="100" r="5" fill="var(--blue)"/><text x="20" y="104" font-size="8" fill="var(--t2)">Avail ${Math.max(0,14-running.length-2)}</text>
+          <circle cx="60" cy="85" r="5" fill="var(--red)"/><text x="68" y="89" font-size="8" fill="var(--t2)">MNT 2</text>
+        </svg>`:'<div class="empty" style="padding:20px">No data</div>'}
+      </div></div>
+    </div>
+  </div>
   <div id="am-pool" style="display:none"><div class="expand">
     <div class="exp-head"><span class="exp-title">Pool — available equipment</span><span class="exp-close" onclick="toggleKPI('am-pool')">close</span></div>
     ${Object.keys(pool).length===0?'<div class="empty">No pool equipment</div>':Object.entries(pool).map(([type,items])=>`<div style="padding:8px 13px;border-bottom:1px solid var(--border)"><div class="slbl" style="margin-bottom:5px">${type} (${items.length})</div><div style="display:flex;flex-wrap:wrap;gap:5px">${items.map(e=>`<span class="bdg gray" style="font-family:'JetBrains Mono',monospace">${e.id}</span>`).join('')}</div></div>`).join('')}
   </div></div>
   <div id="am-mnt" style="display:none"><div class="expand">
     <div class="exp-head"><span class="exp-title">Equipment under MNT</span><span class="exp-close" onclick="toggleKPI('am-mnt')">close</span></div>
-    ${mntRecs.map(r=>`<div class="crow nc"><div class="ci" style="background:var(--amber-bg)">🔧</div><div class="cb"><div class="ct2">${r.equipmentId} — ${r.type}</div><div class="cs">${r.mntType} · ${r.startDate}</div></div><span class="bdg a">MNT</span></div>`).join('')}
+    ${mntRecs.map(r=>`
+      <div class="crow nc" style="flex-direction:column;align-items:flex-start;gap:4px">
+        <div style="display:flex;align-items:center;justify-content:space-between;width:100%">
+          <div style="display:flex;align-items:center;gap:8px">
+            <div class="ci" style="background:var(--amber-bg);flex-shrink:0">🔧</div>
+            <div><div class="ct2">${r.equipmentId} — ${r.type}</div><div class="cs">${r.mntType} · Started ${r.startDate}</div></div>
+          </div>
+          <span class="bdg a">MNT</span>
+        </div>
+        ${r.notes?`<div style="font-size:10px;color:var(--t3);padding-left:38px">${r.notes}</div>`:''}
+      </div>`).join('')}
     ${mntRecs.length===0?'<div class="empty">No equipment under MNT</div>':''}
   </div></div>
   <div id="am-run" style="display:none"><div class="expand">
     <div class="exp-head"><span class="exp-title">All running jobs</span><span class="exp-close" onclick="toggleKPI('am-run')">close</span></div>
-    ${running.map(j=>`<div class="crow nc"><div class="cb"><div class="ct2">${j.jobId} · ${j.wellNumber}</div><div class="cs">${j.packageId} · ${j.department} · ${j.daysOnJob||'?'} days</div></div><span class="bdg ${j.status==='Exemption'?'a':'g'}">${j.status}</span></div>`).join('')}
+    ${running.map(j=>`
+      <div class="crow" onclick="pushView('job-detail',${JSON.stringify(j).replace(/"/g,'&quot;')},'${j.jobId}')">
+        <div class="ci" style="background:var(--green-bg)">📋</div>
+        <div class="cb"><div class="ct2">${j.jobId} · ${j.wellNumber}</div><div class="cs">${j.packageId} · ${j.department} · ${j.daysOnJob||'?'} days</div></div>
+        <div class="cr"><span class="bdg ${j.status==='Exemption'?'a':'g'}">${j.status}</span><span class="chev">›</span></div>
+      </div>`).join('')}
     ${running.length===0?'<div class="empty">No running jobs</div>':''}
   </div></div>
   <div id="am-pm" style="display:none"><div class="expand">
     <div class="exp-head"><span class="exp-title">PM due alerts</span><span class="exp-close" onclick="toggleKPI('am-pm')">close</span></div>
-    <div style="padding:10px 13px">${pm.map(a=>`<div class="alert ${a.status==='Overdue'?'r':'a'}" style="margin-bottom:6px"><span class="alert-icon">${a.status==='Overdue'?'🔴':'⚠️'}</span><div><strong>${a.equipmentId}</strong> ${a.pmType} · ${a.department} · ${a.status==='Overdue'?'OVERDUE':a.daysLeft+' days'}</div></div>`).join('')}${pm.length===0?'<div class="empty">No alerts</div>':''}</div>
+    <div style="padding:10px 13px">${pm.map(a=>`<div class="alert ${a.status==='Overdue'?'r':'a'}" style="margin-bottom:6px"><span class="alert-icon">${a.status==='Overdue'?'🔴':'⚠️'}</span><div><strong>${a.equipmentId}</strong> ${a.pmType} · Due ${a.dueDate} · ${a.status==='Overdue'?'OVERDUE':a.daysLeft+' days'}</div></div>`).join('')}${pm.length===0?'<div class="empty">No alerts</div>':''}</div>
   </div></div>
   <div class="divider"></div>
   <button class="btn ghost" onclick="navTo('equipment')">View all equipment</button>
@@ -574,7 +623,7 @@ async function renderMNT(c){
   </div></div>
   <div id="mnt-pm" style="display:none"><div class="expand">
     <div class="exp-head"><span class="exp-title">PM due alerts</span><span class="exp-close" onclick="toggleKPI('mnt-pm')">close</span></div>
-    <div style="padding:10px 13px">${pm.map(a=>`<div class="alert ${a.status==='Overdue'?'r':'a'}" style="margin-bottom:6px"><span class="alert-icon">${a.status==='Overdue'?'🔴':'⚠️'}</span><div><strong>${a.equipmentId}</strong> ${a.pmType} — ${a.status==='Overdue'?'OVERDUE':a.daysLeft+' days'}</div></div>`).join('')}${pm.length===0?'<div class="empty">No alerts</div>':''}</div>
+    <div style="padding:10px 13px">${pm.map(a=>`<div class="alert ${a.status==='Overdue'?'r':'a'}" style="margin-bottom:6px"><span class="alert-icon">${a.status==='Overdue'?'🔴':'⚠️'}</span><div><strong>${a.equipmentId}</strong> ${a.pmType} — <strong>${a.dueDate}</strong> — ${a.status==='Overdue'?'OVERDUE':a.daysLeft+' days'}</div></div>`).join('')}${pm.length===0?'<div class="empty">No alerts</div>':''}</div>
   </div></div>`;
 }
 
@@ -636,10 +685,13 @@ async function renderQA(c){
 async function renderFSM(c){
   const[jR,pmR]=await Promise.all([get({action:'getJobs',department:USER.department}),get({action:'getPMAlerts',department:USER.department})]);
   const jobs=jR.jobs||[],running=jobs.filter(j=>j.status==='Running'||j.status==='Exemption'),done=jobs.filter(j=>j.status==='Completed');
-  const pm=(pmR.alerts||[]).filter(a=>a.daysLeft<=30);
+  const _pmRaw=(pmR.alerts||[]).filter(a=>a.daysLeft<=30);const _pmSeen=new Set();const pm=_pmRaw.filter(a=>{const k=a.equipmentId+a.pmType;if(_pmSeen.has(k))return false;_pmSeen.add(k);return true;});
   // Package utilization
+  // Deduplicate jobs by jobId
+  const seenJobs={};
+  const uniqueJobs=jobs.filter(j=>{if(seenJobs[j.jobId])return false;seenJobs[j.jobId]=true;return true;});
   const pkgUtil={};
-  jobs.forEach(j=>{
+  uniqueJobs.forEach(j=>{
     if(!pkgUtil[j.packageId])pkgUtil[j.packageId]={onJob:0,mnt:0,pool:0,total:0};
     (j.equipment||[]).forEach(e=>{
       pkgUtil[j.packageId].total++;
@@ -648,12 +700,13 @@ async function renderFSM(c){
       else pkgUtil[j.packageId].pool++;
     });
   });
+  const runningUnique=uniqueJobs.filter(j=>j.status==='Running'||j.status==='Exemption');
   c.innerHTML=`
   <div class="kpi-row">
     <div class="kpi g" onclick="toggleKPI('fsm-run')"><div class="kpi-lbl">Jobs running <span class="kpi-tap">tap ▸</span></div><div class="kpi-val g">${running.length}</div><div class="kpi-sub">${USER.department}</div></div>
     <div class="kpi b" onclick="toggleKPI('fsm-done')"><div class="kpi-lbl">Completed <span class="kpi-tap">tap ▸</span></div><div class="kpi-val b">${done.length}</div><div class="kpi-sub">this year</div></div>
   </div>
-  ${running.length>0?`
+  ${runningFSM.length>0?`
   <div class="slbl">Package utilization — ${USER.department}</div>
   <div class="card"><div class="card-body">
     <div class="leg-row" style="margin-bottom:10px">
@@ -661,7 +714,7 @@ async function renderFSM(c){
       <div class="leg-h"><div class="leg-sq" style="background:var(--red)"></div>MNT</div>
       <div class="leg-h"><div class="leg-sq" style="background:var(--blue)"></div>Pool</div>
     </div>
-    ${running.map(j=>{const u=pkgUtil[j.packageId]||{onJob:0,mnt:0,pool:0,total:1};const t=u.total||1;const op=Math.round(u.onJob/t*100),mp=Math.round(u.mnt/t*100),pp=Math.round(u.pool/t*100);return`
+    ${[...new Map(running.map(j=>[j.packageId,j])).values()].map(j=>{const u=pkgUtil[j.packageId]||{onJob:0,mnt:0,pool:0,total:1};const t=u.total||1;const op=Math.round(u.onJob/t*100),mp=Math.round(u.mnt/t*100),pp=Math.round(u.pool/t*100);return`
       <div class="urow">
         <div class="upkg">${j.packageId}</div>
         <div class="ubar">
@@ -682,7 +735,31 @@ async function renderFSM(c){
     ${done.map(j=>`<div class="crow nc"><div class="cb"><div class="ct2">${j.jobId} · ${j.wellNumber}</div><div class="cs">${j.mobDate} → ${j.demobDate}</div></div><span class="bdg b">Done</span></div>`).join('')}
     ${done.length===0?'<div class="empty">No completed jobs</div>':''}
   </div></div>
-  ${pm.length>0?`<div class="divider"></div><div class="slbl">PM alerts — ${USER.department}</div>${pm.map(a=>`<div class="alert ${a.status==='Overdue'?'r':'a'}"><span class="alert-icon">${a.status==='Overdue'?'🔴':'⚠️'}</span><div><strong>${a.equipmentId}</strong> ${a.pmType} — ${a.status==='Overdue'?'OVERDUE':a.daysLeft+' days'}</div></div>`).join('')}`:''}`;
+  ${pm.length>0?`<div class="divider"></div><div class="slbl">PM alerts — ${USER.department}</div>${pm.map(a=>`<div class="alert ${a.status==='Overdue'?'r':'a'}"><span class="alert-icon">${a.status==='Overdue'?'🔴':'⚠️'}</span><div><strong>${a.equipmentId}</strong> ${a.pmType} — <strong>${a.dueDate}</strong> — ${a.status==='Overdue'?'OVERDUE':a.daysLeft+' days'}</div></div>`).join('')}`:''}
+  ${months.length>0?`
+  <div class="divider"></div>
+  <div class="slbl">Tickets — ${USER.department} per month</div>
+  <div class="card"><div class="card-body">
+    <div style="display:flex;align-items:flex-end;gap:6px;height:70px;margin-bottom:8px">
+      ${months.map(m=>{
+        const pct=Math.round(mStats[m].total/maxT*100);
+        const dp=mStats[m].total>0?Math.round(mStats[m].done/mStats[m].total*100):0;
+        return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;height:100%;justify-content:flex-end">'
+          +'<div style="font-size:9px;font-weight:600;color:var(--t2)">'+mStats[m].total+'</div>'
+          +'<div style="width:100%;border-radius:3px 3px 0 0;overflow:hidden;height:'+Math.max(pct,8)+'%;display:flex;flex-direction:column">'
+          +'<div style="flex:'+dp+';background:var(--green)"></div>'
+          +'<div style="flex:'+(100-dp)+';background:var(--s3)"></div>'
+          +'</div>'
+          +'<div style="font-size:8px;color:var(--t3)">'+m.slice(5)+'</div>'
+          +'</div>';
+      }).join('')}
+    </div>
+    <div style="display:flex;gap:10px">
+      <div class="leg-h"><div class="leg-sq" style="background:var(--green)"></div>Done</div>
+      <div class="leg-h"><div class="leg-sq" style="background:var(--s3)"></div>Pending</div>
+    </div>
+  </div></div>`:''}
+  `;
 }
 
 // ═══════════════════════════════════════════
@@ -696,10 +773,15 @@ async function renderOP(c){
   const byDept={};
   runningJobs.forEach(j=>{if(!byDept[j.department])byDept[j.department]={count:0,pkgs:[]};byDept[j.department].count++;byDept[j.department].pkgs.push(j);});
   // Fleet numbers from mntPerf
-  const totalFleet=mntPerf.reduce((s,m)=>s+m.total,0)||1;
-  const totalMNT=mntPerf.reduce((s,m)=>s+m.underMnt,0);
-  const totalOnJob=runningJobs.reduce((s,j)=>s+(j.equipment||[]).length,0);
-  const totalPool=Math.max(0,totalFleet-totalOnJob-totalMNT);
+  const TOTAL_PKGS=14;
+  const pkgsOnJob=runningJobs.filter(j=>j.status==='Running').length;
+  const pkgsExemption=runningJobs.filter(j=>j.status==='Exemption').length;
+  const _totalEq=mntPerf.reduce((s,m)=>s+m.total,0)||1;
+  const pkgsMNT=Math.round((mntPerf.reduce((s,m)=>s+m.underMnt,0)/_totalEq)*TOTAL_PKGS);
+  const totalFleet=TOTAL_PKGS;
+  const totalOnJob=pkgsOnJob;
+  const totalMNT=pkgsMNT;
+  const totalPool=Math.max(0,TOTAL_PKGS-pkgsOnJob-pkgsExemption-pkgsMNT);
   c.innerHTML=`
   <div class="kpi-row">
     <div class="kpi g" onclick="toggleKPI('op-run')"><div class="kpi-lbl">Packages running <span class="kpi-tap">tap ▸</span></div><div class="kpi-val g">${kpis.packagesRunning||0}<small>/${kpis.totalPackages||14}</small></div><div class="kpi-sub">active packages</div></div>
@@ -713,28 +795,34 @@ async function renderOP(c){
     <div class="donut-wrap">
       <svg width="110" height="110" viewBox="0 0 110 110" style="flex-shrink:0">
         <circle cx="55" cy="55" r="42" fill="none" stroke="var(--s3)" stroke-width="16"/>
-        ${donut([{val:totalOnJob,color:'var(--green)'},{val:totalMNT,color:'var(--red)'},{val:totalPool,color:'var(--blue)'}],totalFleet,55,55,42,16)}
+        ${donut([{val:pkgsOnJob,color:'var(--green)'},{val:pkgsExemption,color:'var(--amber)'},{val:pkgsMNT,color:'var(--red)'},{val:totalPool,color:'var(--blue)'}],totalFleet,55,55,42,16)}
         <text x="55" y="51" text-anchor="middle" font-size="16" font-weight="700" fill="var(--t1)">${totalFleet}</text>
-        <text x="55" y="63" text-anchor="middle" font-size="9" fill="var(--t3)">units</text>
+        <text x="55" y="63" text-anchor="middle" font-size="9" fill="var(--t3)">packages</text>
       </svg>
       <div class="donut-legend">
-        <div class="leg"><div class="leg-dot" style="background:var(--green)"></div><div class="leg-lbl">On Job</div><div class="leg-val">${totalOnJob}</div><div class="leg-pct">${Math.round(totalOnJob/totalFleet*100)}%</div></div>
-        <div class="leg"><div class="leg-dot" style="background:var(--red)"></div><div class="leg-lbl">Under MNT</div><div class="leg-val">${totalMNT}</div><div class="leg-pct">${Math.round(totalMNT/totalFleet*100)}%</div></div>
-        <div class="leg"><div class="leg-dot" style="background:var(--blue)"></div><div class="leg-lbl">Pool</div><div class="leg-val">${totalPool}</div><div class="leg-pct">${Math.round(totalPool/totalFleet*100)}%</div></div>
+        <div class="leg"><div class="leg-dot" style="background:var(--green)"></div><div class="leg-lbl">Running</div><div class="leg-val">${pkgsOnJob}</div><div class="leg-pct">pkgs</div></div>
+        <div class="leg"><div class="leg-dot" style="background:var(--amber)"></div><div class="leg-lbl">Exemption</div><div class="leg-val">${pkgsExemption}</div><div class="leg-pct">pkgs</div></div>
+        <div class="leg"><div class="leg-dot" style="background:var(--red)"></div><div class="leg-lbl">MNT</div><div class="leg-val">${pkgsMNT}</div><div class="leg-pct">pkgs</div></div>
+        <div class="leg"><div class="leg-dot" style="background:var(--blue)"></div><div class="leg-lbl">Standby</div><div class="leg-val">${totalPool}</div><div class="leg-pct">pkgs</div></div>
       </div>
     </div>
   </div></div>
   <!-- Dept packages -->
   <div class="slbl">Departments — running packages</div>
-  <div class="card"><div class="card-body" style="padding:8px 13px">
-    ${Object.entries(byDept).map(([dept,data])=>`
-      <div class="drow">
-        <span class="dp ${dept==='D&WO'?'dwo':dept==='UC'?'uc':'saw'}">${dept}</span>
-        <div class="dinfo"><div class="dcnt">${data.count} package${data.count>1?'s':''} running</div><div class="dsub">${data.pkgs.map(j=>j.packageId).join(' · ')}</div></div>
-        <div class="dutil"><div class="dutil-val">${data.pkgs.length>0?Math.round(data.pkgs.reduce((s,j)=>{const t=(j.equipment||[]).length||1,on=(j.equipment||[]).filter(e=>e.status==='Running'||e.status==='Exemption').length;return s+(on/t);},0)/data.pkgs.length*100):0}%</div><div class="dutil-sub">avg util</div></div>
-      </div>`).join('')}
-    ${Object.keys(byDept).length===0?'<div class="empty">No running jobs</div>':''}
-  </div></div>
+  <div class="card">
+    ${Object.entries(byDept).map(([dept,data])=>{const did='dp'+dept.replace(/[^a-z]/gi,'');return`
+      <div>
+        <div onclick="togDept('${did}')" style="cursor:pointer;padding:10px 13px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)">
+          <span class="dp ${dept==='D&WO'?'dwo':dept==='UC'?'uc':'saw'}">${dept}</span>
+          <div class="dinfo"><div class="dcnt">${data.count} pkg${data.count>1?'s':''} running</div><div class="dsub">${data.pkgs.map(j=>j.packageId).join(' · ')}</div></div>
+          <span id="${did}arr" style="font-size:12px;color:var(--t3);flex-shrink:0">▸</span>
+        </div>
+        <div id="${did}" style="display:none;background:var(--s3)">
+          ${data.pkgs.map(j=>`<div class="pkrow" onclick="pushView('job-detail',${JSON.stringify(j).replace(/"/g,'&quot;')},'${j.jobId}')"><div class="pkid">${j.packageId}</div><div class="pkloc"><div class="pkloc-main">${j.wellNumber} / ${j.rigNumber}</div><div class="pkloc-sub">${j.cellLeader} · ${j.daysOnJob||'?'} days</div></div><span class="bdg ${j.status==='Exemption'?'a':'g'}">${j.status}</span></div>`).join('')}
+        </div>
+      </div>`;}).join('')}
+    ${Object.keys(byDept).length===0?'<div class="empty" style="padding:14px">No running jobs</div>':''}
+  </div>
   <!-- Package util bars -->
   ${runningJobs.length>0?`
   <div class="slbl">Package utilization breakdown</div>
@@ -781,7 +869,7 @@ async function renderOP(c){
     <div class="exp-head"><span class="exp-title">MNT alerts detail</span><span class="exp-close" onclick="toggleKPI('op-mntperf')">close</span></div>
     <div style="padding:10px 13px">${mntPerf.filter(m=>m.alert).map(m=>`<div class="alert r" style="margin-bottom:6px"><span class="alert-icon">🔴</span><div><strong>${m.type}</strong> — ${m.pct}% under MNT (${m.underMnt}/${m.total} units)</div></div>`).join('')}${mntPerf.filter(m=>m.alert).length===0?'<div class="empty">No alerts</div>':''}</div>
   </div></div>
-  ${pmAlerts.length>0?`<div class="slbl" style="margin-top:4px">PM alerts — fleet wide</div>${pmAlerts.slice(0,5).map(a=>`<div class="alert ${a.status==='Overdue'?'r':'a'}"><span class="alert-icon">${a.status==='Overdue'?'🔴':'⚠️'}</span><div><strong>${a.equipmentId}</strong> (${a.department}) · ${a.pmType} · ${a.status==='Overdue'?'OVERDUE':a.daysLeft+' days'}</div></div>`).join('')}`:''}`;
+`;
 }
 
 // ═══════════════════════════════════════════
@@ -951,13 +1039,24 @@ async function renderJobDetail(c,job){
   <button class="btn ghost" onclick="openDemobModal('${job.jobId}','${job.wellNumber}','${job.packageId}','${job.mobDate}')">✓ Enter demob date</button>`:''}`;
 }
 
-function renderCreateJob(c){
+async function renderCreateJob(c){
+  const pkgRes=await get({action:'getPackages',department:USER.department});
+  const _packages=(pkgRes.packages||[]);
+  const pkgIds=[...new Set(_packages.map(p=>p.pkgId))].sort();
+  window._pkgData=_packages;
   c.innerHTML=`
   <div class="slbl">New job assignment</div>
   <div class="card" style="padding:14px">
     <div class="fg"><label class="flbl">Well Number</label><input type="text" class="finput" id="cj-w" placeholder="W-2241"></div>
     <div class="fg"><label class="flbl">Rig Number</label><input type="text" class="finput" id="cj-r" placeholder="R-15"></div>
-    <div class="fg"><label class="flbl">Package ID</label><input type="text" class="finput" id="cj-p" placeholder="PKG-724"></div>
+    <div class="fg">
+      <label class="flbl">Package</label>
+      <select class="finput" id="cj-p" onchange="loadPkgComps(this.value)" style="cursor:pointer">
+        <option value="">— Select package —</option>
+        ${pkgIds.map(id=>'<option value="'+id+'">'+id+'</option>').join('')}
+      </select>
+    </div>
+    <div id="pkg-comps"></div>
     <div class="fg" style="margin-bottom:0"><label class="flbl">Mobilization Date</label><input type="date" class="finput" id="cj-m"></div>
   </div>
   <div style="margin-top:10px">
@@ -965,6 +1064,30 @@ function renderCreateJob(c){
     <button class="btn ghost" onclick="goBack()">Cancel</button>
   </div>`;
   document.getElementById('cj-m').value=new Date().toISOString().split('T')[0];
+}
+
+async function loadPkgComps(pkgId){
+  const el=document.getElementById('pkg-comps');
+  if(!pkgId||!el){if(el)el.innerHTML='';return;}
+  const poolRes=await get({action:'getPool'});
+  const pool=poolRes.pool||{};
+  const pkgs=window._pkgData||[];
+  const pkg=pkgs.find(p=>p.pkgId===pkgId);
+  if(!pkg){el.innerHTML='';return;}
+  el.innerHTML=`
+    <div class="slbl" style="margin:12px 0 8px">Components — ${pkgId}</div>
+    <div class="card" style="margin-bottom:12px">
+      ${pkg.equipment.map(eq=>`
+        <div style="padding:9px 13px;border-bottom:1px solid var(--border)">
+          <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+            <span style="font-size:11px;font-weight:600;color:var(--t1)">${eq.type}</span>
+            <span style="font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--t2)">${eq.equipmentId}</span>
+          </div>
+          ${(pool[eq.type]||[]).length>0?
+            '<select class="finput" id="sw-'+eq.equipmentId+'" style="font-size:11px;padding:7px 10px;cursor:pointer"><option value="'+eq.equipmentId+'">'+eq.equipmentId+' (default)</option>'+(pool[eq.type]||[]).map(p=>'<option value="'+p.id+'">'+p.id+' — pool</option>').join('')+'</select>'
+            :'<div style="font-size:10px;color:var(--t3);padding:3px 0">No pool alternatives</div>'}
+        </div>`).join('')}
+    </div>`;
 }
 
 async function renderHistory(c){
@@ -1031,6 +1154,22 @@ async function submitJob(){
 async function markMNTDone(mntId,eqId){await post({action:'markMNTDone',mntId,equipmentId:eqId});alert(`${eqId} done → sent to QAQC.`);loadView('home');}
 async function qaqcDec(mntId,dec){const r=document.getElementById('qr-'+mntId)?.value||'';await post({action:'qaqcDecision',mntId,decision:dec,reason:r});alert(dec==='Approved'?'Approved → Pool':'Rejected → MNT');loadView('home');}
 async function ackTkt(id){await post({action:'acknowledgeTicket',ticketId:id});alert('Ticket acknowledged.');loadView('home');}
+
+function toggleDept(id){
+  const el=document.getElementById(id);
+  if(!el)return;
+  const dept=id.replace('dept-','');
+  const arr=document.getElementById('arr-'+dept);
+  const isOpen=el.style.display!=='none';
+  // Close all dept accordions
+  document.querySelectorAll('[id^="dept-"]').forEach(d=>{d.style.display='none';});
+  document.querySelectorAll('[id^="arr-"]').forEach(a=>{a.textContent='▸';});
+  if(!isOpen){
+    el.style.display='block';
+    if(arr)arr.textContent='▾';
+  }
+}
+
 async function doneTkt(id){await post({action:'doneTicket',ticketId:id});alert('Ticket done!');loadView('home');}
 </script>
 </body>
