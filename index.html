@@ -7,249 +7,214 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#F0F2F5;
-  --surface:#FFFFFF;
-  --surface2:#F8F9FB;
-  --border:#E4E7ED;
-  --border2:#CBD0DA;
-  --text1:#0F172A;
-  --text2:#475569;
-  --text3:#94A3B8;
-  --blue:#2563EB;
-  --blue-bg:#EFF6FF;
-  --blue-border:#BFDBFE;
-  --blue-dark:#1D4ED8;
-  --green:#059669;
-  --green-bg:#ECFDF5;
-  --green-border:#A7F3D0;
-  --amber:#B45309;
-  --amber-bg:#FFFBEB;
-  --amber-border:#FDE68A;
-  --red:#DC2626;
-  --red-bg:#FEF2F2;
-  --red-border:#FECACA;
-  --teal:#0891B2;
-  --teal-bg:#ECFEFF;
-  --teal-border:#A5F3FC;
-  --purple:#7C3AED;
-  --purple-bg:#F5F3FF;
-  --purple-border:#DDD6FE;
+  --bg:#060E1C;
+  --s1:#0A1628;
+  --s2:#0F1E35;
+  --s3:#1A2E4A;
+  --border:rgba(255,255,255,.07);
+  --border2:rgba(255,255,255,.12);
+  --t1:#E2E8F0;
+  --t2:#94A3B8;
+  --t3:#4A6080;
+  --green:#10B981;--green-bg:rgba(16,185,129,.12);--green-b:rgba(16,185,129,.25);
+  --red:#EF4444;--red-bg:rgba(239,68,68,.1);--red-b:rgba(239,68,68,.25);
+  --blue:#3B82F6;--blue-bg:rgba(59,130,246,.12);--blue-b:rgba(59,130,246,.25);
+  --amber:#F59E0B;--amber-bg:rgba(245,158,11,.1);--amber-b:rgba(245,158,11,.25);
+  --teal:#06B6D4;--teal-bg:rgba(6,182,212,.1);--teal-b:rgba(6,182,212,.25);
+  --purple:#8B5CF6;--purple-bg:rgba(139,92,246,.1);--purple-b:rgba(139,92,246,.25);
   --r:10px;--r2:8px;--r3:6px;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:var(--text1);overflow-x:hidden}
-
-/* SCREENS */
+html,body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:var(--t1);overflow-x:hidden}
 .screen{display:none;min-height:100vh;flex-direction:column}
 .screen.active{display:flex}
 
 /* LOGIN */
 #login-screen{align-items:center;justify-content:center;padding:20px;background:var(--bg)}
-.login-wrap{width:100%;max-width:380px}
-.login-header{text-align:center;margin-bottom:32px}
-.login-icon{width:56px;height:56px;background:var(--blue);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 14px}
-.login-title{font-size:22px;font-weight:700;color:var(--text1);margin-bottom:4px}
-.login-sub{font-size:13px;color:var(--text2)}
-.login-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
-.fl{margin-bottom:16px}
-.fl-label{font-size:11px;font-weight:600;color:var(--text2);letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px;display:block}
-.fl-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r2);padding:11px 13px;font-size:14px;color:var(--text1);font-family:'Inter',sans-serif;outline:none;transition:border-color .15s}
-.fl-input:focus{border-color:var(--blue);background:var(--surface)}
-.fl-input::placeholder{color:var(--text3)}
-.btn-login{width:100%;background:var(--blue);color:#fff;border:none;border-radius:var(--r2);padding:13px;font-size:15px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;margin-top:4px;transition:background .15s}
-.btn-login:hover{background:var(--blue-dark)}
-.btn-login:active{transform:scale(.99)}
+.login-wrap{width:100%;max-width:360px}
+.login-logo{width:52px;height:52px;background:var(--blue);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 16px}
+.login-title{font-size:22px;font-weight:700;color:var(--t1);text-align:center;margin-bottom:4px}
+.login-sub{font-size:13px;color:var(--t3);text-align:center;margin-bottom:28px}
+.login-card{background:var(--s2);border:1px solid var(--border2);border-radius:16px;padding:24px}
+.fl-label{font-size:10px;font-weight:600;color:var(--t3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;display:block}
+.fl-input{width:100%;background:var(--s1);border:1px solid var(--border2);border-radius:var(--r2);padding:11px 13px;font-size:14px;color:var(--t1);font-family:'Inter',sans-serif;outline:none;margin-bottom:14px;transition:border-color .15s}
+.fl-input:focus{border-color:var(--blue)}
+.fl-input::placeholder{color:var(--t3)}
+.btn-login{width:100%;background:var(--blue);color:#fff;border:none;border-radius:var(--r2);padding:13px;font-size:15px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;transition:opacity .15s;margin-top:4px}
+.btn-login:hover{opacity:.9}
 .login-err{color:var(--red);font-size:12px;margin-top:10px;text-align:center;display:none}
 
 /* TOPBAR */
-.topbar{background:var(--surface);border-bottom:1px solid var(--border);height:54px;padding:0 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:100;flex-shrink:0}
-.tb-back{width:34px;height:34px;border-radius:var(--r3);background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;color:var(--text2);flex-shrink:0;transition:background .1s}
-.tb-back:hover{background:var(--border)}
-.tb-title{font-size:15px;font-weight:600;color:var(--text1);flex:1}
-.tb-right{display:flex;align-items:center;gap:8px}
-.tb-avatar{width:34px;height:34px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0}
-.tb-badge{font-size:10px;font-weight:600;background:var(--red);color:#fff;min-width:18px;height:18px;border-radius:9px;display:flex;align-items:center;justify-content:center;padding:0 4px}
-.role-chip{font-size:10px;font-weight:500;padding:3px 9px;border-radius:999px}
-.rc-cl{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-border)}
-.rc-am{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-border)}
-.rc-mnt{background:var(--red-bg);color:var(--red);border:1px solid var(--red-border)}
-.rc-qa{background:var(--purple-bg);color:var(--purple);border:1px solid var(--purple-border)}
-.rc-fsm{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
-.rc-op{background:var(--teal-bg);color:var(--teal);border:1px solid var(--teal-border)}
-.rc-tk{background:#F1F5F9;color:var(--text2);border:1px solid var(--border)}
+.topbar{background:var(--s2);border-bottom:1px solid var(--border);height:54px;padding:0 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:100;flex-shrink:0}
+.tb-back{width:34px;height:34px;border-radius:var(--r3);background:var(--s3);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;color:var(--t2);flex-shrink:0}
+.tb-title{font-size:15px;font-weight:700;color:var(--t1);flex:1}
+.tb-av{width:34px;height:34px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0}
+.role-chip{font-size:10px;font-weight:600;padding:3px 9px;border-radius:999px}
+.rc-cl{background:var(--blue-bg);color:#60A5FA;border:1px solid var(--blue-b)}
+.rc-am{background:var(--amber-bg);color:#FCD34D;border:1px solid var(--amber-b)}
+.rc-mnt{background:var(--red-bg);color:#FCA5A5;border:1px solid var(--red-b)}
+.rc-qa{background:var(--purple-bg);color:#C4B5FD;border:1px solid var(--purple-b)}
+.rc-fsm{background:var(--green-bg);color:#6EE7B7;border:1px solid var(--green-b)}
+.rc-op{background:var(--teal-bg);color:#67E8F9;border:1px solid var(--teal-b)}
+.rc-tk{background:var(--s3);color:var(--t2);border:1px solid var(--border2)}
 
 /* CONTENT */
 .content{flex:1;padding:14px;overflow-y:auto;background:var(--bg)}
-.sec-label{font-size:10px;font-weight:600;color:var(--text3);letter-spacing:.07em;text-transform:uppercase;margin:0 0 8px}
+.slbl{font-size:9px;font-weight:600;color:var(--t3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px}
 
-/* KPI GRID */
-.kpi-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px}
-.kpi-grid.cols3{grid-template-columns:repeat(3,1fr)}
-.kpi-grid.cols1{grid-template-columns:1fr}
-.kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px 14px 12px;cursor:pointer;transition:border-color .15s,box-shadow .15s;position:relative;overflow:hidden}
-.kpi-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px}
-.kpi-card.blue::after{background:var(--blue)}
-.kpi-card.green::after{background:var(--green)}
-.kpi-card.amber::after{background:var(--amber)}
-.kpi-card.red::after{background:var(--red)}
-.kpi-card.teal::after{background:var(--teal)}
-.kpi-card.purple::after{background:var(--purple)}
-.kpi-card:hover,.kpi-card.active{border-color:var(--border2);box-shadow:0 2px 8px rgba(0,0,0,.06)}
-.kpi-label{font-size:10px;font-weight:500;color:var(--text3);margin-bottom:6px;display:flex;align-items:center;justify-content:space-between}
-.kpi-value{font-size:28px;font-weight:700;line-height:1;margin-bottom:4px}
-.kpi-value.blue{color:var(--blue)}.kpi-value.green{color:var(--green)}
-.kpi-value.amber{color:var(--amber)}.kpi-value.red{color:var(--red)}
-.kpi-value.teal{color:var(--teal)}.kpi-value.purple{color:var(--purple)}
-.kpi-value small{font-size:14px;font-weight:500;color:var(--text3)}
-.kpi-hint{font-size:9px;color:var(--text3)}
-.kpi-tap{font-size:9px;color:var(--text3);background:var(--surface2);padding:2px 6px;border-radius:4px}
+/* KPI */
+.kpi-row{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px}
+.kpi-row.c3{grid-template-columns:repeat(3,1fr)}
+.kpi{background:var(--s2);border:1px solid var(--border);border-radius:var(--r);padding:13px;position:relative;overflow:hidden;cursor:pointer;transition:border-color .15s}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.kpi.g::before{background:var(--green)}.kpi.b::before{background:var(--blue)}
+.kpi.a::before{background:var(--amber)}.kpi.r::before{background:var(--red)}
+.kpi.t::before{background:var(--teal)}.kpi.p::before{background:var(--purple)}
+.kpi:hover,.kpi.open{border-color:var(--border2)}
+.kpi-lbl{font-size:9px;font-weight:600;color:var(--t3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between}
+.kpi-tap{font-size:8px;background:var(--s3);padding:1px 5px;border-radius:3px;color:var(--t3)}
+.kpi-val{font-size:26px;font-weight:700;color:var(--t1);line-height:1;margin-bottom:3px}
+.kpi-val.g{color:var(--green)}.kpi-val.b{color:var(--blue)}
+.kpi-val.a{color:var(--amber)}.kpi-val.r{color:var(--red)}
+.kpi-val.t{color:var(--teal)}.kpi-val.p{color:var(--purple)}
+.kpi-val small{font-size:13px;font-weight:400;color:var(--t3)}
+.kpi-sub{font-size:9px;color:var(--t3)}
 
-/* EXPAND PANEL */
-.expand-box{background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);margin-bottom:10px;overflow:hidden;animation:slideDown .2s ease}
-@keyframes slideDown{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
-.expand-head{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
-.expand-head-title{font-size:12px;font-weight:600;color:var(--text1)}
-.expand-close{font-size:11px;color:var(--text2);cursor:pointer;background:var(--surface2);border:1px solid var(--border);padding:3px 8px;border-radius:var(--r3)}
+/* EXPAND */
+.expand{background:var(--s2);border:1px solid var(--border2);border-radius:var(--r);margin-bottom:10px;overflow:hidden;animation:fadeIn .2s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+.exp-head{padding:9px 13px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.exp-title{font-size:11px;font-weight:600;color:var(--t2)}
+.exp-close{font-size:10px;color:var(--t3);cursor:pointer;background:var(--s3);border:1px solid var(--border2);padding:2px 8px;border-radius:4px}
 
 /* CARD */
-.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:8px}
-.card-row{padding:11px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
-.card-row:last-child{border-bottom:none}
-.card-row.clickable{cursor:pointer;transition:background .1s}
-.card-row.clickable:hover{background:var(--surface2)}
-.cr-icon{width:32px;height:32px;border-radius:var(--r3);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
-.cr-body{flex:1;min-width:0}
-.cr-title{font-size:13px;font-weight:500;color:var(--text1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cr-sub{font-size:11px;color:var(--text2);margin-top:1px}
-.cr-right{flex-shrink:0;display:flex;align-items:center;gap:6px}
-.chevron{font-size:12px;color:var(--text3)}
+.card{background:var(--s2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:8px}
+.card-head{padding:9px 13px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.card-title{font-size:11px;font-weight:600;color:var(--t2)}
+.card-body{padding:12px 13px}
+.crow{padding:10px 13px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;cursor:pointer;transition:background .1s}
+.crow:last-child{border-bottom:none}
+.crow:hover{background:var(--s3)}
+.crow.nc{cursor:default}.crow.nc:hover{background:transparent}
+.ci{width:30px;height:30px;border-radius:var(--r3);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.cb{flex:1;min-width:0}
+.ct2{font-size:12px;font-weight:500;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cs{font-size:10px;color:var(--t2);margin-top:2px}
+.cr{flex-shrink:0;display:flex;align-items:center;gap:6px}
+.chev{font-size:11px;color:var(--t3)}
 
 /* BADGE */
-.badge{display:inline-flex;align-items:center;padding:3px 8px;border-radius:999px;font-size:10px;font-weight:600;flex-shrink:0}
-.badge.green{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
-.badge.blue{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-border)}
-.badge.amber{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-border)}
-.badge.red{background:var(--red-bg);color:var(--red);border:1px solid var(--red-border)}
-.badge.teal{background:var(--teal-bg);color:var(--teal);border:1px solid var(--teal-border)}
-.badge.purple{background:var(--purple-bg);color:var(--purple);border:1px solid var(--purple-border)}
-.badge.gray{background:var(--surface2);color:var(--text2);border:1px solid var(--border)}
+.bdg{display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;font-size:9px;font-weight:600;flex-shrink:0}
+.bdg.g{background:var(--green-bg);color:#6EE7B7;border:1px solid var(--green-b)}
+.bdg.b{background:var(--blue-bg);color:#93C5FD;border:1px solid var(--blue-b)}
+.bdg.a{background:var(--amber-bg);color:#FCD34D;border:1px solid var(--amber-b)}
+.bdg.r{background:var(--red-bg);color:#FCA5A5;border:1px solid var(--red-b)}
+.bdg.t{background:var(--teal-bg);color:#67E8F9;border:1px solid var(--teal-b)}
+.bdg.p{background:var(--purple-bg);color:#C4B5FD;border:1px solid var(--purple-b)}
+.bdg.gray{background:var(--s3);color:var(--t2);border:1px solid var(--border2)}
 
-/* DEPT BADGES */
-.dept{display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:600}
-.dept.dwo{background:var(--purple-bg);color:var(--purple);border:1px solid var(--purple-border)}
-.dept.uc{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
-.dept.sawcod{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-border)}
-.dept.all{background:var(--surface2);color:var(--text2);border:1px solid var(--border)}
+/* DEPT PILL */
+.dp{display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;font-size:9px;font-weight:600}
+.dp.dwo{background:var(--purple-bg);color:#C4B5FD;border:1px solid var(--purple-b)}
+.dp.uc{background:var(--green-bg);color:#6EE7B7;border:1px solid var(--green-b)}
+.dp.saw{background:var(--amber-bg);color:#FCD34D;border:1px solid var(--amber-b)}
+.dp.all{background:var(--s3);color:var(--t2);border:1px solid var(--border2)}
 
-/* ALERT BAR */
-.alert-bar{border-radius:var(--r2);padding:10px 12px;font-size:12px;display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;line-height:1.4}
-.alert-bar.red{background:var(--red-bg);border:1px solid var(--red-border);color:#991B1B}
-.alert-bar.amber{background:var(--amber-bg);border:1px solid var(--amber-border);color:#92400E}
-.alert-bar.blue{background:var(--blue-bg);border:1px solid var(--blue-border);color:#1E40AF}
-.alert-bar.green{background:var(--green-bg);border:1px solid var(--green-border);color:#065F46}
-.alert-icon{font-size:13px;flex-shrink:0;margin-top:1px}
+/* DONUT */
+.donut-wrap{display:flex;align-items:center;gap:14px}
+.donut-legend{flex:1;display:flex;flex-direction:column;gap:6px}
+.leg{display:flex;align-items:center;gap:7px}
+.leg-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.leg-lbl{font-size:10px;color:var(--t2);flex:1}
+.leg-val{font-size:11px;font-weight:600;color:var(--t1)}
+.leg-pct{font-size:9px;color:var(--t3);min-width:28px;text-align:right}
+.leg-row{display:flex;gap:8px;flex-wrap:wrap}
+.leg-h{display:flex;align-items:center;gap:4px;font-size:9px;color:var(--t3)}
+.leg-sq{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+
+/* UTIL BAR */
+.urow{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.urow:last-child{margin-bottom:0}
+.upkg{font-size:10px;font-weight:600;color:var(--t2);min-width:64px;font-family:'JetBrains Mono',monospace,sans-serif}
+.ubar{flex:1;height:14px;background:rgba(255,255,255,.05);border-radius:4px;overflow:hidden;display:flex}
+.useg{height:100%}
+.upct{font-size:10px;font-weight:700;color:var(--t1);min-width:32px;text-align:right}
+
+/* PROG BAR */
+.prow{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.prow:last-child{margin-bottom:0}
+.pname{font-size:10px;color:var(--t2);min-width:80px}
+.pbar{flex:1;height:7px;background:var(--s3);border-radius:999px;overflow:hidden}
+.pfill{height:100%;border-radius:999px}
+.ppct{font-size:10px;font-weight:700;min-width:36px;text-align:right}
+
+/* DEPT OVERVIEW */
+.drow{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--border)}
+.drow:last-child{border-bottom:none}
+.dinfo{flex:1}
+.dcnt{font-size:12px;font-weight:600;color:var(--t1)}
+.dsub{font-size:9px;color:var(--t3);margin-top:1px}
+.dutil{text-align:right}
+.dutil-val{font-size:13px;font-weight:700;color:var(--green)}
+.dutil-sub{font-size:9px;color:var(--t3)}
+
+/* PKG ROW */
+.pkrow{display:flex;align-items:center;gap:8px;padding:8px 13px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s}
+.pkrow:last-child{border-bottom:none}
+.pkrow:hover{background:var(--s3)}
+.pkid{font-size:11px;font-weight:600;color:var(--t1);min-width:66px;font-family:'JetBrains Mono',monospace,sans-serif}
+.pkloc{flex:1}
+.pkloc-main{font-size:11px;color:var(--t1)}
+.pkloc-sub{font-size:9px;color:var(--t3);margin-top:1px}
+
+/* ALERT */
+.alert{border-radius:var(--r2);padding:9px 11px;font-size:10px;display:flex;gap:7px;margin-bottom:6px;line-height:1.5}
+.alert.r{background:var(--red-bg);border:1px solid var(--red-b);color:#FCA5A5}
+.alert.a{background:var(--amber-bg);border:1px solid var(--amber-b);color:#FCD34D}
+.alert.b{background:var(--blue-bg);border:1px solid var(--blue-b);color:#93C5FD}
+.alert.g{background:var(--green-bg);border:1px solid var(--green-b);color:#6EE7B7}
+.alert-icon{flex-shrink:0}
 
 /* BUTTONS */
-.btn{border:none;border-radius:var(--r2);padding:11px 16px;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;width:100%;margin-bottom:8px;transition:opacity .15s,transform .1s;display:flex;align-items:center;justify-content:center;gap:6px}
+.btn{border:none;border-radius:var(--r2);padding:11px 16px;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;width:100%;margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:6px;transition:opacity .15s}
 .btn:last-child{margin-bottom:0}
-.btn:active{transform:scale(.99)}
+.btn:active{opacity:.85}
 .btn.primary{background:var(--blue);color:#fff}
-.btn.primary:hover{background:var(--blue-dark)}
 .btn.danger{background:var(--red);color:#fff}
 .btn.success{background:var(--green);color:#fff}
-.btn.warning{background:var(--amber);color:#fff}
-.btn.ghost{background:var(--surface);color:var(--text1);border:1px solid var(--border2)}
-.btn.ghost:hover{background:var(--surface2)}
-.btn-row{display:flex;gap:8px}
-.btn-row .btn{margin-bottom:0}
+.btn.warning{background:var(--amber);color:#0A1628}
+.btn.ghost{background:var(--s3);color:var(--t1);border:1px solid var(--border2)}
+.btn-row{display:flex;gap:8px}.btn-row .btn{margin-bottom:0}
 
 /* FORM */
-.form-group{margin-bottom:14px}
-.form-label{font-size:11px;font-weight:600;color:var(--text2);letter-spacing:.04em;text-transform:uppercase;margin-bottom:6px;display:block}
-.form-input,.form-select,.form-textarea{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r2);padding:11px 13px;font-size:13px;color:var(--text1);font-family:'Inter',sans-serif;outline:none;transition:border-color .15s}
-.form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--blue);background:var(--surface)}
-.form-input::placeholder,.form-textarea::placeholder{color:var(--text3)}
-.form-select{appearance:none;cursor:pointer}
-.form-textarea{resize:none}
-
-/* PROGRESS BAR */
-.prog-wrap{background:var(--border);border-radius:999px;height:6px;overflow:hidden;margin-top:4px}
-.prog-fill{height:100%;border-radius:999px;transition:width .4s}
-
-/* STAT ROW */
-.stat-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
-.stat-row:last-child{border-bottom:none}
-.stat-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-.stat-name{font-size:12px;color:var(--text1);flex:1}
-.stat-val{font-size:12px;font-weight:600;color:var(--text1)}
-.stat-sub{font-size:10px;color:var(--text2)}
-
-/* TABLE */
-.tbl{width:100%;font-size:11px;border-collapse:collapse}
-.tbl th{text-align:left;color:var(--text3);font-weight:500;padding:6px 8px;border-bottom:1px solid var(--border)}
-.tbl td{padding:8px 8px;color:var(--text1);border-bottom:1px solid var(--border)}
-.tbl tr:last-child td{border-bottom:none}
-
-/* MONTH CHART */
-.month-bar-wrap{display:flex;align-items:flex-end;gap:4px;height:60px;margin-bottom:6px}
-.month-bar-col{display:flex;flex-direction:column;align-items:center;gap:3px;flex:1}
-.month-bar{width:100%;border-radius:3px 3px 0 0;min-height:4px;transition:height .3s}
-.month-bar-label{font-size:8px;color:var(--text3);font-weight:500}
-
-/* BOTTOM NAV */
-.bottom-nav{background:var(--surface);border-top:1px solid var(--border);display:flex;padding:6px 0 4px;flex-shrink:0}
-.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 2px;cursor:pointer;color:var(--text3);font-size:9px;font-weight:500;transition:color .15s}
-.nav-item.active{color:var(--blue)}
-.nav-icon{font-size:20px}
-
-/* MODAL */
-.modal-overlay{position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:200;display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(2px)}
-.modal-overlay.open{display:flex}
-.modal{background:var(--surface);border-radius:20px 20px 0 0;padding:20px;width:100%;max-width:480px;max-height:88vh;overflow-y:auto;border-top:1px solid var(--border)}
-.modal-handle{width:36px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 16px}
-.modal-title{font-size:16px;font-weight:700;color:var(--text1);margin-bottom:16px}
-
-/* LOADING */
-.loading{display:flex;align-items:center;justify-content:center;padding:48px 16px;color:var(--text3);font-size:13px;gap:10px;flex-direction:column}
-.spinner{width:24px;height:24px;border:2.5px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-.empty{text-align:center;padding:32px 16px;color:var(--text3);font-size:13px}
+.fg{margin-bottom:13px}
+.flbl{font-size:10px;font-weight:600;color:var(--t3);letter-spacing:.05em;text-transform:uppercase;margin-bottom:5px;display:block}
+.finput,.fselect,.ftextarea{width:100%;background:var(--s1);border:1px solid var(--border2);border-radius:var(--r2);padding:10px 12px;font-size:13px;color:var(--t1);font-family:'Inter',sans-serif;outline:none;transition:border-color .15s}
+.finput:focus,.ftextarea:focus{border-color:var(--blue)}
+.finput::placeholder,.ftextarea::placeholder{color:var(--t3)}
+.ftextarea{resize:none}
 
 /* DIVIDER */
 .divider{height:1px;background:var(--border);margin:12px 0}
 
-/* SECTION HEADER */
-.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
-.section-action{font-size:11px;color:var(--blue);font-weight:500;cursor:pointer}
+/* BOTTOM NAV */
+.bottom-nav{background:var(--s2);border-top:1px solid var(--border);display:flex;padding:6px 0 4px;flex-shrink:0}
+.ni{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 2px;cursor:pointer;color:var(--t3);font-size:9px;font-weight:500;transition:color .15s}
+.ni.active{color:var(--blue)}
+.ni-icon{font-size:20px}
 
-/* DEPT OVERVIEW CARD */
-.dept-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:8px}
-.dept-card-head{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
-.dept-card-title{font-size:13px;font-weight:600;color:var(--text1);flex:1}
-.dept-card-body{padding:0}
-.pkg-row{padding:9px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;cursor:pointer;transition:background .1s}
-.pkg-row:last-child{border-bottom:none}
-.pkg-row:hover{background:var(--surface2)}
-.pkg-id{font-size:12px;font-weight:600;color:var(--text1);min-width:70px;font-family:'JetBrains Mono',monospace}
-.pkg-loc{font-size:11px;color:var(--text2);flex:1}
-.pkg-util{display:flex;flex-direction:column;align-items:flex-end;gap:2px;min-width:50px}
-.pkg-util-val{font-size:12px;font-weight:700}
-.pkg-util-bar{width:50px;height:4px;background:var(--border);border-radius:2px;overflow:hidden}
-.pkg-util-fill{height:100%;border-radius:2px}
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:200;display:none;align-items:flex-end;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--s2);border-radius:20px 20px 0 0;border-top:1px solid var(--border2);padding:20px;width:100%;max-width:480px;max-height:88vh;overflow-y:auto}
+.modal-handle{width:36px;height:4px;background:var(--s3);border-radius:2px;margin:0 auto 16px}
+.modal-title{font-size:16px;font-weight:700;color:var(--t1);margin-bottom:16px}
 
-/* TICKET CHART */
-.ticket-month-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px}
-.tm-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r2);padding:10px;text-align:center;cursor:pointer;transition:border-color .15s}
-.tm-card:hover,.tm-card.active{border-color:var(--blue)}
-.tm-month{font-size:10px;color:var(--text2);font-weight:500;margin-bottom:4px}
-.tm-val{font-size:20px;font-weight:700;color:var(--text1)}
-.tm-sub{font-size:9px;color:var(--text3);margin-top:2px}
-
-/* UTILIZATION RING - simple text-based */
-.util-ring{display:flex;flex-direction:column;align-items:center;justify-content:center;width:56px;height:56px;border-radius:50%;flex-shrink:0;font-size:13px;font-weight:700;border:3px solid}
-.util-ring.high{border-color:var(--green);color:var(--green)}
-.util-ring.mid{border-color:var(--amber);color:var(--amber)}
-.util-ring.low{border-color:var(--red);color:var(--red)}
+/* LOADING */
+.loading{display:flex;align-items:center;justify-content:center;padding:60px 16px;color:var(--t3);font-size:13px;gap:10px;flex-direction:column}
+.spinner{width:24px;height:24px;border:2.5px solid var(--s3);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{text-align:center;padding:32px 16px;color:var(--t3);font-size:13px}
 </style>
 </head>
 <body>
@@ -257,22 +222,16 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:
 <!-- LOGIN -->
 <div id="login-screen" class="screen active">
   <div class="login-wrap">
-    <div class="login-header">
-      <div class="login-icon">🛢</div>
-      <div class="login-title">CT Equipment System</div>
-      <div class="login-sub">Sign in to your dashboard</div>
-    </div>
+    <div class="login-logo">🛢</div>
+    <div class="login-title">CT Equipment System</div>
+    <div class="login-sub">Sign in to access your dashboard</div>
     <div class="login-card">
-      <div class="fl">
-        <label class="fl-label">Username</label>
-        <input type="text" class="fl-input" id="login-u" placeholder="e.g. Mohamed.Baligh" autocomplete="username">
-      </div>
-      <div class="fl">
-        <label class="fl-label">Password</label>
-        <input type="password" class="fl-input" id="login-p" placeholder="••••••••" autocomplete="current-password">
-      </div>
-      <button class="btn-login" id="login-btn" onclick="doLogin()">Sign in</button>
-      <div class="login-err" id="login-err">Invalid username or password</div>
+      <label class="fl-label">Username</label>
+      <input type="text" class="fl-input" id="lu" placeholder="Mohamed.Baligh" autocomplete="username">
+      <label class="fl-label">Password</label>
+      <input type="password" class="fl-input" id="lp" placeholder="••••••••" autocomplete="current-password" style="margin-bottom:0">
+      <button class="btn-login" id="lbtn" onclick="doLogin()">Sign in</button>
+      <div class="login-err" id="lerr">Invalid username or password</div>
     </div>
   </div>
 </div>
@@ -282,40 +241,39 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:
   <div class="topbar">
     <div class="tb-back" id="tb-back" style="display:none" onclick="goBack()">←</div>
     <div class="tb-title" id="tb-title">Dashboard</div>
-    <div class="tb-right">
-      <span class="role-chip" id="tb-role-chip"></span>
-      <div class="tb-avatar" id="tb-avatar">U</div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <span class="role-chip" id="tb-chip"></span>
+      <div class="tb-av" id="tb-av">U</div>
     </div>
   </div>
-  <div class="content" id="main-content">
+  <div class="content" id="mc">
     <div class="loading"><div class="spinner"></div><span>Loading...</span></div>
   </div>
-  <div class="bottom-nav" id="bottom-nav" style="display:none">
-    <div class="nav-item active" id="nav-home" onclick="navTo('home')"><div class="nav-icon">⊞</div>Home</div>
-    <div class="nav-item" id="nav-2" onclick="navTo('jobs')"><div class="nav-icon">📋</div>Jobs</div>
-    <div class="nav-item" id="nav-3" onclick="navTo('equipment')"><div class="nav-icon">⚙</div>Equipment</div>
-    <div class="nav-item" id="nav-4" onclick="navTo('alerts')"><div class="nav-icon">🔔</div>Alerts</div>
+  <div class="bottom-nav" id="bnav" style="display:none">
+    <div class="ni active" id="n1" onclick="navTo('home')"><div class="ni-icon">⊞</div>Home</div>
+    <div class="ni" id="n2" onclick="navTo('jobs')"><div class="ni-icon">📋</div>Jobs</div>
+    <div class="ni" id="n3" onclick="navTo('equipment')"><div class="ni-icon">⚙</div>Equipment</div>
+    <div class="ni" id="n4" onclick="navTo('alerts')"><div class="ni-icon">🔔</div>Alerts</div>
   </div>
 </div>
 
 <!-- MODAL -->
-<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
-  <div class="modal" id="modal-body"></div>
+<div class="modal-overlay" id="movl" onclick="closeMod(event)">
+  <div class="modal" id="mbody"></div>
 </div>
 
 <script>
 const API='https://script.google.com/macros/s/AKfycbxzUp3TylmC-rMZX4FqC3jcgBtENCkedeyVAfzMbnQZW_SCVTnGEphm9I9zg-ELCOj6/exec';
-let USER=null,NAV=[],CACHE={},OPEN_KPI=null;
+let USER=null,NAV=[],CACHE={},OKPI=null;
 
-// ── API ──────────────────────────────────────
-async function apiGet(p,force){
+// ─── API ───────────────────────────────────
+async function get(p,force){
   const k=JSON.stringify(p),now=Date.now();
   if(!force&&CACHE[k]&&now-CACHE[k].t<60000)return CACHE[k].d;
   const r=await fetch(API+'?'+new URLSearchParams(p));
-  const d=await r.json();
-  CACHE[k]={d,t:now};return d;
+  const d=await r.json();CACHE[k]={d,t:now};return d;
 }
-async function apiPost(data){
+async function post(data){
   Object.keys(CACHE).forEach(k=>delete CACHE[k]);
   const r=await fetch(API,{method:'POST',body:JSON.stringify(data)});
   return r.json();
@@ -323,829 +281,741 @@ async function apiPost(data){
 async function preload(){
   const dept=USER.department;
   await Promise.all([
-    apiGet({action:'getJobs',department:dept}),
-    apiGet({action:'getEquipment',department:dept}),
-    apiGet({action:'getPMAlerts',department:dept}),
-    apiGet({action:'getMNT'}),
-    apiGet({action:'getTickets'}),
-    apiGet({action:'getExemptions'}),
-    dept==='All'&&apiGet({action:'getPool'}),
-    dept==='All'&&apiGet({action:'getDashboard',department:'All'}),
+    get({action:'getJobs',department:dept}),
+    get({action:'getEquipment',department:dept}),
+    get({action:'getPMAlerts',department:dept}),
+    get({action:'getMNT'}),get({action:'getTickets'}),get({action:'getExemptions'}),
+    dept==='All'&&get({action:'getPool'}),
+    dept==='All'&&get({action:'getDashboard',department:'All'}),
   ].filter(Boolean));
 }
 
-// ── AUTH ─────────────────────────────────────
+// ─── AUTH ──────────────────────────────────
 async function doLogin(){
-  const btn=document.getElementById('login-btn'),err=document.getElementById('login-err');
-  const u=document.getElementById('login-u').value.trim(),p=document.getElementById('login-p').value.trim();
+  const btn=document.getElementById('lbtn'),err=document.getElementById('lerr');
+  const u=document.getElementById('lu').value.trim(),p=document.getElementById('lp').value.trim();
   if(!u||!p)return;
   btn.textContent='Signing in...';btn.disabled=true;err.style.display='none';
   try{
-    const res=await apiGet({action:'login',username:u,password:p},true);
+    const res=await get({action:'login',username:u,password:p},true);
     if(res.success){USER=res;showApp();}
     else{err.style.display='block';btn.textContent='Sign in';btn.disabled=false;}
   }catch(e){err.textContent='Connection error';err.style.display='block';btn.textContent='Sign in';btn.disabled=false;}
 }
-document.getElementById('login-p').addEventListener('keypress',e=>{if(e.key==='Enter')doLogin();});
+document.getElementById('lp').addEventListener('keypress',e=>{if(e.key==='Enter')doLogin();});
 
-// ── APP INIT ─────────────────────────────────
+// ─── APP ───────────────────────────────────
 async function showApp(){
   document.getElementById('login-screen').classList.remove('active');
   document.getElementById('app-screen').classList.add('active');
   const init=USER.fullName.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
-  document.getElementById('tb-avatar').textContent=init;
-  const roleMap={'Cell Leader':'rc-cl','Asset Manager':'rc-am','MNT Manager':'rc-mnt','QAQC Manager':'rc-qa','FSM':'rc-fsm','Operation Manager':'rc-op','Ticketing':'rc-tk'};
-  const chip=document.getElementById('tb-role-chip');
-  chip.textContent=USER.role;chip.className='role-chip '+(roleMap[USER.role]||'rc-tk');
+  document.getElementById('tb-av').textContent=init;
+  const rm={'Cell Leader':'rc-cl','Asset Manager':'rc-am','MNT Manager':'rc-mnt','QAQC Manager':'rc-qa','FSM':'rc-fsm','Operation Manager':'rc-op','Ticketing':'rc-tk'};
+  const chip=document.getElementById('tb-chip');chip.textContent=USER.role;chip.className='role-chip '+(rm[USER.role]||'rc-tk');
   setupNav();
-  document.getElementById('main-content').innerHTML='<div class="loading"><div class="spinner"></div><span>Loading your data...</span></div>';
-  await preload();
-  loadView('home');
+  document.getElementById('mc').innerHTML='<div class="loading"><div class="spinner"></div><span>Loading your data...</span></div>';
+  await preload();loadView('home');
 }
 
 function setupNav(){
-  const nav=document.getElementById('bottom-nav'),role=USER.role;
-  if(role==='Ticketing'){
-    nav.innerHTML=`<div class="nav-item active" id="nav-home" onclick="navTo('home')"><div class="nav-icon">🎫</div>Tickets</div><div class="nav-item" id="nav-2" onclick="navTo('history')"><div class="nav-icon">📋</div>History</div>`;
-  }else if(role==='MNT Manager'){
-    nav.innerHTML=`<div class="nav-item active" id="nav-home" onclick="navTo('home')"><div class="nav-icon">⊞</div>Home</div><div class="nav-item" id="nav-2" onclick="navTo('mnt')"><div class="nav-icon">🔧</div>MNT</div><div class="nav-item" id="nav-3" onclick="navTo('alerts')"><div class="nav-icon">🔔</div>Alerts</div>`;
-  }else if(role==='QAQC Manager'){
-    nav.innerHTML=`<div class="nav-item active" id="nav-home" onclick="navTo('home')"><div class="nav-icon">⊞</div>Home</div><div class="nav-item" id="nav-2" onclick="navTo('qaqc')"><div class="nav-icon">✅</div>Approvals</div>`;
-  }
+  const nav=document.getElementById('bnav'),role=USER.role;
+  if(role==='Ticketing'){nav.innerHTML=`<div class="ni active" id="n1" onclick="navTo('home')"><div class="ni-icon">🎫</div>Tickets</div><div class="ni" id="n2" onclick="navTo('history')"><div class="ni-icon">📋</div>History</div>`;}
+  else if(role==='MNT Manager'){nav.innerHTML=`<div class="ni active" id="n1" onclick="navTo('home')"><div class="ni-icon">⊞</div>Home</div><div class="ni" id="n2" onclick="navTo('mntlist')"><div class="ni-icon">🔧</div>MNT</div><div class="ni" id="n3" onclick="navTo('alerts')"><div class="ni-icon">🔔</div>Alerts</div>`;}
+  else if(role==='QAQC Manager'){nav.innerHTML=`<div class="ni active" id="n1" onclick="navTo('home')"><div class="ni-icon">⊞</div>Home</div><div class="ni" id="n2" onclick="navTo('equipment')"><div class="ni-icon">⚙</div>Equipment</div>`;}
   nav.style.display='flex';
 }
 
-// ── NAV ──────────────────────────────────────
-function navTo(v,p){
-  NAV=[{v,p}];
-  document.getElementById('tb-back').style.display='none';
-  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
-  const h=document.getElementById('nav-home');if(h)h.classList.add('active');
-  loadView(v,p);
-}
-function pushView(v,p,title){
-  NAV.push({v,p,title});
-  document.getElementById('tb-back').style.display='flex';
-  loadView(v,p,title);
-}
-function goBack(){
-  if(NAV.length>1){
-    NAV.pop();const prev=NAV[NAV.length-1];
-    if(NAV.length===1)document.getElementById('tb-back').style.display='none';
-    loadView(prev.v,prev.p,prev.title);
-  }
-}
+// ─── NAV ───────────────────────────────────
+function navTo(v,p){NAV=[{v,p}];document.getElementById('tb-back').style.display='none';document.querySelectorAll('.ni').forEach(n=>n.classList.remove('active'));const h=document.getElementById('n1');if(h)h.classList.add('active');loadView(v,p);}
+function pushView(v,p,title){NAV.push({v,p,title});document.getElementById('tb-back').style.display='flex';loadView(v,p,title);}
+function goBack(){if(NAV.length>1){NAV.pop();const prev=NAV[NAV.length-1];if(NAV.length===1)document.getElementById('tb-back').style.display='none';loadView(prev.v,prev.p,prev.title);}}
 async function loadView(v,p,title){
-  const c=document.getElementById('main-content');
+  OKPI=null;const c=document.getElementById('mc');
   c.innerHTML='<div class="loading"><div class="spinner"></div><span>Loading...</span></div>';
   if(title)document.getElementById('tb-title').textContent=title;
-  OPEN_KPI=null;
   try{
     if(v==='home')await renderHome(c);
     else if(v==='jobs')await renderJobs(c);
-    else if(v==='equipment')await renderEquipment(c);
+    else if(v==='equipment')await renderEq(c);
     else if(v==='alerts')await renderAlerts(c);
-    else if(v==='mnt')await renderMNTList(c);
-    else if(v==='qaqc')await renderQAQCList(c);
+    else if(v==='mntlist')await renderMNTList(c);
     else if(v==='job-detail')await renderJobDetail(c,p);
     else if(v==='create-job')renderCreateJob(c);
-    else if(v==='history')await renderTicketHistory(c);
-    else c.innerHTML='<div class="empty">View not found</div>';
+    else if(v==='history')await renderHistory(c);
+    else c.innerHTML='<div class="empty">Not found</div>';
   }catch(e){c.innerHTML=`<div class="empty">Error: ${e.message}</div>`;}
 }
 
-// ── KPI TOGGLE ───────────────────────────────
 function toggleKPI(id){
   const el=document.getElementById(id);if(!el)return;
-  if(OPEN_KPI&&OPEN_KPI!==id){
-    const prev=document.getElementById(OPEN_KPI);
-    if(prev)prev.style.display='none';
-    document.querySelectorAll('.kpi-card').forEach(k=>k.classList.remove('active'));
-  }
-  const isOpen=el.style.display!=='none';
-  el.style.display=isOpen?'none':'block';
-  if(!isOpen)OPEN_KPI=id;else OPEN_KPI=null;
+  if(OKPI&&OKPI!==id){const prev=document.getElementById(OKPI);if(prev)prev.style.display='none';}
+  const open=el.style.display!=='none';el.style.display=open?'none':'block';
+  OKPI=open?null:id;
 }
 
-// ── HOME ROUTER ──────────────────────────────
+// ─── HOME ROUTER ───────────────────────────
 async function renderHome(c){
   document.getElementById('tb-title').textContent='Dashboard';
   const role=USER.role;
-  if(role==='Cell Leader')await renderCLHome(c);
-  else if(role==='Asset Manager')await renderAMHome(c);
-  else if(role==='MNT Manager')await renderMNTHome(c);
-  else if(role==='QAQC Manager')await renderQAQCHome(c);
-  else if(role==='FSM')await renderFSMHome(c);
-  else if(role==='Operation Manager')await renderOPHome(c);
-  else if(role==='Ticketing')await renderTicketHome(c);
+  if(role==='Cell Leader')await renderCL(c);
+  else if(role==='Asset Manager')await renderAM(c);
+  else if(role==='MNT Manager')await renderMNT(c);
+  else if(role==='QAQC Manager')await renderQA(c);
+  else if(role==='FSM')await renderFSM(c);
+  else if(role==='Operation Manager')await renderOP(c);
+  else if(role==='Ticketing')await renderTK(c);
 }
 
-// ════════════════════════════════════════════
+// ─── DONUT SVG HELPER ──────────────────────
+function donut(data,total,cx,cy,r,sw){
+  // data = [{val,color}]
+  const circ=2*Math.PI*r;
+  let offset=-(circ/4);
+  let segs='';
+  data.forEach(d=>{
+    const dash=(d.val/total)*circ;
+    segs+=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${d.color}" stroke-width="${sw}" stroke-dasharray="${dash} ${circ-dash}" stroke-dashoffset="${offset}" stroke-linecap="butt"/>`;
+    offset-=dash;
+  });
+  return segs;
+}
+
+// ═══════════════════════════════════════════
 // CELL LEADER
-// ════════════════════════════════════════════
-async function renderCLHome(c){
-  const[jR,pmR]=await Promise.all([
-    apiGet({action:'getJobs',department:USER.department}),
-    apiGet({action:'getPMAlerts',department:USER.department})
-  ]);
+// ═══════════════════════════════════════════
+async function renderCL(c){
+  const[jR,pmR]=await Promise.all([get({action:'getJobs',department:USER.department}),get({action:'getPMAlerts',department:USER.department})]);
   const jobs=jR.jobs||[],running=jobs.filter(j=>j.status==='Running'||j.status==='Exemption'),done=jobs.filter(j=>j.status==='Completed');
   const pm=(pmR.alerts||[]).filter(a=>a.daysLeft<=30);
+  // Utilization per package
+  const pkgUtil={};
+  jobs.forEach(j=>{
+    if(!pkgUtil[j.packageId])pkgUtil[j.packageId]={onJob:0,mnt:0,pool:0,standby:0,total:0};
+    (j.equipment||[]).forEach(e=>{
+      pkgUtil[j.packageId].total++;
+      if(e.status==='Running'||e.status==='Exemption')pkgUtil[j.packageId].onJob++;
+      else if(e.status==='Under MNT')pkgUtil[j.packageId].mnt++;
+      else pkgUtil[j.packageId].pool++;
+    });
+  });
   c.innerHTML=`
-  <div class="kpi-grid">
-    <div class="kpi-card green" onclick="toggleKPI('kd-running')">
-      <div class="kpi-label">Jobs running <span class="kpi-tap">tap ▸</span></div>
-      <div class="kpi-value green">${running.length}</div>
-      <div class="kpi-hint">${USER.department} dept</div>
-    </div>
-    <div class="kpi-card blue" onclick="toggleKPI('kd-done')">
-      <div class="kpi-label">Jobs completed <span class="kpi-tap">tap ▸</span></div>
-      <div class="kpi-value blue">${done.length}</div>
-      <div class="kpi-hint">this year</div>
-    </div>
+  <div class="kpi-row">
+    <div class="kpi g" onclick="toggleKPI('cl-run')"><div class="kpi-lbl">Jobs running <span class="kpi-tap">tap ▸</span></div><div class="kpi-val g">${running.length}</div><div class="kpi-sub">${USER.department} dept</div></div>
+    <div class="kpi b" onclick="toggleKPI('cl-done')"><div class="kpi-lbl">Jobs completed <span class="kpi-tap">tap ▸</span></div><div class="kpi-val b">${done.length}</div><div class="kpi-sub">this year</div></div>
   </div>
-
-  <div id="kd-running" style="display:none">
-    <div class="expand-box">
-      <div class="expand-head"><span class="expand-head-title">Running jobs — ${USER.department}</span><span class="expand-close" onclick="toggleKPI('kd-running')">close</span></div>
-      ${running.length===0?'<div class="empty">No running jobs</div>':running.map(j=>`
-        <div class="card-row clickable" onclick="pushView('job-detail',${JSON.stringify(j)},'${j.jobId}')">
-          <div class="cr-icon" style="background:${j.status==='Exemption'?'var(--amber-bg)':'var(--green-bg)'}">📋</div>
-          <div class="cr-body">
-            <div class="cr-title">${j.jobId} · ${j.wellNumber} / ${j.rigNumber}</div>
-            <div class="cr-sub">${j.packageId} · Mob ${j.mobDate} · ${j.daysOnJob||'?'} days</div>
-          </div>
-          <div class="cr-right"><span class="badge ${j.status==='Exemption'?'amber':'green'}">${j.status}</span><span class="chevron">›</span></div>
-        </div>`).join('')}
+  <div id="cl-run" style="display:none"><div class="expand">
+    <div class="exp-head"><span class="exp-title">Running jobs — ${USER.department}</span><span class="exp-close" onclick="toggleKPI('cl-run')">close</span></div>
+    ${running.length===0?'<div class="empty">No running jobs</div>':running.map(j=>`
+      <div class="crow" onclick="pushView('job-detail',${JSON.stringify(j).replace(/"/g,'&quot;')},'${j.jobId}')">
+        <div class="ci" style="background:${j.status==='Exemption'?'var(--amber-bg)':'var(--green-bg)'}">📋</div>
+        <div class="cb"><div class="ct2">${j.jobId} · ${j.wellNumber} / ${j.rigNumber}</div><div class="cs">${j.packageId} · Mob ${j.mobDate} · ${j.daysOnJob||'?'} days</div></div>
+        <div class="cr"><span class="bdg ${j.status==='Exemption'?'a':'g'}">${j.status}</span><span class="chev">›</span></div>
+      </div>`).join('')}
+  </div></div>
+  <div id="cl-done" style="display:none"><div class="expand">
+    <div class="exp-head"><span class="exp-title">Completed jobs</span><span class="exp-close" onclick="toggleKPI('cl-done')">close</span></div>
+    ${done.map(j=>`<div class="crow nc"><div class="ci" style="background:var(--blue-bg)">✓</div><div class="cb"><div class="ct2">${j.jobId} · ${j.wellNumber}</div><div class="cs">${j.packageId} · ${j.mobDate} → ${j.demobDate}</div></div><span class="bdg b">Done</span></div>`).join('')}
+    ${done.length===0?'<div class="empty">No completed jobs</div>':''}
+  </div></div>
+  ${running.length>0?`
+  <div class="slbl" style="margin-top:4px">Package utilization</div>
+  <div class="card"><div class="card-body">
+    <div class="leg-row" style="margin-bottom:10px">
+      <div class="leg-h"><div class="leg-sq" style="background:var(--green)"></div>On Job</div>
+      <div class="leg-h"><div class="leg-sq" style="background:var(--red)"></div>MNT</div>
+      <div class="leg-h"><div class="leg-sq" style="background:var(--blue)"></div>Pool</div>
     </div>
-  </div>
-
-  <div id="kd-done" style="display:none">
-    <div class="expand-box">
-      <div class="expand-head"><span class="expand-head-title">Completed jobs</span><span class="expand-close" onclick="toggleKPI('kd-done')">close</span></div>
-      ${done.length===0?'<div class="empty">No completed jobs</div>':done.map(j=>`
-        <div class="card-row">
-          <div class="cr-icon" style="background:var(--blue-bg)">✓</div>
-          <div class="cr-body"><div class="cr-title">${j.jobId} · ${j.wellNumber}</div><div class="cr-sub">${j.packageId} · ${j.mobDate} → ${j.demobDate}</div></div>
-          <span class="badge blue">Done</span>
-        </div>`).join('')}
-    </div>
-  </div>
-
-  ${pm.length>0?`<div class="sec-label" style="margin-top:4px">PM Alerts — contact Asset Manager</div>
-  ${pm.map(a=>`<div class="alert-bar ${a.status==='Overdue'?'red':'amber'}"><span class="alert-icon">${a.status==='Overdue'?'🔴':'⚠️'}</span><div><strong>${a.equipmentId}</strong> ${a.pmType} — ${a.status==='Overdue'?'<strong>OVERDUE</strong>':a.daysLeft+' days left'}</div></div>`).join('')}`:''}
-
+    ${running.map(j=>{const u=pkgUtil[j.packageId]||{onJob:0,mnt:0,pool:0,total:1};const t=u.total||1;const op=Math.round(u.onJob/t*100),mp=Math.round(u.mnt/t*100),pp=Math.round(u.pool/t*100);return`
+      <div class="urow">
+        <div class="upkg">${j.packageId}</div>
+        <div class="ubar">
+          <div class="useg" style="width:${op}%;background:var(--green)"></div>
+          <div class="useg" style="width:${mp}%;background:var(--red)"></div>
+          <div class="useg" style="width:${pp}%;background:var(--blue)"></div>
+        </div>
+        <div class="upct" style="color:${op>70?'var(--green)':op>50?'var(--amber)':'var(--red)'}">${op}%</div>
+      </div>`;}).join('')}
+  </div></div>`:''}
+  ${pm.length>0?`<div class="slbl" style="margin-top:4px">PM alerts — contact Asset Manager</div>${pm.map(a=>`<div class="alert ${a.status==='Overdue'?'r':'a'}"><span class="alert-icon">${a.status==='Overdue'?'🔴':'⚠️'}</span><div><strong>${a.equipmentId}</strong> ${a.pmType} — ${a.status==='Overdue'?'OVERDUE':a.daysLeft+' days left'}</div></div>`).join('')}`:''}
   <div class="divider"></div>
-  <div class="sec-label">Actions</div>
   <button class="btn primary" onclick="pushView('create-job',null,'New Job Assignment')">+ New Job Assignment</button>
   <button class="btn ghost" onclick="navTo('jobs')">View all jobs</button>`;
 }
 
-// ════════════════════════════════════════════
+// ═══════════════════════════════════════════
 // ASSET MANAGER
-// ════════════════════════════════════════════
-async function renderAMHome(c){
-  const[poolR,mntR,jR,pmR]=await Promise.all([
-    apiGet({action:'getPool'}),
-    apiGet({action:'getMNT'}),
-    apiGet({action:'getJobs',department:'All'}),
-    apiGet({action:'getPMAlerts',department:'All'})
-  ]);
+// ═══════════════════════════════════════════
+async function renderAM(c){
+  const[poolR,mntR,jR,pmR]=await Promise.all([get({action:'getPool'}),get({action:'getMNT'}),get({action:'getJobs',department:'All'}),get({action:'getPMAlerts',department:'All'})]);
   const pool=poolR.pool||{},poolTotal=Object.values(pool).reduce((s,a)=>s+a.length,0);
   const mntRecs=(mntR.records||[]).filter(r=>r.status==='Under MNT');
   const pm=(pmR.alerts||[]).filter(a=>a.daysLeft<=30);
-  const running=(jR.jobs||[]).filter(j=>j.status==='Running'||j.status==='Exemption');
+  const jobs=jR.jobs||[],running=jobs.filter(j=>j.status==='Running'||j.status==='Exemption');
+  // Fleet status counts
+  const onJob=running.reduce((s,j)=>s+(j.equipment||[]).length,0);
+  const mntCnt=mntRecs.length,poolCnt=poolTotal;
+  const total=onJob+mntCnt+poolCnt||1;
+  const circ=2*Math.PI*42;
   c.innerHTML=`
-  <div class="kpi-grid">
-    <div class="kpi-card teal" onclick="toggleKPI('am-pool')">
-      <div class="kpi-label">Pool available <span class="kpi-tap">tap ▸</span></div>
-      <div class="kpi-value teal">${poolTotal}</div>
-      <div class="kpi-hint">units ready</div>
-    </div>
-    <div class="kpi-card amber" onclick="toggleKPI('am-mnt')">
-      <div class="kpi-label">Under MNT <span class="kpi-tap">tap ▸</span></div>
-      <div class="kpi-value amber">${mntRecs.length}</div>
-      <div class="kpi-hint">equipment</div>
-    </div>
-    <div class="kpi-card green" onclick="toggleKPI('am-running')">
-      <div class="kpi-label">Jobs running <span class="kpi-tap">tap ▸</span></div>
-      <div class="kpi-value green">${running.length}</div>
-      <div class="kpi-hint">all depts</div>
-    </div>
-    <div class="kpi-card red" onclick="toggleKPI('am-pm')">
-      <div class="kpi-label">PM alerts <span class="kpi-tap">tap ▸</span></div>
-      <div class="kpi-value red">${pm.length}</div>
-      <div class="kpi-hint">need action</div>
-    </div>
+  <div class="kpi-row">
+    <div class="kpi t" onclick="toggleKPI('am-pool')"><div class="kpi-lbl">Pool available <span class="kpi-tap">tap ▸</span></div><div class="kpi-val t">${poolTotal}</div><div class="kpi-sub">ready to assign</div></div>
+    <div class="kpi a" onclick="toggleKPI('am-mnt')"><div class="kpi-lbl">Under MNT <span class="kpi-tap">tap ▸</span></div><div class="kpi-val a">${mntRecs.length}</div><div class="kpi-sub">equipment</div></div>
+    <div class="kpi g" onclick="toggleKPI('am-run')"><div class="kpi-lbl">Jobs running <span class="kpi-tap">tap ▸</span></div><div class="kpi-val g">${running.length}</div><div class="kpi-sub">all depts</div></div>
+    <div class="kpi r" onclick="toggleKPI('am-pm')"><div class="kpi-lbl">PM alerts <span class="kpi-tap">tap ▸</span></div><div class="kpi-val r">${pm.length}</div><div class="kpi-sub">need action</div></div>
   </div>
-
-  <div id="am-pool" style="display:none"><div class="expand-box">
-    <div class="expand-head"><span class="expand-head-title">Pool — available equipment</span><span class="expand-close" onclick="toggleKPI('am-pool')">close</span></div>
-    ${Object.keys(pool).length===0?'<div class="empty">No pool equipment</div>':Object.entries(pool).map(([type,items])=>`
-      <div style="padding:8px 14px;border-bottom:1px solid var(--border)">
-        <div class="sec-label" style="margin:0 0 6px">${type} (${items.length})</div>
-        <div style="display:flex;flex-wrap:wrap;gap:5px">${items.map(e=>`<span class="badge gray" style="font-family:'JetBrains Mono',monospace">${e.id}</span>`).join('')}</div>
-      </div>`).join('')}
+  <!-- Fleet donut -->
+  <div class="slbl">Fleet status overview</div>
+  <div class="card"><div class="card-body">
+    <div class="donut-wrap">
+      <svg width="110" height="110" viewBox="0 0 110 110" style="flex-shrink:0">
+        <circle cx="55" cy="55" r="42" fill="none" stroke="var(--s3)" stroke-width="16"/>
+        ${donut([{val:onJob,color:'var(--green)'},{val:mntCnt,color:'var(--red)'},{val:poolCnt,color:'var(--blue)'}],total,55,55,42,16)}
+        <text x="55" y="51" text-anchor="middle" font-size="16" font-weight="700" fill="var(--t1)">${total}</text>
+        <text x="55" y="63" text-anchor="middle" font-size="9" fill="var(--t3)">units</text>
+      </svg>
+      <div class="donut-legend">
+        <div class="leg"><div class="leg-dot" style="background:var(--green)"></div><div class="leg-lbl">On Job</div><div class="leg-val">${onJob}</div><div class="leg-pct">${Math.round(onJob/total*100)}%</div></div>
+        <div class="leg"><div class="leg-dot" style="background:var(--red)"></div><div class="leg-lbl">Under MNT</div><div class="leg-val">${mntCnt}</div><div class="leg-pct">${Math.round(mntCnt/total*100)}%</div></div>
+        <div class="leg"><div class="leg-dot" style="background:var(--blue)"></div><div class="leg-lbl">Pool</div><div class="leg-val">${poolCnt}</div><div class="leg-pct">${Math.round(poolCnt/total*100)}%</div></div>
+      </div>
+    </div>
   </div></div>
-
-  <div id="am-mnt" style="display:none"><div class="expand-box">
-    <div class="expand-head"><span class="expand-head-title">Equipment under MNT</span><span class="expand-close" onclick="toggleKPI('am-mnt')">close</span></div>
-    ${mntRecs.map(r=>`<div class="card-row"><div class="cr-icon" style="background:var(--amber-bg)">🔧</div><div class="cr-body"><div class="cr-title">${r.equipmentId} — ${r.type}</div><div class="cr-sub">${r.mntType} · Started ${r.startDate}</div></div><span class="badge amber">MNT</span></div>`).join('')}
+  <div id="am-pool" style="display:none"><div class="expand">
+    <div class="exp-head"><span class="exp-title">Pool — available equipment</span><span class="exp-close" onclick="toggleKPI('am-pool')">close</span></div>
+    ${Object.keys(pool).length===0?'<div class="empty">No pool equipment</div>':Object.entries(pool).map(([type,items])=>`<div style="padding:8px 13px;border-bottom:1px solid var(--border)"><div class="slbl" style="margin-bottom:5px">${type} (${items.length})</div><div style="display:flex;flex-wrap:wrap;gap:5px">${items.map(e=>`<span class="bdg gray" style="font-family:'JetBrains Mono',monospace">${e.id}</span>`).join('')}</div></div>`).join('')}
+  </div></div>
+  <div id="am-mnt" style="display:none"><div class="expand">
+    <div class="exp-head"><span class="exp-title">Equipment under MNT</span><span class="exp-close" onclick="toggleKPI('am-mnt')">close</span></div>
+    ${mntRecs.map(r=>`<div class="crow nc"><div class="ci" style="background:var(--amber-bg)">🔧</div><div class="cb"><div class="ct2">${r.equipmentId} — ${r.type}</div><div class="cs">${r.mntType} · ${r.startDate}</div></div><span class="bdg a">MNT</span></div>`).join('')}
     ${mntRecs.length===0?'<div class="empty">No equipment under MNT</div>':''}
   </div></div>
-
-  <div id="am-running" style="display:none"><div class="expand-box">
-    <div class="expand-head"><span class="expand-head-title">All running jobs</span><span class="expand-close" onclick="toggleKPI('am-running')">close</span></div>
-    ${running.map(j=>`<div class="card-row"><div class="cr-body"><div class="cr-title">${j.jobId} · ${j.wellNumber}</div><div class="cr-sub">${j.packageId} · ${j.department} · ${j.daysOnJob||'?'} days</div></div><span class="badge ${j.status==='Exemption'?'amber':'green'}">${j.status}</span></div>`).join('')}
+  <div id="am-run" style="display:none"><div class="expand">
+    <div class="exp-head"><span class="exp-title">All running jobs</span><span class="exp-close" onclick="toggleKPI('am-run')">close</span></div>
+    ${running.map(j=>`<div class="crow nc"><div class="cb"><div class="ct2">${j.jobId} · ${j.wellNumber}</div><div class="cs">${j.packageId} · ${j.department} · ${j.daysOnJob||'?'} days</div></div><span class="bdg ${j.status==='Exemption'?'a':'g'}">${j.status}</span></div>`).join('')}
     ${running.length===0?'<div class="empty">No running jobs</div>':''}
   </div></div>
-
-  <div id="am-pm" style="display:none"><div class="expand-box">
-    <div class="expand-head"><span class="expand-head-title">PM due alerts</span><span class="expand-close" onclick="toggleKPI('am-pm')">close</span></div>
-    <div style="padding:10px 14px">${pm.map(a=>`<div class="alert-bar ${a.status==='Overdue'?'red':'amber'}" style="margin-bottom:6px"><span class="alert-icon">${a.status==='Overdue'?'🔴':'⚠️'}</span><div><strong>${a.equipmentId}</strong> ${a.pmType} · ${a.department} · ${a.status==='Overdue'?'OVERDUE':a.daysLeft+' days'}</div></div>`).join('')}
-    ${pm.length===0?'<div class="empty">No alerts</div>':''}</div>
+  <div id="am-pm" style="display:none"><div class="expand">
+    <div class="exp-head"><span class="exp-title">PM due alerts</span><span class="exp-close" onclick="toggleKPI('am-pm')">close</span></div>
+    <div style="padding:10px 13px">${pm.map(a=>`<div class="alert ${a.status==='Overdue'?'r':'a'}" style="margin-bottom:6px"><span class="alert-icon">${a.status==='Overdue'?'🔴':'⚠️'}</span><div><strong>${a.equipmentId}</strong> ${a.pmType} · ${a.department} · ${a.status==='Overdue'?'OVERDUE':a.daysLeft+' days'}</div></div>`).join('')}${pm.length===0?'<div class="empty">No alerts</div>':''}</div>
   </div></div>
-
   <div class="divider"></div>
   <button class="btn ghost" onclick="navTo('equipment')">View all equipment</button>
   <button class="btn ghost" onclick="navTo('jobs')">View all jobs</button>`;
 }
 
-// ════════════════════════════════════════════
-// OPERATION MANAGER
-// ════════════════════════════════════════════
-async function renderOPHome(c){
-  const[dashR,tktR]=await Promise.all([
-    apiGet({action:'getDashboard',department:'All'}),
-    apiGet({action:'getTickets'})
-  ]);
-  const kpis=dashR.kpis||{},mntPerf=dashR.mntPerformance||[],pmAlerts=dashR.pmAlerts||[];
-  const runningJobs=dashR.runningJobs||[];
-  const tickets=tktR.tickets||[];
-
-  // Group running jobs by department
-  const byDept={};
-  runningJobs.forEach(j=>{
-    if(!byDept[j.department])byDept[j.department]={count:0,packages:[]};
-    byDept[j.department].count++;
-    byDept[j.department].packages.push(j);
-  });
-
-  // Ticket stats by month
-  const monthStats={};
-  tickets.forEach(t=>{
-    if(!t.completionDate)return;
-    const m=t.completionDate.slice(0,7);
-    if(!monthStats[m])monthStats[m]={total:0,done:0,byDept:{}};
-    monthStats[m].total++;
-    if(t.status==='Done')monthStats[m].done++;
-    const d=t.department||'Unknown';
-    if(!monthStats[m].byDept[d])monthStats[m].byDept[d]={total:0,done:0};
-    monthStats[m].byDept[d].total++;
-    if(t.status==='Done')monthStats[m].byDept[d].done++;
-  });
-  const months=Object.keys(monthStats).sort().slice(-6);
-  const maxTkt=Math.max(...months.map(m=>monthStats[m].total),1);
-
+// ═══════════════════════════════════════════
+// MNT MANAGER
+// ═══════════════════════════════════════════
+async function renderMNT(c){
+  const[mntR,pmR]=await Promise.all([get({action:'getMNT'}),get({action:'getPMAlerts',department:'All'})]);
+  const underMNT=(mntR.records||[]).filter(r=>r.status==='Under MNT');
+  const awaiting=(mntR.records||[]).filter(r=>r.status==='Awaiting QAQC');
+  const done=(mntR.records||[]).filter(r=>r.status==='Done');
+  const pm=pmR.alerts||[];
+  const total=underMNT.length+awaiting.length+done.length||1;
   c.innerHTML=`
-  <div class="kpi-grid">
-    <div class="kpi-card green" onclick="toggleKPI('op-running')">
-      <div class="kpi-label">Packages running <span class="kpi-tap">tap ▸</span></div>
-      <div class="kpi-value green">${kpis.packagesRunning||0} <small>/ ${kpis.totalPackages||14}</small></div>
-      <div class="kpi-hint">active packages</div>
-    </div>
-    <div class="kpi-card blue" onclick="toggleKPI('op-tickets')">
-      <div class="kpi-label">Ticketing <span class="kpi-tap">tap ▸</span></div>
-      <div class="kpi-value blue">${kpis.underTicketing||0}</div>
-      <div class="kpi-hint">${kpis.ticketsDone||0} done this year</div>
-    </div>
-    <div class="kpi-card amber" onclick="toggleKPI('op-exemptions')">
-      <div class="kpi-label">Exemptions <span class="kpi-tap">tap ▸</span></div>
-      <div class="kpi-value amber">${kpis.activeExemptions||0}</div>
-      <div class="kpi-hint">active now</div>
-    </div>
-    <div class="kpi-card red" onclick="toggleKPI('op-mnt')">
-      <div class="kpi-label">MNT alerts <span class="kpi-tap">tap ▸</span></div>
-      <div class="kpi-value red">${mntPerf.filter(m=>m.alert).length}</div>
-      <div class="kpi-hint">over 25% threshold</div>
-    </div>
+  <div class="kpi-row">
+    <div class="kpi a" onclick="toggleKPI('mnt-u')"><div class="kpi-lbl">Under MNT <span class="kpi-tap">tap ▸</span></div><div class="kpi-val a">${underMNT.length}</div><div class="kpi-sub">in progress</div></div>
+    <div class="kpi b" onclick="toggleKPI('mnt-aw')"><div class="kpi-lbl">Awaiting QAQC <span class="kpi-tap">tap ▸</span></div><div class="kpi-val b">${awaiting.length}</div><div class="kpi-sub">pending review</div></div>
+    <div class="kpi g" onclick="toggleKPI('mnt-done')"><div class="kpi-lbl">Done this year <span class="kpi-tap">tap ▸</span></div><div class="kpi-val g">${done.length}</div><div class="kpi-sub">completed</div></div>
+    <div class="kpi r" onclick="toggleKPI('mnt-pm')"><div class="kpi-lbl">PM due soon <span class="kpi-tap">tap ▸</span></div><div class="kpi-val r">${pm.length}</div><div class="kpi-sub">next 30 days</div></div>
   </div>
-
-  <!-- RUNNING DETAIL — BY DEPT WITH PKG + LOCATION + UTIL -->
-  <div id="op-running" style="display:none">
-    <div class="expand-box">
-      <div class="expand-head"><span class="expand-head-title">Active packages — by department</span><span class="expand-close" onclick="toggleKPI('op-running')">close</span></div>
-      ${Object.keys(byDept).length===0?'<div class="empty">No running jobs</div>':Object.entries(byDept).map(([dept,data])=>`
-        <div style="padding:10px 14px;border-bottom:1px solid var(--border)">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-            <span class="dept ${dept.toLowerCase().replace('&','').replace(' ','')}">${dept}</span>
-            <span style="font-size:12px;font-weight:600;color:var(--text1)">${data.count} package${data.count>1?'s':''} running</span>
-          </div>
-          ${data.packages.map(j=>`
-            <div class="pkg-row" onclick="pushView('job-detail',${JSON.stringify(j)},'${j.jobId}')">
-              <div class="pkg-id">${j.packageId}</div>
-              <div class="pkg-loc">${j.wellNumber} / ${j.rigNumber}<br><span style="font-size:10px;color:var(--text3)">${j.cellLeader} · ${j.daysOnJob||'?'} days</span></div>
-              <div class="pkg-util">
-                <div class="pkg-util-val" style="color:${(j.daysOnJob||0)>30?'var(--green)':'var(--blue)'}">${j.status==='Exemption'?'⚠':'✓'}</div>
-                <span class="badge ${j.status==='Exemption'?'amber':'green'}" style="font-size:9px">${j.status}</span>
-              </div>
-            </div>`).join('')}
-        </div>`).join('')}
-    </div>
-  </div>
-
-  <!-- TICKET DETAIL — BY MONTH -->
-  <div id="op-tickets" style="display:none">
-    <div class="expand-box">
-      <div class="expand-head"><span class="expand-head-title">Tickets — by month</span><span class="expand-close" onclick="toggleKPI('op-tickets')">close</span></div>
-      <div style="padding:14px">
-        ${months.length===0?'<div class="empty">No ticket data</div>':`
-          <div style="display:flex;align-items:flex-end;gap:6px;height:80px;margin-bottom:8px">
-            ${months.map(m=>{const pct=Math.round((monthStats[m].total/maxTkt)*100);const done=Math.round((monthStats[m].done/monthStats[m].total)*100);return`
-              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;height:100%;justify-content:flex-end">
-                <div style="font-size:9px;font-weight:600;color:var(--text2)">${monthStats[m].total}</div>
-                <div style="width:100%;display:flex;flex-direction:column;height:${pct}%;border-radius:4px 4px 0 0;overflow:hidden;min-height:8px">
-                  <div style="flex:${done};background:var(--green)"></div>
-                  <div style="flex:${100-done};background:var(--border2)"></div>
-                </div>
-                <div style="font-size:8px;color:var(--text3)">${m.slice(5)}</div>
-              </div>`;}).join('')}
-          </div>
-          <div style="display:flex;gap:12px;margin-bottom:12px">
-            <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2)"><div style="width:10px;height:10px;background:var(--green);border-radius:2px"></div>Done</div>
-            <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2)"><div style="width:10px;height:10px;background:var(--border2);border-radius:2px"></div>Pending</div>
-          </div>
-          <div class="divider"></div>
-          ${months.slice(-3).reverse().map(m=>`
-            <div style="margin-bottom:10px">
-              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-                <span style="font-size:12px;font-weight:600;color:var(--text1)">${m}</span>
-                <span style="font-size:11px;color:var(--text2)">${monthStats[m].done}/${monthStats[m].total} done</span>
-              </div>
-              ${Object.entries(monthStats[m].byDept).map(([dept,ds])=>`
-                <div class="stat-row" style="padding:6px 0">
-                  <span class="dept ${dept.toLowerCase().replace('&','').replace(' ','')}" style="min-width:70px">${dept}</span>
-                  <div style="flex:1;margin:0 8px">
-                    <div class="prog-wrap"><div class="prog-fill" style="width:${ds.total>0?Math.round(ds.done/ds.total*100):0}%;background:var(--green)"></div></div>
-                  </div>
-                  <span style="font-size:11px;color:var(--text2)">${ds.done}/${ds.total}</span>
-                </div>`).join('')}
-            </div>`).join('')}
-        `}
+  <!-- MNT status donut -->
+  <div class="slbl">MNT status breakdown</div>
+  <div class="card"><div class="card-body">
+    <div class="donut-wrap">
+      <svg width="100" height="100" viewBox="0 0 100 100" style="flex-shrink:0">
+        <circle cx="50" cy="50" r="38" fill="none" stroke="var(--s3)" stroke-width="14"/>
+        ${donut([{val:underMNT.length,color:'var(--amber)'},{val:awaiting.length,color:'var(--blue)'},{val:done.length,color:'var(--green)'}],total,50,50,38,14)}
+        <text x="50" y="46" text-anchor="middle" font-size="16" font-weight="700" fill="var(--t1)">${total}</text>
+        <text x="50" y="58" text-anchor="middle" font-size="8" fill="var(--t3)">records</text>
+      </svg>
+      <div class="donut-legend">
+        <div class="leg"><div class="leg-dot" style="background:var(--amber)"></div><div class="leg-lbl">Under MNT</div><div class="leg-val">${underMNT.length}</div><div class="leg-pct">${Math.round(underMNT.length/total*100)}%</div></div>
+        <div class="leg"><div class="leg-dot" style="background:var(--blue)"></div><div class="leg-lbl">Awaiting QAQC</div><div class="leg-val">${awaiting.length}</div><div class="leg-pct">${Math.round(awaiting.length/total*100)}%</div></div>
+        <div class="leg"><div class="leg-dot" style="background:var(--green)"></div><div class="leg-lbl">Done</div><div class="leg-val">${done.length}</div><div class="leg-pct">${Math.round(done.length/total*100)}%</div></div>
       </div>
     </div>
-  </div>
-
-  <!-- EXEMPTIONS -->
-  <div id="op-exemptions" style="display:none">
-    <div class="expand-box">
-      <div class="expand-head"><span class="expand-head-title">Active exemptions</span><span class="expand-close" onclick="toggleKPI('op-exemptions')">close</span></div>
-      <div style="padding:10px 14px"><button class="btn ghost" onclick="navTo('alerts')">View all exemptions ›</button></div>
-    </div>
-  </div>
-
-  <!-- MNT PERFORMANCE -->
-  <div id="op-mnt" style="display:none">
-    <div class="expand-box">
-      <div class="expand-head"><span class="expand-head-title">MNT performance — 25% threshold</span><span class="expand-close" onclick="toggleKPI('op-mnt')">close</span></div>
-      <div style="padding:10px 14px">
-        ${mntPerf.map(m=>`
-          <div class="stat-row">
-            <div class="stat-dot" style="background:${m.alert?'var(--red)':'var(--green)'}"></div>
-            <div class="stat-name">${m.type}</div>
-            <div style="flex:1;margin:0 10px"><div class="prog-wrap"><div class="prog-fill" style="width:${m.pct}%;background:${m.alert?'var(--red)':m.pct>15?'var(--amber)':'var(--green)'}"></div></div></div>
-            <div class="stat-val" style="color:${m.alert?'var(--red)':'var(--text1)'}">${m.pct}%${m.alert?' ⚠':''}</div>
-          </div>`).join('')}
-      </div>
-    </div>
-  </div>
-
-  ${pmAlerts.length>0?`
-  <div class="divider"></div>
-  <div class="sec-label">PM alerts — fleet wide</div>
-  ${pmAlerts.slice(0,5).map(a=>`<div class="alert-bar ${a.status==='Overdue'?'red':'amber'}"><span class="alert-icon">${a.status==='Overdue'?'🔴':'⚠️'}</span><div><strong>${a.equipmentId}</strong> (${a.department}) · ${a.pmType} · ${a.status==='Overdue'?'OVERDUE':a.daysLeft+' days'}</div></div>`).join('')}`:''}`;
+  </div></div>
+  <div id="mnt-u" style="display:none"><div class="expand">
+    <div class="exp-head"><span class="exp-title">Under MNT — mark done</span><span class="exp-close" onclick="toggleKPI('mnt-u')">close</span></div>
+    ${underMNT.length===0?'<div class="empty">No equipment under MNT</div>':underMNT.map(r=>`
+      <div style="padding:10px 13px;border-bottom:1px solid var(--border)">
+        <div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="font-size:13px;font-weight:600;color:var(--t1)">${r.equipmentId}</span><span class="bdg a">${r.mntType}</span></div>
+        <div style="font-size:10px;color:var(--t2);margin-bottom:8px">${r.notes||''} · Started ${r.startDate}</div>
+        <button class="btn success" style="padding:8px;font-size:12px" onclick="markMNTDone('${r.mntId}','${r.equipmentId}')">Mark done → Send to QAQC</button>
+      </div>`).join('')}
+  </div></div>
+  <div id="mnt-aw" style="display:none"><div class="expand">
+    <div class="exp-head"><span class="exp-title">Awaiting QAQC</span><span class="exp-close" onclick="toggleKPI('mnt-aw')">close</span></div>
+    ${awaiting.map(r=>`<div class="crow nc"><div class="ci" style="background:var(--blue-bg)">⏳</div><div class="cb"><div class="ct2">${r.equipmentId}</div><div class="cs">Done ${r.actualDone} · Sent to QAQC</div></div><span class="bdg b">Pending</span></div>`).join('')}
+    ${awaiting.length===0?'<div class="empty">No items awaiting QAQC</div>':''}
+  </div></div>
+  <div id="mnt-done" style="display:none"><div class="expand">
+    <div class="exp-head"><span class="exp-title">Completed MNT</span><span class="exp-close" onclick="toggleKPI('mnt-done')">close</span></div>
+    ${done.map(r=>`<div class="crow nc"><div class="ci" style="background:var(--green-bg)">✓</div><div class="cb"><div class="ct2">${r.equipmentId}</div><div class="cs">Done ${r.actualDone}</div></div><span class="bdg g">Done</span></div>`).join('')}
+    ${done.length===0?'<div class="empty">No completed MNT</div>':''}
+  </div></div>
+  <div id="mnt-pm" style="display:none"><div class="expand">
+    <div class="exp-head"><span class="exp-title">PM due alerts</span><span class="exp-close" onclick="toggleKPI('mnt-pm')">close</span></div>
+    <div style="padding:10px 13px">${pm.map(a=>`<div class="alert ${a.status==='Overdue'?'r':'a'}" style="margin-bottom:6px"><span class="alert-icon">${a.status==='Overdue'?'🔴':'⚠️'}</span><div><strong>${a.equipmentId}</strong> ${a.pmType} — ${a.status==='Overdue'?'OVERDUE':a.daysLeft+' days'}</div></div>`).join('')}${pm.length===0?'<div class="empty">No alerts</div>':''}</div>
+  </div></div>`;
 }
 
-// ════════════════════════════════════════════
+// ═══════════════════════════════════════════
+// QAQC MANAGER
+// ═══════════════════════════════════════════
+async function renderQA(c){
+  const mntR=await get({action:'getMNT'});
+  const recs=mntR.records||[];
+  const awaiting=recs.filter(r=>r.status==='Awaiting QAQC');
+  const done=recs.filter(r=>r.status==='Done');
+  const underMNT=recs.filter(r=>r.status==='Under MNT');
+  const total=awaiting.length+done.length+underMNT.length||1;
+  c.innerHTML=`
+  <div class="kpi-row">
+    <div class="kpi a" onclick="toggleKPI('qa-pend')"><div class="kpi-lbl">Awaiting approval <span class="kpi-tap">tap ▸</span></div><div class="kpi-val a">${awaiting.length}</div><div class="kpi-sub">equipment pending</div></div>
+    <div class="kpi g" onclick="toggleKPI('qa-done')"><div class="kpi-lbl">Approved done <span class="kpi-tap">tap ▸</span></div><div class="kpi-val g">${done.length}</div><div class="kpi-sub">moved to pool</div></div>
+  </div>
+  <!-- MNT pipeline donut -->
+  <div class="slbl">MNT pipeline</div>
+  <div class="card"><div class="card-body">
+    <div class="donut-wrap">
+      <svg width="100" height="100" viewBox="0 0 100 100" style="flex-shrink:0">
+        <circle cx="50" cy="50" r="38" fill="none" stroke="var(--s3)" stroke-width="14"/>
+        ${donut([{val:underMNT.length,color:'var(--amber)'},{val:awaiting.length,color:'var(--blue)'},{val:done.length,color:'var(--green)'}],total,50,50,38,14)}
+        <text x="50" y="46" text-anchor="middle" font-size="16" font-weight="700" fill="var(--t1)">${total}</text>
+        <text x="50" y="58" text-anchor="middle" font-size="8" fill="var(--t3)">total</text>
+      </svg>
+      <div class="donut-legend">
+        <div class="leg"><div class="leg-dot" style="background:var(--amber)"></div><div class="leg-lbl">Under MNT</div><div class="leg-val">${underMNT.length}</div></div>
+        <div class="leg"><div class="leg-dot" style="background:var(--blue)"></div><div class="leg-lbl">Awaiting QAQC</div><div class="leg-val">${awaiting.length}</div></div>
+        <div class="leg"><div class="leg-dot" style="background:var(--green)"></div><div class="leg-lbl">Approved → Pool</div><div class="leg-val">${done.length}</div></div>
+      </div>
+    </div>
+  </div></div>
+  <div id="qa-pend" style="display:none"><div class="expand">
+    <div class="exp-head"><span class="exp-title">Awaiting QAQC approval</span><span class="exp-close" onclick="toggleKPI('qa-pend')">close</span></div>
+    ${awaiting.length===0?'<div class="empty">No pending approvals ✓</div>':awaiting.map(r=>`
+      <div style="padding:12px 13px;border-bottom:1px solid var(--border)">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:13px;font-weight:600;color:var(--t1)">${r.equipmentId}</span><span class="bdg a">${r.mntType}</span></div>
+        <div style="font-size:10px;color:var(--t2);margin-bottom:10px">${r.notes||''} · MNT done ${r.actualDone}</div>
+        <div class="fg"><label class="flbl">Notes / Rejection reason</label><textarea class="ftextarea" id="qr-${r.mntId}" rows="2" placeholder="Enter notes if rejecting..."></textarea></div>
+        <div class="btn-row">
+          <button class="btn success" onclick="qaqcDec('${r.mntId}','Approved')">✓ Approve → Pool</button>
+          <button class="btn danger" onclick="qaqcDec('${r.mntId}','Rejected')">✗ Reject → MNT</button>
+        </div>
+      </div>`).join('')}
+  </div></div>
+  <div id="qa-done" style="display:none"><div class="expand">
+    <div class="exp-head"><span class="exp-title">Approved — moved to Pool</span><span class="exp-close" onclick="toggleKPI('qa-done')">close</span></div>
+    ${done.map(r=>`<div class="crow nc"><div class="ci" style="background:var(--green-bg)">✓</div><div class="cb"><div class="ct2">${r.equipmentId}</div><div class="cs">Approved · Done ${r.actualDone}</div></div><span class="bdg g">Pool</span></div>`).join('')}
+    ${done.length===0?'<div class="empty">No approved items yet</div>':''}
+  </div></div>`;
+}
+
+// ═══════════════════════════════════════════
+// FSM
+// ═══════════════════════════════════════════
+async function renderFSM(c){
+  const[jR,pmR]=await Promise.all([get({action:'getJobs',department:USER.department}),get({action:'getPMAlerts',department:USER.department})]);
+  const jobs=jR.jobs||[],running=jobs.filter(j=>j.status==='Running'||j.status==='Exemption'),done=jobs.filter(j=>j.status==='Completed');
+  const pm=(pmR.alerts||[]).filter(a=>a.daysLeft<=30);
+  // Package utilization
+  const pkgUtil={};
+  jobs.forEach(j=>{
+    if(!pkgUtil[j.packageId])pkgUtil[j.packageId]={onJob:0,mnt:0,pool:0,total:0};
+    (j.equipment||[]).forEach(e=>{
+      pkgUtil[j.packageId].total++;
+      if(e.status==='Running'||e.status==='Exemption')pkgUtil[j.packageId].onJob++;
+      else if(e.status==='Under MNT')pkgUtil[j.packageId].mnt++;
+      else pkgUtil[j.packageId].pool++;
+    });
+  });
+  c.innerHTML=`
+  <div class="kpi-row">
+    <div class="kpi g" onclick="toggleKPI('fsm-run')"><div class="kpi-lbl">Jobs running <span class="kpi-tap">tap ▸</span></div><div class="kpi-val g">${running.length}</div><div class="kpi-sub">${USER.department}</div></div>
+    <div class="kpi b" onclick="toggleKPI('fsm-done')"><div class="kpi-lbl">Completed <span class="kpi-tap">tap ▸</span></div><div class="kpi-val b">${done.length}</div><div class="kpi-sub">this year</div></div>
+  </div>
+  ${running.length>0?`
+  <div class="slbl">Package utilization — ${USER.department}</div>
+  <div class="card"><div class="card-body">
+    <div class="leg-row" style="margin-bottom:10px">
+      <div class="leg-h"><div class="leg-sq" style="background:var(--green)"></div>On Job</div>
+      <div class="leg-h"><div class="leg-sq" style="background:var(--red)"></div>MNT</div>
+      <div class="leg-h"><div class="leg-sq" style="background:var(--blue)"></div>Pool</div>
+    </div>
+    ${running.map(j=>{const u=pkgUtil[j.packageId]||{onJob:0,mnt:0,pool:0,total:1};const t=u.total||1;const op=Math.round(u.onJob/t*100),mp=Math.round(u.mnt/t*100),pp=Math.round(u.pool/t*100);return`
+      <div class="urow">
+        <div class="upkg">${j.packageId}</div>
+        <div class="ubar">
+          <div class="useg" style="width:${op}%;background:var(--green)"></div>
+          <div class="useg" style="width:${mp}%;background:var(--red)"></div>
+          <div class="useg" style="width:${pp}%;background:var(--blue)"></div>
+        </div>
+        <div class="upct" style="color:${op>70?'var(--green)':op>50?'var(--amber)':'var(--red)'}">${op}%</div>
+      </div>`;}).join('')}
+  </div></div>`:''}
+  <div id="fsm-run" style="display:none"><div class="expand">
+    <div class="exp-head"><span class="exp-title">Running jobs</span><span class="exp-close" onclick="toggleKPI('fsm-run')">close</span></div>
+    ${running.map(j=>`<div class="crow" onclick="pushView('job-detail',${JSON.stringify(j).replace(/"/g,'&quot;')},'${j.jobId}')"><div class="cb"><div class="ct2">${j.jobId} · ${j.wellNumber} / ${j.rigNumber}</div><div class="cs">${j.packageId} · ${j.mobDate} · ${j.daysOnJob||'?'} days</div></div><div class="cr"><span class="bdg ${j.status==='Exemption'?'a':'g'}">${j.status}</span><span class="chev">›</span></div></div>`).join('')}
+    ${running.length===0?'<div class="empty">No running jobs</div>':''}
+  </div></div>
+  <div id="fsm-done" style="display:none"><div class="expand">
+    <div class="exp-head"><span class="exp-title">Completed jobs</span><span class="exp-close" onclick="toggleKPI('fsm-done')">close</span></div>
+    ${done.map(j=>`<div class="crow nc"><div class="cb"><div class="ct2">${j.jobId} · ${j.wellNumber}</div><div class="cs">${j.mobDate} → ${j.demobDate}</div></div><span class="bdg b">Done</span></div>`).join('')}
+    ${done.length===0?'<div class="empty">No completed jobs</div>':''}
+  </div></div>
+  ${pm.length>0?`<div class="divider"></div><div class="slbl">PM alerts — ${USER.department}</div>${pm.map(a=>`<div class="alert ${a.status==='Overdue'?'r':'a'}"><span class="alert-icon">${a.status==='Overdue'?'🔴':'⚠️'}</span><div><strong>${a.equipmentId}</strong> ${a.pmType} — ${a.status==='Overdue'?'OVERDUE':a.daysLeft+' days'}</div></div>`).join('')}`:''}`;
+}
+
+// ═══════════════════════════════════════════
+// OPERATION MANAGER
+// ═══════════════════════════════════════════
+async function renderOP(c){
+  const[dashR,tktR]=await Promise.all([get({action:'getDashboard',department:'All'}),get({action:'getTickets'})]);
+  const kpis=dashR.kpis||{},mntPerf=dashR.mntPerformance||[],pmAlerts=dashR.pmAlerts||[];
+  const runningJobs=dashR.runningJobs||[],tickets=tktR.tickets||[];
+  // Group by dept
+  const byDept={};
+  runningJobs.forEach(j=>{if(!byDept[j.department])byDept[j.department]={count:0,pkgs:[]};byDept[j.department].count++;byDept[j.department].pkgs.push(j);});
+  // Fleet numbers from mntPerf
+  const totalFleet=mntPerf.reduce((s,m)=>s+m.total,0)||1;
+  const totalMNT=mntPerf.reduce((s,m)=>s+m.underMnt,0);
+  const totalOnJob=runningJobs.reduce((s,j)=>s+(j.equipment||[]).length,0);
+  const totalPool=Math.max(0,totalFleet-totalOnJob-totalMNT);
+  c.innerHTML=`
+  <div class="kpi-row">
+    <div class="kpi g" onclick="toggleKPI('op-run')"><div class="kpi-lbl">Packages running <span class="kpi-tap">tap ▸</span></div><div class="kpi-val g">${kpis.packagesRunning||0}<small>/${kpis.totalPackages||14}</small></div><div class="kpi-sub">active packages</div></div>
+    <div class="kpi b" onclick="toggleKPI('op-tkt')"><div class="kpi-lbl">Ticketing <span class="kpi-tap">tap ▸</span></div><div class="kpi-val b">${kpis.underTicketing||0}</div><div class="kpi-sub">${kpis.ticketsDone||0} done this year</div></div>
+    <div class="kpi a" onclick="toggleKPI('op-ex')"><div class="kpi-lbl">Exemptions <span class="kpi-tap">tap ▸</span></div><div class="kpi-val a">${kpis.activeExemptions||0}</div><div class="kpi-sub">active now</div></div>
+    <div class="kpi r" onclick="toggleKPI('op-mntperf')"><div class="kpi-lbl">MNT alerts <span class="kpi-tap">tap ▸</span></div><div class="kpi-val r">${mntPerf.filter(m=>m.alert).length}</div><div class="kpi-sub">over 25%</div></div>
+  </div>
+  <!-- Fleet donut -->
+  <div class="slbl">Fleet status — all equipment</div>
+  <div class="card"><div class="card-body">
+    <div class="donut-wrap">
+      <svg width="110" height="110" viewBox="0 0 110 110" style="flex-shrink:0">
+        <circle cx="55" cy="55" r="42" fill="none" stroke="var(--s3)" stroke-width="16"/>
+        ${donut([{val:totalOnJob,color:'var(--green)'},{val:totalMNT,color:'var(--red)'},{val:totalPool,color:'var(--blue)'}],totalFleet,55,55,42,16)}
+        <text x="55" y="51" text-anchor="middle" font-size="16" font-weight="700" fill="var(--t1)">${totalFleet}</text>
+        <text x="55" y="63" text-anchor="middle" font-size="9" fill="var(--t3)">units</text>
+      </svg>
+      <div class="donut-legend">
+        <div class="leg"><div class="leg-dot" style="background:var(--green)"></div><div class="leg-lbl">On Job</div><div class="leg-val">${totalOnJob}</div><div class="leg-pct">${Math.round(totalOnJob/totalFleet*100)}%</div></div>
+        <div class="leg"><div class="leg-dot" style="background:var(--red)"></div><div class="leg-lbl">Under MNT</div><div class="leg-val">${totalMNT}</div><div class="leg-pct">${Math.round(totalMNT/totalFleet*100)}%</div></div>
+        <div class="leg"><div class="leg-dot" style="background:var(--blue)"></div><div class="leg-lbl">Pool</div><div class="leg-val">${totalPool}</div><div class="leg-pct">${Math.round(totalPool/totalFleet*100)}%</div></div>
+      </div>
+    </div>
+  </div></div>
+  <!-- Dept packages -->
+  <div class="slbl">Departments — running packages</div>
+  <div class="card"><div class="card-body" style="padding:8px 13px">
+    ${Object.entries(byDept).map(([dept,data])=>`
+      <div class="drow">
+        <span class="dp ${dept==='D&WO'?'dwo':dept==='UC'?'uc':'saw'}">${dept}</span>
+        <div class="dinfo"><div class="dcnt">${data.count} package${data.count>1?'s':''} running</div><div class="dsub">${data.pkgs.map(j=>j.packageId).join(' · ')}</div></div>
+        <div class="dutil"><div class="dutil-val">${data.pkgs.length>0?Math.round(data.pkgs.reduce((s,j)=>{const t=(j.equipment||[]).length||1,on=(j.equipment||[]).filter(e=>e.status==='Running'||e.status==='Exemption').length;return s+(on/t);},0)/data.pkgs.length*100):0}%</div><div class="dutil-sub">avg util</div></div>
+      </div>`).join('')}
+    ${Object.keys(byDept).length===0?'<div class="empty">No running jobs</div>':''}
+  </div></div>
+  <!-- Package util bars -->
+  ${runningJobs.length>0?`
+  <div class="slbl">Package utilization breakdown</div>
+  <div class="card"><div class="card-head"><span class="card-title">Per package — all running</span><div class="leg-row"><div class="leg-h"><div class="leg-sq" style="background:var(--green)"></div>On Job</div><div class="leg-h"><div class="leg-sq" style="background:var(--red)"></div>MNT</div><div class="leg-h"><div class="leg-sq" style="background:var(--blue)"></div>Pool</div><div class="leg-h"><div class="leg-sq" style="background:var(--amber)"></div>Standby</div></div></div>
+  <div class="card-body">
+    ${runningJobs.map(j=>{const eq=j.equipment||[];const t=eq.length||1;const on=Math.round(eq.filter(e=>e.status==='Running'||e.status==='Exemption').length/t*100);const mnt=Math.round(eq.filter(e=>e.status==='Under MNT').length/t*100);const pool=Math.max(0,100-on-mnt);return`
+      <div class="urow">
+        <div class="upkg">${j.packageId}</div>
+        <div class="ubar">
+          <div class="useg" style="width:${on}%;background:var(--green)"></div>
+          <div class="useg" style="width:${mnt}%;background:var(--red)"></div>
+          <div class="useg" style="width:${pool}%;background:var(--blue)"></div>
+        </div>
+        <div class="upct" style="color:${on>70?'var(--green)':on>50?'var(--amber)':'var(--red)'}">${on}%</div>
+      </div>`;}).join('')}
+  </div></div>`:''}
+  <!-- MNT Performance bars -->
+  <div class="slbl">MNT performance — 25% threshold</div>
+  <div class="card"><div class="card-body">
+    ${mntPerf.map(m=>`<div class="prow"><div class="pname">${m.type}</div><div class="pbar"><div class="pfill" style="width:${m.pct}%;background:${m.alert?'var(--red)':m.pct>15?'var(--amber)':'var(--green)'}"></div></div><div class="ppct" style="color:${m.alert?'var(--red)':m.pct>15?'var(--amber)':'var(--green)'}">${m.pct}%${m.alert?' ⚠':''}</div></div>`).join('')}
+  </div></div>
+  <!-- Expandable details -->
+  <div id="op-run" style="display:none"><div class="expand">
+    <div class="exp-head"><span class="exp-title">Active packages — by department</span><span class="exp-close" onclick="toggleKPI('op-run')">close</span></div>
+    ${Object.entries(byDept).map(([dept,data])=>`<div style="padding:8px 13px;border-bottom:1px solid var(--border)">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span class="dp ${dept==='D&WO'?'dwo':dept==='UC'?'uc':'saw'}">${dept}</span><span style="font-size:11px;font-weight:600;color:var(--t1)">${data.count} running</span></div>
+      ${data.pkgs.map(j=>`<div class="pkrow" onclick="pushView('job-detail',${JSON.stringify(j).replace(/"/g,'&quot;')},'${j.jobId}')">
+        <div class="pkid">${j.packageId}</div>
+        <div class="pkloc"><div class="pkloc-main">${j.wellNumber} / ${j.rigNumber}</div><div class="pkloc-sub">${j.cellLeader} · ${j.daysOnJob||'?'} days</div></div>
+        <span class="bdg ${j.status==='Exemption'?'a':'g'}">${j.status}</span>
+      </div>`).join('')}
+    </div>`).join('')}
+  </div></div>
+  <div id="op-tkt" style="display:none"><div class="expand">
+    <div class="exp-head"><span class="exp-title">Recent tickets</span><span class="exp-close" onclick="toggleKPI('op-tkt')">close</span></div>
+    ${tickets.slice(0,5).map(t=>`<div class="crow nc"><div class="cb"><div class="ct2">${t.ticketId} · ${t.jobId}</div><div class="cs">${t.wellNumber} · ${t.packageId} · ${t.completionDate}</div></div><span class="bdg ${t.status==='Done'?'g':t.status==='Acknowledged'?'b':'r'}">${t.status}</span></div>`).join('')}
+    ${tickets.length===0?'<div class="empty">No tickets</div>':''}
+  </div></div>
+  <div id="op-ex" style="display:none"><div class="expand">
+    <div class="exp-head"><span class="exp-title">Active exemptions</span><span class="exp-close" onclick="toggleKPI('op-ex')">close</span></div>
+    <div style="padding:10px 13px"><button class="btn ghost" onclick="navTo('alerts')">View all exemptions ›</button></div>
+  </div></div>
+  <div id="op-mntperf" style="display:none"><div class="expand">
+    <div class="exp-head"><span class="exp-title">MNT alerts detail</span><span class="exp-close" onclick="toggleKPI('op-mntperf')">close</span></div>
+    <div style="padding:10px 13px">${mntPerf.filter(m=>m.alert).map(m=>`<div class="alert r" style="margin-bottom:6px"><span class="alert-icon">🔴</span><div><strong>${m.type}</strong> — ${m.pct}% under MNT (${m.underMnt}/${m.total} units)</div></div>`).join('')}${mntPerf.filter(m=>m.alert).length===0?'<div class="empty">No alerts</div>':''}</div>
+  </div></div>
+  ${pmAlerts.length>0?`<div class="slbl" style="margin-top:4px">PM alerts — fleet wide</div>${pmAlerts.slice(0,5).map(a=>`<div class="alert ${a.status==='Overdue'?'r':'a'}"><span class="alert-icon">${a.status==='Overdue'?'🔴':'⚠️'}</span><div><strong>${a.equipmentId}</strong> (${a.department}) · ${a.pmType} · ${a.status==='Overdue'?'OVERDUE':a.daysLeft+' days'}</div></div>`).join('')}`:''}`;
+}
+
+// ═══════════════════════════════════════════
 // TICKETING
-// ════════════════════════════════════════════
-async function renderTicketHome(c){
-  const res=await apiGet({action:'getTickets'});
+// ═══════════════════════════════════════════
+async function renderTK(c){
+  const res=await get({action:'getTickets'});
   const tickets=res.tickets||[];
   const notAck=tickets.filter(t=>t.status==='Not Acknowledged');
   const acked=tickets.filter(t=>t.status==='Acknowledged');
   const done=tickets.filter(t=>t.status==='Done');
-
   // Monthly stats
-  const monthStats={};
+  const mStats={};
   tickets.forEach(t=>{
     if(!t.completionDate)return;
     const m=t.completionDate.slice(0,7);
-    if(!monthStats[m])monthStats[m]={total:0,done:0,byDept:{}};
-    monthStats[m].total++;
-    if(t.status==='Done')monthStats[m].done++;
-    const d=t.department||'Unknown';
-    if(!monthStats[m].byDept[d])monthStats[m].byDept[d]={total:0,done:0};
-    monthStats[m].byDept[d].total++;
-    if(t.status==='Done')monthStats[m].byDept[d].done++;
+    if(!mStats[m])mStats[m]={total:0,done:0,byDept:{}};
+    mStats[m].total++;if(t.status==='Done')mStats[m].done++;
+    const d=t.department||'Other';
+    if(!mStats[m].byDept[d])mStats[m].byDept[d]={total:0,done:0};
+    mStats[m].byDept[d].total++;if(t.status==='Done')mStats[m].byDept[d].done++;
   });
-  const months=Object.keys(monthStats).sort().slice(-6);
-  const maxT=Math.max(...months.map(m=>monthStats[m].total),1);
-
+  const months=Object.keys(mStats).sort().slice(-6);
+  const maxT=Math.max(...months.map(m=>mStats[m].total),1);
+  const total=tickets.length||1;
   c.innerHTML=`
-  <div class="kpi-grid cols3">
-    <div class="kpi-card red" onclick="toggleKPI('tk-notack')">
-      <div class="kpi-label">Not acknowledged</div>
-      <div class="kpi-value red">${notAck.length}</div>
-      <div class="kpi-hint">tap ▸</div>
-    </div>
-    <div class="kpi-card blue" onclick="toggleKPI('tk-acked')">
-      <div class="kpi-label">In progress</div>
-      <div class="kpi-value blue">${acked.length}</div>
-      <div class="kpi-hint">tap ▸</div>
-    </div>
-    <div class="kpi-card green" onclick="toggleKPI('tk-done')">
-      <div class="kpi-label">Done</div>
-      <div class="kpi-value green">${done.length}</div>
-      <div class="kpi-hint">tap ▸</div>
-    </div>
+  <div class="kpi-row c3">
+    <div class="kpi r" onclick="toggleKPI('tk-na')"><div class="kpi-lbl">Not ack'd</div><div class="kpi-val r">${notAck.length}</div><div class="kpi-sub">tap ▸</div></div>
+    <div class="kpi b" onclick="toggleKPI('tk-ac')"><div class="kpi-lbl">In progress</div><div class="kpi-val b">${acked.length}</div><div class="kpi-sub">tap ▸</div></div>
+    <div class="kpi g" onclick="toggleKPI('tk-dn')"><div class="kpi-lbl">Done</div><div class="kpi-val g">${done.length}</div><div class="kpi-sub">tap ▸</div></div>
   </div>
-
-  <div id="tk-notack" style="display:none"><div class="expand-box">
-    <div class="expand-head"><span class="expand-head-title">Not acknowledged</span><span class="expand-close" onclick="toggleKPI('tk-notack')">close</span></div>
+  <!-- Status donut -->
+  <div class="slbl">Ticket status</div>
+  <div class="card"><div class="card-body">
+    <div class="donut-wrap">
+      <svg width="100" height="100" viewBox="0 0 100 100" style="flex-shrink:0">
+        <circle cx="50" cy="50" r="38" fill="none" stroke="var(--s3)" stroke-width="14"/>
+        ${donut([{val:notAck.length,color:'var(--red)'},{val:acked.length,color:'var(--blue)'},{val:done.length,color:'var(--green)'}],total,50,50,38,14)}
+        <text x="50" y="46" text-anchor="middle" font-size="16" font-weight="700" fill="var(--t1)">${total}</text>
+        <text x="50" y="58" text-anchor="middle" font-size="8" fill="var(--t3)">total</text>
+      </svg>
+      <div class="donut-legend">
+        <div class="leg"><div class="leg-dot" style="background:var(--red)"></div><div class="leg-lbl">Not acknowledged</div><div class="leg-val">${notAck.length}</div></div>
+        <div class="leg"><div class="leg-dot" style="background:var(--blue)"></div><div class="leg-lbl">In progress</div><div class="leg-val">${acked.length}</div></div>
+        <div class="leg"><div class="leg-dot" style="background:var(--green)"></div><div class="leg-lbl">Done</div><div class="leg-val">${done.length}</div></div>
+      </div>
+    </div>
+  </div></div>
+  <div id="tk-na" style="display:none"><div class="expand">
+    <div class="exp-head"><span class="exp-title">Not acknowledged</span><span class="exp-close" onclick="toggleKPI('tk-na')">close</span></div>
     ${notAck.length===0?'<div class="empty">All acknowledged ✓</div>':notAck.map(t=>`
-      <div style="padding:10px 14px;border-bottom:1px solid var(--border)">
-        <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:13px;font-weight:600">${t.ticketId}</span><span class="badge red">Pending</span></div>
-        <div style="font-size:11px;color:var(--text2);margin-bottom:8px">${t.jobId} · ${t.wellNumber} · ${t.packageId} · Completed ${t.completionDate}</div>
-        <button class="btn primary" style="padding:8px;font-size:12px" onclick="acknowledgeTicket('${t.ticketId}')">Acknowledge — start ticket</button>
+      <div style="padding:10px 13px;border-bottom:1px solid var(--border)">
+        <div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="font-size:13px;font-weight:600;color:var(--t1)">${t.ticketId}</span><span class="bdg r">Pending</span></div>
+        <div style="font-size:10px;color:var(--t2);margin-bottom:8px">${t.jobId} · ${t.wellNumber} · ${t.packageId}<br>Completed ${t.completionDate}</div>
+        <button class="btn primary" style="padding:8px;font-size:12px" onclick="ackTkt('${t.ticketId}')">Acknowledge — start ticket</button>
       </div>`).join('')}
   </div></div>
-
-  <div id="tk-acked" style="display:none"><div class="expand-box">
-    <div class="expand-head"><span class="expand-head-title">In progress</span><span class="expand-close" onclick="toggleKPI('tk-acked')">close</span></div>
+  <div id="tk-ac" style="display:none"><div class="expand">
+    <div class="exp-head"><span class="exp-title">In progress</span><span class="exp-close" onclick="toggleKPI('tk-ac')">close</span></div>
     ${acked.length===0?'<div class="empty">No tickets in progress</div>':acked.map(t=>`
-      <div style="padding:10px 14px;border-bottom:1px solid var(--border)">
-        <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:13px;font-weight:600">${t.ticketId}</span><span class="badge blue">Acknowledged</span></div>
-        <div style="font-size:11px;color:var(--text2);margin-bottom:8px">${t.jobId} · ${t.wellNumber} · Ack ${t.acknowledgedDate}</div>
-        <button class="btn success" style="padding:8px;font-size:12px" onclick="doneTicket('${t.ticketId}')">Mark ticket done ✓</button>
+      <div style="padding:10px 13px;border-bottom:1px solid var(--border)">
+        <div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="font-size:13px;font-weight:600;color:var(--t1)">${t.ticketId}</span><span class="bdg b">In Progress</span></div>
+        <div style="font-size:10px;color:var(--t2);margin-bottom:8px">${t.jobId} · ${t.wellNumber} · Ack ${t.acknowledgedDate}</div>
+        <button class="btn success" style="padding:8px;font-size:12px" onclick="doneTkt('${t.ticketId}')">Mark ticket done ✓</button>
       </div>`).join('')}
   </div></div>
-
-  <div id="tk-done" style="display:none"><div class="expand-box">
-    <div class="expand-head"><span class="expand-head-title">Completed tickets</span><span class="expand-close" onclick="toggleKPI('tk-done')">close</span></div>
-    ${done.map(t=>`<div class="card-row"><div class="cr-body"><div class="cr-title">${t.ticketId} · ${t.jobId}</div><div class="cr-sub">${t.wellNumber} · Done ${t.ticketDoneDate}</div></div><span class="badge green">Done</span></div>`).join('')}
+  <div id="tk-dn" style="display:none"><div class="expand">
+    <div class="exp-head"><span class="exp-title">Completed tickets</span><span class="exp-close" onclick="toggleKPI('tk-dn')">close</span></div>
+    ${done.map(t=>`<div class="crow nc"><div class="cb"><div class="ct2">${t.ticketId} · ${t.jobId}</div><div class="cs">${t.wellNumber} · Done ${t.ticketDoneDate}</div></div><span class="bdg g">Done</span></div>`).join('')}
     ${done.length===0?'<div class="empty">No completed tickets</div>':''}
   </div></div>
-
-  <div class="divider"></div>
-  <div class="sec-label">Monthly summary</div>
-  <div class="card">
-    <div style="padding:12px 14px">
-      <div style="display:flex;align-items:flex-end;gap:5px;height:80px;margin-bottom:10px">
-        ${months.map(m=>{const pct=Math.round((monthStats[m].total/maxT)*100);const donePct=Math.round((monthStats[m].done/monthStats[m].total)*100);return`
-          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;height:100%;justify-content:flex-end;cursor:pointer" onclick="toggleMonthDetail('${m}')">
-            <div style="font-size:9px;font-weight:600;color:var(--text2)">${monthStats[m].total}</div>
-            <div style="width:100%;display:flex;flex-direction:column;height:${pct}%;border-radius:4px 4px 0 0;overflow:hidden;min-height:6px">
-              <div style="flex:${donePct};background:var(--green)"></div>
-              <div style="flex:${100-donePct};background:var(--border2)"></div>
-            </div>
-            <div style="font-size:8px;color:var(--text3)">${m.slice(5)}</div>
-          </div>`;}).join('')}
-      </div>
-      <div style="display:flex;gap:12px;margin-bottom:4px">
-        <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2)"><div style="width:8px;height:8px;background:var(--green);border-radius:2px"></div>Done</div>
-        <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2)"><div style="width:8px;height:8px;background:var(--border2);border-radius:2px"></div>Pending</div>
-        <div style="font-size:10px;color:var(--text3)">tap bar = dept breakdown</div>
-      </div>
-    </div>
-    <div id="month-detail" style="display:none;border-top:1px solid var(--border);padding:12px 14px"></div>
-  </div>`;
-
-  window.monthStatsGlobal=monthStats;
-}
-
-function toggleMonthDetail(m){
-  const el=document.getElementById('month-detail');
-  const stats=window.monthStatsGlobal||{};
-  if(!el||!stats[m])return;
-  el.style.display='block';
-  el.innerHTML=`
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-      <span style="font-size:12px;font-weight:600;color:var(--text1)">${m} — ${stats[m].done}/${stats[m].total} done</span>
-    </div>
-    ${Object.entries(stats[m].byDept).map(([dept,ds])=>`
-      <div class="stat-row" style="padding:7px 0">
-        <span class="dept ${dept.toLowerCase().replace(/[^a-z]/g,'')}" style="min-width:72px">${dept}</span>
-        <div style="flex:1;margin:0 10px">
-          <div style="display:flex;justify-content:space-between;margin-bottom:3px">
-            <span style="font-size:10px;color:var(--text3)">completion</span>
-            <span style="font-size:10px;font-weight:600;color:${ds.total>0&&ds.done===ds.total?'var(--green)':'var(--text2)'}">${ds.done}/${ds.total}</span>
+  <!-- Monthly chart -->
+  <div class="slbl" style="margin-top:4px">Monthly summary</div>
+  <div class="card"><div class="card-body">
+    <div style="display:flex;align-items:flex-end;gap:5px;height:80px;margin-bottom:10px">
+      ${months.map(m=>{const pct=Math.round(mStats[m].total/maxT*100),dp=mStats[m].total>0?Math.round(mStats[m].done/mStats[m].total*100):0;return`
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;height:100%;justify-content:flex-end;cursor:pointer" onclick="showMonthDetail('${m}')">
+          <div style="font-size:9px;font-weight:600;color:var(--t2)">${mStats[m].total}</div>
+          <div style="width:100%;border-radius:3px 3px 0 0;overflow:hidden;height:${Math.max(pct,8)}%;display:flex;flex-direction:column">
+            <div style="flex:${dp};background:var(--green)"></div>
+            <div style="flex:${100-dp};background:var(--s3)"></div>
           </div>
-          <div class="prog-wrap"><div class="prog-fill" style="width:${ds.total>0?Math.round(ds.done/ds.total*100):0}%;background:${ds.total>0&&ds.done===ds.total?'var(--green)':'var(--amber)'}"></div></div>
-        </div>
-        <span class="badge ${ds.done===ds.total&&ds.total>0?'green':'amber'}">${ds.done===ds.total&&ds.total>0?'✓ Done':'In progress'}</span>
-      </div>`).join('')}`;
-}
-
-// ════════════════════════════════════════════
-// MNT MANAGER
-// ════════════════════════════════════════════
-async function renderMNTHome(c){
-  const[mntR,pmR]=await Promise.all([apiGet({action:'getMNT'}),apiGet({action:'getPMAlerts',department:'All'})]);
-  const underMNT=(mntR.records||[]).filter(r=>r.status==='Under MNT');
-  const pm=pmR.alerts||[];
-  c.innerHTML=`
-  <div class="kpi-grid">
-    <div class="kpi-card amber" onclick="toggleKPI('mnt-under')">
-      <div class="kpi-label">Under MNT <span class="kpi-tap">tap ▸</span></div>
-      <div class="kpi-value amber">${underMNT.length}</div>
-      <div class="kpi-hint">in progress</div>
+          <div style="font-size:8px;color:var(--t3)">${m.slice(5)}</div>
+        </div>`;}).join('')}
     </div>
-    <div class="kpi-card red" onclick="toggleKPI('mnt-pm')">
-      <div class="kpi-label">PM due soon <span class="kpi-tap">tap ▸</span></div>
-      <div class="kpi-value red">${pm.length}</div>
-      <div class="kpi-hint">next 30 days</div>
+    <div style="display:flex;gap:10px;margin-bottom:4px">
+      <div class="leg-h"><div class="leg-sq" style="background:var(--green)"></div>Done</div>
+      <div class="leg-h"><div class="leg-sq" style="background:var(--s3)"></div>Pending</div>
+      <div style="font-size:9px;color:var(--t3)">tap bar = dept breakdown</div>
     </div>
-  </div>
-  <div id="mnt-under" style="display:none"><div class="expand-box">
-    <div class="expand-head"><span class="expand-head-title">Under MNT — mark done</span><span class="expand-close" onclick="toggleKPI('mnt-under')">close</span></div>
-    ${underMNT.length===0?'<div class="empty">No equipment under MNT</div>':underMNT.map(r=>`
-      <div style="padding:10px 14px;border-bottom:1px solid var(--border)">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px">
-          <span style="font-size:13px;font-weight:600">${r.equipmentId}</span>
-          <span class="badge amber">${r.mntType}</span>
-        </div>
-        <div style="font-size:11px;color:var(--text2);margin-bottom:8px">${r.notes||''} · Started ${r.startDate}</div>
-        <button class="btn success" style="padding:8px;font-size:12px" onclick="markMNTDone('${r.mntId}','${r.equipmentId}')">Mark done → Send to QAQC</button>
-      </div>`).join('')}
-  </div></div>
-  <div id="mnt-pm" style="display:none"><div class="expand-box">
-    <div class="expand-head"><span class="expand-head-title">PM due alerts</span><span class="expand-close" onclick="toggleKPI('mnt-pm')">close</span></div>
-    <div style="padding:10px 14px">${pm.map(a=>`<div class="alert-bar ${a.status==='Overdue'?'red':'amber'}" style="margin-bottom:6px"><span class="alert-icon">${a.status==='Overdue'?'🔴':'⚠️'}</span><div><strong>${a.equipmentId}</strong> ${a.pmType} — ${a.status==='Overdue'?'OVERDUE':a.daysLeft+' days'}</div></div>`).join('')}
-    ${pm.length===0?'<div class="empty">No alerts</div>':''}</div>
+    <div id="mdetail" style="display:none;border-top:1px solid var(--border);padding-top:10px;margin-top:6px"></div>
   </div></div>`;
+  window._mStats=mStats;
 }
 
-// ════════════════════════════════════════════
-// QAQC
-// ════════════════════════════════════════════
-async function renderQAQCHome(c){
-  const mntR=await apiGet({action:'getMNT'});
-  const awaiting=(mntR.records||[]).filter(r=>r.status==='Awaiting QAQC');
+function showMonthDetail(m){
+  const el=document.getElementById('mdetail'),s=window._mStats||{};
+  if(!el||!s[m])return;
+  el.style.display='block';
+  el.innerHTML=`<div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="font-size:12px;font-weight:600;color:var(--t1)">${m}</span><span style="font-size:11px;color:var(--t2)">${s[m].done}/${s[m].total} done</span></div>
+  ${Object.entries(s[m].byDept).map(([dept,ds])=>`
+    <div class="prow">
+      <div class="pname"><span class="dp ${dept==='D&WO'?'dwo':dept==='UC'?'uc':'saw'}">${dept}</span></div>
+      <div class="pbar"><div class="pfill" style="width:${ds.total>0?Math.round(ds.done/ds.total*100):0}%;background:${ds.done===ds.total&&ds.total>0?'var(--green)':'var(--amber)'}"></div></div>
+      <div class="ppct" style="color:var(--t2)">${ds.done}/${ds.total}</div>
+    </div>`).join('')}`;
+}
+
+// ─── COMMON VIEWS ──────────────────────────
+async function renderJobs(c){
+  document.getElementById('tb-title').textContent='Jobs';
+  const res=await get({action:'getJobs',department:USER.department==='All'?'All':USER.department});
+  const jobs=res.jobs||[];
+  c.innerHTML=`<div class="card">${jobs.map(j=>`
+    <div class="crow" onclick="pushView('job-detail',${JSON.stringify(j).replace(/"/g,'&quot;')},'${j.jobId}')">
+      <div class="ci" style="background:${j.status==='Running'?'var(--green-bg)':j.status==='Exemption'?'var(--amber-bg)':'var(--blue-bg)'}">📋</div>
+      <div class="cb"><div class="ct2">${j.jobId} · ${j.wellNumber}</div><div class="cs">${j.packageId} · ${j.mobDate}</div></div>
+      <div class="cr"><span class="bdg ${j.status==='Running'?'g':j.status==='Exemption'?'a':'b'}">${j.status}</span><span class="chev">›</span></div>
+    </div>`).join('')}${jobs.length===0?'<div class="empty">No jobs found</div>':''}</div>`;
+}
+
+async function renderEq(c){
+  document.getElementById('tb-title').textContent='Equipment';
+  const res=await get({action:'getEquipment',department:USER.department==='All'?'All':USER.department});
+  const eq=res.equipment||[],byType={};
+  eq.forEach(e=>{if(!byType[e.type])byType[e.type]=[];byType[e.type].push(e);});
+  c.innerHTML=Object.entries(byType).map(([type,items])=>`
+    <div class="slbl">${type} (${items.length})</div>
+    <div class="card">${items.map(e=>`
+      <div class="crow nc">
+        <div style="width:8px;height:8px;border-radius:50%;background:${e.status==='Active'?'var(--green)':e.status==='Under MNT'?'var(--amber)':'var(--blue)'};flex-shrink:0"></div>
+        <div class="cb"><div class="ct2">${e.id}</div><div class="cs">${e.location||e.department}</div></div>
+        <span class="bdg ${e.status==='Active'?'g':e.status==='Under MNT'?'a':'b'}">${e.status}</span>
+      </div>`).join('')}</div>`).join('');
+}
+
+async function renderAlerts(c){
+  document.getElementById('tb-title').textContent='Alerts';
+  const[pmR,exR]=await Promise.all([get({action:'getPMAlerts',department:USER.department||'All'}),get({action:'getExemptions'})]);
+  const pm=pmR.alerts||[],ex=(exR.exemptions||[]).filter(e=>e.status&&e.status.includes('Active'));
   c.innerHTML=`
-  <div class="kpi-grid cols1">
-    <div class="kpi-card amber" onclick="toggleKPI('qa-pending')">
-      <div class="kpi-label">Awaiting QAQC approval <span class="kpi-tap">tap ▸</span></div>
-      <div class="kpi-value amber">${awaiting.length}</div>
-      <div class="kpi-hint">equipment pending review</div>
-    </div>
-  </div>
-  <div id="qa-pending" style="display:none"><div class="expand-box">
-    <div class="expand-head"><span class="expand-head-title">Awaiting QAQC</span><span class="expand-close" onclick="toggleKPI('qa-pending')">close</span></div>
-    ${awaiting.length===0?'<div class="empty">No pending approvals ✓</div>':awaiting.map(r=>`
-      <div style="padding:12px 14px;border-bottom:1px solid var(--border)">
-        <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:13px;font-weight:600">${r.equipmentId}</span><span class="badge amber">${r.mntType}</span></div>
-        <div style="font-size:11px;color:var(--text2);margin-bottom:10px">${r.notes||''} · Done ${r.actualDone}</div>
-        <div class="form-group"><label class="form-label">Notes / Rejection reason</label><textarea class="form-textarea" id="qa-reason-${r.mntId}" rows="2" placeholder="Enter notes..."></textarea></div>
-        <div class="btn-row">
-          <button class="btn success" onclick="qaqcDecision('${r.mntId}','Approved')">✓ Approve → Pool</button>
-          <button class="btn danger" onclick="qaqcDecision('${r.mntId}','Rejected')">✗ Reject → MNT</button>
-        </div>
-      </div>`).join('')}
-  </div></div>`;
+  <div class="slbl">PM alerts (${pm.length})</div>
+  ${pm.length===0?'<div class="empty">No PM alerts</div>':pm.map(a=>`<div class="alert ${a.status==='Overdue'?'r':'a'}"><span class="alert-icon">${a.status==='Overdue'?'🔴':'⚠️'}</span><div><strong>${a.equipmentId}</strong> — ${a.pmType}<br><span style="font-size:9px">${a.type} · ${a.department} · ${a.status==='Overdue'?'OVERDUE':a.daysLeft+' days'}</span></div></div>`).join('')}
+  <div class="slbl" style="margin-top:10px">Active exemptions (${ex.length})</div>
+  ${ex.length===0?'<div class="empty">No active exemptions</div>':ex.map(e=>`<div class="card" style="margin-bottom:8px"><div class="crow nc"><div class="cb"><div class="ct2">${e.exemptionId} — ${e.equipmentId}</div><div class="cs">${e.packageId} · ${e.reason}</div><div class="cs">Expires ${e.expiryDate}</div></div><span class="bdg a">${e.status}</span></div></div>`).join('')}`;
 }
 
-// ════════════════════════════════════════════
-// FSM
-// ════════════════════════════════════════════
-async function renderFSMHome(c){
-  const[jR,pmR]=await Promise.all([
-    apiGet({action:'getJobs',department:USER.department}),
-    apiGet({action:'getPMAlerts',department:USER.department})
-  ]);
-  const jobs=jR.jobs||[],running=jobs.filter(j=>j.status==='Running'||j.status==='Exemption'),done=jobs.filter(j=>j.status==='Completed');
-  const pm=(pmR.alerts||[]).filter(a=>a.daysLeft<=30);
-  c.innerHTML=`
-  <div class="kpi-grid">
-    <div class="kpi-card green" onclick="toggleKPI('fsm-run')">
-      <div class="kpi-label">Jobs running <span class="kpi-tap">tap ▸</span></div>
-      <div class="kpi-value green">${running.length}</div>
-      <div class="kpi-hint">${USER.department}</div>
-    </div>
-    <div class="kpi-card blue" onclick="toggleKPI('fsm-done')">
-      <div class="kpi-label">Completed <span class="kpi-tap">tap ▸</span></div>
-      <div class="kpi-value blue">${done.length}</div>
-      <div class="kpi-hint">this year</div>
-    </div>
-  </div>
-  <div id="fsm-run" style="display:none"><div class="expand-box">
-    <div class="expand-head"><span class="expand-head-title">Running — ${USER.department}</span><span class="expand-close" onclick="toggleKPI('fsm-run')">close</span></div>
-    ${running.map(j=>`<div class="card-row"><div class="cr-body"><div class="cr-title">${j.jobId} · ${j.wellNumber} / ${j.rigNumber}</div><div class="cr-sub">${j.packageId} · ${j.mobDate} · ${j.daysOnJob||'?'} days</div></div><span class="badge ${j.status==='Exemption'?'amber':'green'}">${j.status}</span></div>`).join('')}
-    ${running.length===0?'<div class="empty">No running jobs</div>':''}
-  </div></div>
-  <div id="fsm-done" style="display:none"><div class="expand-box">
-    <div class="expand-head"><span class="expand-head-title">Completed jobs</span><span class="expand-close" onclick="toggleKPI('fsm-done')">close</span></div>
-    ${done.map(j=>`<div class="card-row"><div class="cr-body"><div class="cr-title">${j.jobId} · ${j.wellNumber}</div><div class="cr-sub">${j.mobDate} → ${j.demobDate}</div></div><span class="badge blue">Done</span></div>`).join('')}
-    ${done.length===0?'<div class="empty">No completed jobs</div>':''}
-  </div></div>
-  ${pm.length>0?`<div class="divider"></div><div class="sec-label">PM Alerts</div>${pm.map(a=>`<div class="alert-bar ${a.status==='Overdue'?'red':'amber'}"><span class="alert-icon">⚠️</span><strong>${a.equipmentId}</strong> ${a.pmType} — ${a.status==='Overdue'?'OVERDUE':a.daysLeft+' days'}</div>`).join('')}`:''}`;
+async function renderMNTList(c){
+  document.getElementById('tb-title').textContent='MNT';
+  const res=await get({action:'getMNT'});
+  const recs=res.records||[];
+  c.innerHTML=`<div class="card">${recs.map(r=>`<div class="crow nc"><div class="ci" style="background:${r.status==='Under MNT'?'var(--amber-bg)':r.status==='Done'?'var(--green-bg)':'var(--blue-bg)'}">🔧</div><div class="cb"><div class="ct2">${r.equipmentId}</div><div class="cs">${r.mntType} · ${r.startDate}</div></div><span class="bdg ${r.status==='Under MNT'?'a':r.status==='Done'?'g':'b'}">${r.status}</span></div>`).join('')}${recs.length===0?'<div class="empty">No MNT records</div>':''}</div>`;
 }
 
-// ════════════════════════════════════════════
-// DETAIL VIEWS
-// ════════════════════════════════════════════
 async function renderJobDetail(c,job){
-  c.innerHTML=`<div class="sec-label">Job info</div>
-  <div class="card">
-    ${[['Job ID',job.jobId],['Well / Rig',`${job.wellNumber} / ${job.rigNumber}`],['Package',job.packageId],['Department',job.department],['Cell Leader',job.cellLeader],['Mob date',job.mobDate],['Days on job',job.daysOnJob||'Ongoing'],['Status',`<span class="badge ${job.status==='Exemption'?'amber':job.status==='Completed'?'blue':'green'}">${job.status}</span>`]].map(([k,v])=>`<div class="card-row" style="cursor:default"><div class="cr-body"><div class="cr-title" style="font-size:11px;color:var(--text2)">${k}</div><div style="font-size:13px;font-weight:500;color:var(--text1);margin-top:1px">${v}</div></div></div>`).join('')}
+  c.innerHTML=`
+  <div class="slbl">Job info</div>
+  <div class="card">${[['Job ID',job.jobId],['Well / Rig',`${job.wellNumber} / ${job.rigNumber}`],['Package',job.packageId],['Department',job.department],['Cell Leader',job.cellLeader],['Mob date',job.mobDate],['Days on job',job.daysOnJob||'Ongoing']].map(([k,v])=>`<div class="crow nc"><div style="font-size:10px;color:var(--t3);min-width:80px">${k}</div><div style="font-size:13px;font-weight:500;color:var(--t1)">${v}</div></div>`).join('')}
+    <div class="crow nc"><div style="font-size:10px;color:var(--t3);min-width:80px">Status</div><span class="bdg ${job.status==='Exemption'?'a':job.status==='Completed'?'b':'g'}">${job.status}</span></div>
   </div>
-  <div class="sec-label" style="margin-top:12px">Equipment (${(job.equipment||[]).length} units)</div>
-  <div class="card">
-    ${(job.equipment||[]).map(eq=>`<div class="card-row" style="cursor:default">
-      <div style="width:8px;height:8px;border-radius:50%;background:${eq.status==='Running'?'var(--green)':eq.status==='Exemption'?'var(--amber)':'var(--blue)'};flex-shrink:0"></div>
-      <div class="cr-body"><div class="cr-title">${eq.type}</div></div>
-      <span style="font-size:11px;font-weight:500;color:var(--text2);font-family:'JetBrains Mono',monospace">${eq.equipmentId}</span>
-    </div>`).join('')}
-  </div>
+  <div class="slbl" style="margin-top:10px">Equipment (${(job.equipment||[]).length} units)</div>
+  <div class="card">${(job.equipment||[]).map(eq=>`<div class="crow nc"><div style="width:8px;height:8px;border-radius:50%;background:${eq.status==='Running'?'var(--green)':eq.status==='Exemption'?'var(--amber)':'var(--blue)'};flex-shrink:0"></div><div class="cb"><div class="ct2">${eq.type}</div></div><span style="font-size:11px;font-weight:500;color:var(--t2);font-family:'JetBrains Mono',monospace">${eq.equipmentId}</span></div>`).join('')}</div>
   ${job.status!=='Completed'&&USER.role==='Cell Leader'?`
   <div class="divider"></div>
-  <div class="sec-label">Actions</div>
   <button class="btn danger" onclick="openFaultModal('${job.jobId}','${job.packageId}')">⚠ Report fault / swap equipment</button>
   <button class="btn warning" onclick="openExemptionModal('${job.jobId}','${job.packageId}')">📋 Request exemption</button>
   <button class="btn ghost" onclick="openDemobModal('${job.jobId}','${job.wellNumber}','${job.packageId}','${job.mobDate}')">✓ Enter demob date</button>`:''}`;
 }
 
-async function renderEquipment(c){
-  document.getElementById('tb-title').textContent='Equipment';
-  const res=await apiGet({action:'getEquipment',department:USER.department==='All'?'All':USER.department});
-  const eq=res.equipment||[];
-  const byType={};eq.forEach(e=>{if(!byType[e.type])byType[e.type]=[];byType[e.type].push(e);});
-  c.innerHTML=Object.entries(byType).map(([type,items])=>`
-    <div class="sec-label">${type} (${items.length})</div>
-    <div class="card">
-      ${items.map(e=>`<div class="card-row" style="cursor:default">
-        <div style="width:8px;height:8px;border-radius:50%;background:${e.status==='Active'?'var(--green)':e.status==='Under MNT'?'var(--amber)':'var(--blue)'};flex-shrink:0"></div>
-        <div class="cr-body"><div class="cr-title">${e.id}</div><div class="cr-sub">${e.location||e.department}</div></div>
-        <span class="badge ${e.status==='Active'?'green':e.status==='Under MNT'?'amber':'blue'}">${e.status}</span>
-      </div>`).join('')}
-    </div>`).join('');
-}
-
-async function renderJobs(c){
-  document.getElementById('tb-title').textContent='Jobs';
-  const res=await apiGet({action:'getJobs',department:USER.department==='All'?'All':USER.department});
-  const jobs=res.jobs||[];
-  c.innerHTML=`<div class="card">${jobs.map(j=>`
-    <div class="card-row clickable" onclick="pushView('job-detail',${JSON.stringify(j).replace(/"/g,'&quot;')},'${j.jobId}')">
-      <div class="cr-icon" style="background:${j.status==='Running'?'var(--green-bg)':j.status==='Exemption'?'var(--amber-bg)':'var(--blue-bg)'}">📋</div>
-      <div class="cr-body"><div class="cr-title">${j.jobId} · ${j.wellNumber}</div><div class="cr-sub">${j.packageId} · ${j.mobDate}</div></div>
-      <div class="cr-right"><span class="badge ${j.status==='Running'?'green':j.status==='Exemption'?'amber':'blue'}">${j.status}</span><span class="chevron">›</span></div>
-    </div>`).join('')}
-  ${jobs.length===0?'<div class="empty">No jobs found</div>':''}</div>`;
-}
-
-async function renderAlerts(c){
-  document.getElementById('tb-title').textContent='Alerts';
-  const[pmR,exR]=await Promise.all([
-    apiGet({action:'getPMAlerts',department:USER.department||'All'}),
-    apiGet({action:'getExemptions'})
-  ]);
-  const pm=pmR.alerts||[],ex=(exR.exemptions||[]).filter(e=>e.status&&e.status.includes('Active'));
-  c.innerHTML=`
-  <div class="sec-label">PM alerts (${pm.length})</div>
-  ${pm.length===0?'<div class="empty">No PM alerts</div>':pm.map(a=>`<div class="alert-bar ${a.status==='Overdue'?'red':'amber'}"><span class="alert-icon">${a.status==='Overdue'?'🔴':'⚠️'}</span><div><strong>${a.equipmentId}</strong> — ${a.pmType}<br><span style="font-size:10px">${a.type} · ${a.department} · ${a.status==='Overdue'?'OVERDUE':a.daysLeft+' days left'}</span></div></div>`).join('')}
-  <div class="sec-label" style="margin-top:12px">Active exemptions (${ex.length})</div>
-  ${ex.length===0?'<div class="empty">No active exemptions</div>':ex.map(e=>`
-    <div class="card" style="margin-bottom:8px"><div class="card-row" style="cursor:default">
-      <div class="cr-body"><div class="cr-title">${e.exemptionId} — ${e.equipmentId}</div><div class="cr-sub">${e.packageId} · ${e.reason}</div><div class="cr-sub">Expires ${e.expiryDate}</div></div>
-      <span class="badge amber">${e.status}</span>
-    </div></div>`).join('')}`;
-}
-
-async function renderMNTList(c){
-  document.getElementById('tb-title').textContent='MNT';
-  const res=await apiGet({action:'getMNT'});
-  const recs=res.records||[];
-  c.innerHTML=`<div class="card">${recs.map(r=>`<div class="card-row" style="cursor:default">
-    <div class="cr-icon" style="background:${r.status==='Under MNT'?'var(--amber-bg)':r.status==='Done'?'var(--green-bg)':'var(--blue-bg)'}">🔧</div>
-    <div class="cr-body"><div class="cr-title">${r.equipmentId}</div><div class="cr-sub">${r.mntType} · ${r.startDate}</div></div>
-    <span class="badge ${r.status==='Under MNT'?'amber':r.status==='Done'?'green':'blue'}">${r.status}</span>
-  </div>`).join('')}${recs.length===0?'<div class="empty">No MNT records</div>':''}</div>`;
-}
-
-async function renderQAQCList(c){
-  document.getElementById('tb-title').textContent='QAQC Approvals';
-  await renderQAQCHome(c);
-}
-
-async function renderTicketHistory(c){
-  document.getElementById('tb-title').textContent='History';
-  const res=await apiGet({action:'getTickets'});
-  const tickets=(res.tickets||[]).filter(t=>t.status==='Done');
-  c.innerHTML=`<div class="card">${tickets.map(t=>`<div class="card-row"><div class="cr-body"><div class="cr-title">${t.ticketId} · ${t.jobId}</div><div class="cr-sub">${t.wellNumber} · ${t.packageId} · Done ${t.ticketDoneDate}</div></div><span class="badge green">Done</span></div>`).join('')}${tickets.length===0?'<div class="empty">No completed tickets</div>':''}</div>`;
-}
-
 function renderCreateJob(c){
   c.innerHTML=`
-  <div class="sec-label">Job details</div>
+  <div class="slbl">New job assignment</div>
   <div class="card" style="padding:14px">
-    <div class="form-group"><label class="form-label">Well Number</label><input type="text" class="form-input" id="cj-well" placeholder="W-2241"></div>
-    <div class="form-group"><label class="form-label">Rig Number</label><input type="text" class="form-input" id="cj-rig" placeholder="R-15"></div>
-    <div class="form-group"><label class="form-label">Package ID</label><input type="text" class="form-input" id="cj-pkg" placeholder="PKG-724"></div>
-    <div class="form-group" style="margin-bottom:0"><label class="form-label">Mobilization Date</label><input type="date" class="form-input" id="cj-mob"></div>
+    <div class="fg"><label class="flbl">Well Number</label><input type="text" class="finput" id="cj-w" placeholder="W-2241"></div>
+    <div class="fg"><label class="flbl">Rig Number</label><input type="text" class="finput" id="cj-r" placeholder="R-15"></div>
+    <div class="fg"><label class="flbl">Package ID</label><input type="text" class="finput" id="cj-p" placeholder="PKG-724"></div>
+    <div class="fg" style="margin-bottom:0"><label class="flbl">Mobilization Date</label><input type="date" class="finput" id="cj-m"></div>
   </div>
   <div style="margin-top:10px">
-    <button class="btn primary" onclick="submitCreateJob()">Create Job Assignment</button>
+    <button class="btn primary" onclick="submitJob()">Create Job Assignment</button>
     <button class="btn ghost" onclick="goBack()">Cancel</button>
   </div>`;
-  document.getElementById('cj-mob').value=new Date().toISOString().split('T')[0];
+  document.getElementById('cj-m').value=new Date().toISOString().split('T')[0];
 }
 
-// ════════════════════════════════════════════
-// MODALS
-// ════════════════════════════════════════════
-function openModal(html){
-  document.getElementById('modal-body').innerHTML=`<div class="modal-handle"></div>${html}`;
-  document.getElementById('modal-overlay').classList.add('open');
+async function renderHistory(c){
+  document.getElementById('tb-title').textContent='History';
+  const res=await get({action:'getTickets'});
+  const done=(res.tickets||[]).filter(t=>t.status==='Done');
+  c.innerHTML=`<div class="card">${done.map(t=>`<div class="crow nc"><div class="cb"><div class="ct2">${t.ticketId} · ${t.jobId}</div><div class="cs">${t.wellNumber} · Done ${t.ticketDoneDate}</div></div><span class="bdg g">Done</span></div>`).join('')}${done.length===0?'<div class="empty">No completed tickets</div>':''}</div>`;
 }
-function closeModal(e){if(!e||e.target===document.getElementById('modal-overlay'))document.getElementById('modal-overlay').classList.remove('open');}
+
+// ─── MODALS ────────────────────────────────
+function openMod(html){document.getElementById('mbody').innerHTML=`<div class="modal-handle"></div>${html}`;document.getElementById('movl').classList.add('open');}
+function closeMod(e){if(!e||e.target===document.getElementById('movl'))document.getElementById('movl').classList.remove('open');}
 
 function openFaultModal(jobId,pkgId){
-  openModal(`
-    <div class="modal-title">Report fault / swap equipment</div>
-    <div class="form-group"><label class="form-label">Equipment with fault</label><input type="text" class="form-input" id="f-old" placeholder="e.g. PU-014"></div>
-    <div class="form-group"><label class="form-label">Replacement equipment</label><input type="text" class="form-input" id="f-new" placeholder="e.g. PU-021"></div>
-    <div class="form-group"><label class="form-label">Equipment type</label><input type="text" class="form-input" id="f-type" placeholder="e.g. Fluid Pump"></div>
-    <div class="form-group"><label class="form-label">Reason</label><textarea class="form-textarea" id="f-reason" rows="3" placeholder="Describe the fault..."></textarea></div>
+  openMod(`<div class="modal-title">Report fault / swap equipment</div>
+    <div class="fg"><label class="flbl">Equipment with fault</label><input type="text" class="finput" id="fo" placeholder="e.g. PU-014"></div>
+    <div class="fg"><label class="flbl">Replacement equipment</label><input type="text" class="finput" id="fn" placeholder="e.g. PU-021"></div>
+    <div class="fg"><label class="flbl">Equipment type</label><input type="text" class="finput" id="ft" placeholder="e.g. Fluid Pump"></div>
+    <div class="fg"><label class="flbl">Reason</label><textarea class="ftextarea" id="fr" rows="3" placeholder="Describe the fault..."></textarea></div>
     <button class="btn danger" onclick="submitFault('${jobId}','${pkgId}')">Submit fault report</button>`);
 }
 async function submitFault(jobId,pkgId){
-  const oldEq=document.getElementById('f-old').value.trim(),newEq=document.getElementById('f-new').value.trim(),type=document.getElementById('f-type').value.trim(),reason=document.getElementById('f-reason').value.trim();
-  if(!oldEq||!reason)return alert('Please fill required fields');
-  await apiPost({action:'reportFault',jobId,packageId:pkgId,equipmentId:oldEq,equipmentType:type,oldEquipment:oldEq,newEquipment:newEq,department:USER.department,cellLeader:USER.fullName,reason,mntManager:'Tanveer.Hussain'});
-  document.getElementById('modal-overlay').classList.remove('open');
-  alert('Fault reported. Notifications sent to Asset Manager, FSM & MNT Manager.');
-  loadView('home');
+  const o=document.getElementById('fo').value.trim(),n=document.getElementById('fn').value.trim(),t=document.getElementById('ft').value.trim(),r=document.getElementById('fr').value.trim();
+  if(!o||!r)return alert('Please fill required fields');
+  await post({action:'reportFault',jobId,packageId:pkgId,equipmentId:o,equipmentType:t,oldEquipment:o,newEquipment:n,department:USER.department,cellLeader:USER.fullName,reason:r,mntManager:'Tanveer.Hussain'});
+  document.getElementById('movl').classList.remove('open');
+  alert('Fault reported. Notifications sent.');loadView('home');
 }
 
-function openDemobModal(jobId,wellNumber,pkgId,mobDate){
-  openModal(`
-    <div class="modal-title">Enter demob date</div>
-    <div class="form-group"><label class="form-label">Demob date</label><input type="date" class="form-input" id="demob-d" value="${new Date().toISOString().split('T')[0]}"></div>
-    <button class="btn primary" onclick="submitDemob('${jobId}','${wellNumber}','${pkgId}','${mobDate}')">Confirm demob — close job</button>`);
+function openDemobModal(jobId,well,pkgId,mob){
+  openMod(`<div class="modal-title">Enter demob date</div>
+    <div class="fg"><label class="flbl">Demob date</label><input type="date" class="finput" id="dd" value="${new Date().toISOString().split('T')[0]}"></div>
+    <button class="btn primary" onclick="submitDemob('${jobId}','${well}','${pkgId}','${mob}')">Confirm demob — close job</button>`);
 }
-async function submitDemob(jobId,wellNumber,pkgId,mobDate){
-  const d=document.getElementById('demob-d').value;if(!d)return;
-  const res=await apiPost({action:'demoJob',jobId,wellNumber,packageId:pkgId,department:USER.department,mobDate,demobDate:d});
-  document.getElementById('modal-overlay').classList.remove('open');
-  alert(`Job closed. Ticket ${res.ticketId} created for Ticketing Team.`);
-  loadView('home');
+async function submitDemob(jobId,well,pkgId,mob){
+  const d=document.getElementById('dd').value;if(!d)return;
+  const res=await post({action:'demoJob',jobId,wellNumber:well,packageId:pkgId,department:USER.department,mobDate:mob,demobDate:d});
+  document.getElementById('movl').classList.remove('open');
+  alert(`Job closed. Ticket ${res.ticketId} created.`);loadView('home');
 }
 
 function openExemptionModal(jobId,pkgId){
-  openModal(`
-    <div class="modal-title">Request exemption</div>
-    <div class="form-group"><label class="form-label">Equipment ID</label><input type="text" class="form-input" id="ex-eq" placeholder="e.g. CC-706"></div>
-    <div class="form-group"><label class="form-label">Reason</label><textarea class="form-textarea" id="ex-reason" rows="3" placeholder="Why can't this equipment be replaced?"></textarea></div>
+  openMod(`<div class="modal-title">Request exemption</div>
+    <div class="fg"><label class="flbl">Equipment ID</label><input type="text" class="finput" id="ee" placeholder="e.g. CC-706"></div>
+    <div class="fg"><label class="flbl">Reason</label><textarea class="ftextarea" id="er" rows="3" placeholder="Why can't this be replaced?"></textarea></div>
     <button class="btn warning" onclick="submitExemption('${jobId}','${pkgId}')">Submit exemption request</button>`);
 }
 async function submitExemption(jobId,pkgId){
-  const eqId=document.getElementById('ex-eq').value.trim(),reason=document.getElementById('ex-reason').value.trim();
-  if(!eqId||!reason)return alert('Please fill all fields');
-  const res=await apiPost({action:'requestExemption',jobId,packageId:pkgId,equipmentId:eqId,department:USER.department,reason});
-  document.getElementById('modal-overlay').classList.remove('open');
-  alert(`Exemption ${res.exemptionId} submitted to all 4 approvers.`);
-  loadView('home');
+  const e=document.getElementById('ee').value.trim(),r=document.getElementById('er').value.trim();
+  if(!e||!r)return alert('Please fill all fields');
+  const res=await post({action:'requestExemption',jobId,packageId:pkgId,equipmentId:e,department:USER.department,reason:r});
+  document.getElementById('movl').classList.remove('open');
+  alert(`Exemption ${res.exemptionId} submitted to 4 approvers.`);loadView('home');
 }
 
-async function submitCreateJob(){
-  const well=document.getElementById('cj-well').value.trim(),rig=document.getElementById('cj-rig').value.trim(),pkg=document.getElementById('cj-pkg').value.trim(),mob=document.getElementById('cj-mob').value;
-  if(!well||!rig||!pkg||!mob)return alert('Please fill all fields');
-  const res=await apiPost({action:'createJob',wellNumber:well,rigNumber:rig,packageId:pkg,department:USER.department,cellLeader:USER.fullName,mobDate:mob});
+async function submitJob(){
+  const w=document.getElementById('cj-w').value.trim(),r=document.getElementById('cj-r').value.trim(),p=document.getElementById('cj-p').value.trim(),m=document.getElementById('cj-m').value;
+  if(!w||!r||!p||!m)return alert('Please fill all fields');
+  const res=await post({action:'createJob',wellNumber:w,rigNumber:r,packageId:p,department:USER.department,cellLeader:USER.fullName,mobDate:m});
   if(res.success){alert(`Job ${res.jobId} created!`);goBack();loadView('home');}
   else alert('Error: '+(res.error||'Unknown'));
 }
 
-async function markMNTDone(mntId,eqId){
-  await apiPost({action:'markMNTDone',mntId,equipmentId:eqId});
-  alert(`${eqId} marked done → sent to QAQC Manager.`);
-  loadView('home');
-}
-async function qaqcDecision(mntId,decision){
-  const reason=document.getElementById('qa-reason-'+mntId)?.value||'';
-  await apiPost({action:'qaqcDecision',mntId,decision,reason});
-  alert(decision==='Approved'?'Approved → moved to Pool':'Rejected → returned to MNT Manager');
-  loadView('home');
-}
-async function acknowledgeTicket(ticketId){
-  await apiPost({action:'acknowledgeTicket',ticketId});
-  alert('Ticket acknowledged.');
-  loadView('home');
-}
-async function doneTicket(ticketId){
-  await apiPost({action:'doneTicket',ticketId});
-  alert('Ticket marked as done!');
-  loadView('home');
-}
+async function markMNTDone(mntId,eqId){await post({action:'markMNTDone',mntId,equipmentId:eqId});alert(`${eqId} done → sent to QAQC.`);loadView('home');}
+async function qaqcDec(mntId,dec){const r=document.getElementById('qr-'+mntId)?.value||'';await post({action:'qaqcDecision',mntId,decision:dec,reason:r});alert(dec==='Approved'?'Approved → Pool':'Rejected → MNT');loadView('home');}
+async function ackTkt(id){await post({action:'acknowledgeTicket',ticketId:id});alert('Ticket acknowledged.');loadView('home');}
+async function doneTkt(id){await post({action:'doneTicket',ticketId:id});alert('Ticket done!');loadView('home');}
 </script>
 </body>
 </html>
