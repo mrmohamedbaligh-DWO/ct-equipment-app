@@ -59,7 +59,7 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:
 .rc-tk{background:var(--s3);color:var(--t2);border:1px solid var(--border2)}
 
 /* CONTENT */
-.content{flex:1;padding:14px;overflow-y:auto;background:var(--bg)}
+.content{flex:1;padding:14px;overflow-y:auto;background:var(--bg);padding-bottom:72px;}
 .slbl{font-size:9px;font-weight:600;color:var(--t3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px}
 
 /* KPI */
@@ -198,7 +198,7 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:
 .divider{height:1px;background:var(--border);margin:12px 0}
 
 /* BOTTOM NAV */
-.bottom-nav{background:var(--s2);border-top:1px solid var(--border);display:flex;padding:6px 0 4px;flex-shrink:0}
+.bottom-nav{background:var(--s2);border-top:1px solid var(--border);display:flex;padding:6px 0 4px;flex-shrink:0;position:fixed;bottom:0;left:0;right:0;z-index:100;max-width:100%;}
 .ni{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 2px;cursor:pointer;color:var(--t3);font-size:9px;font-weight:500;transition:color .15s}
 .ni.active{color:var(--blue)}
 .ni-icon{font-size:20px}
@@ -239,11 +239,11 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:
 <!-- APP -->
 <div id="app-screen" class="screen">
   <div class="topbar">
-    <div class="tb-back" id="tb-back" style="display:none" onclick="goBack()">←</div>
+    <div class="tb-back" id="tb-back" style="display:none" onclick="goBack()" style="cursor:pointer">←</div>
     <div class="tb-title" id="tb-title">Dashboard</div>
     <div style="display:flex;align-items:center;gap:8px">
       <span class="role-chip" id="tb-chip"></span>
-      <div class="tb-av" id="tb-av">U</div>
+      <div class="tb-av" id="tb-av" onclick="navTo('home')" style="cursor:pointer">U</div>
     </div>
   </div>
   <div class="content" id="mc">
@@ -327,8 +327,24 @@ function setupNav(){
 
 // ─── NAV ───────────────────────────────────
 function navTo(v,p){NAV=[{v,p}];document.getElementById('tb-back').style.display='none';document.querySelectorAll('.ni').forEach(n=>n.classList.remove('active'));const h=document.getElementById('n1');if(h)h.classList.add('active');loadView(v,p);}
-function pushView(v,p,title){NAV.push({v,p,title});document.getElementById('tb-back').style.display='flex';loadView(v,p,title);}
-function goBack(){if(NAV.length>1){NAV.pop();const prev=NAV[NAV.length-1];if(NAV.length===1)document.getElementById('tb-back').style.display='none';loadView(prev.v,prev.p,prev.title);}}
+function pushView(v,p,title){
+  NAV.push({v,p,title});
+  const back=document.getElementById('tb-back');
+  back.style.display='flex';
+  if(title)document.getElementById('tb-title').textContent=title;
+  loadView(v,p,title);
+}
+function goBack(){
+  if(NAV.length>1){
+    NAV.pop();
+    const prev=NAV[NAV.length-1];
+    if(NAV.length===1){
+      document.getElementById('tb-back').style.display='none';
+      document.getElementById('tb-title').textContent='Dashboard';
+    }
+    loadView(prev.v,prev.p,prev.title);
+  }
+}
 async function loadView(v,p,title){
   OKPI=null;const c=document.getElementById('mc');
   c.innerHTML='<div class="loading"><div class="spinner"></div><span>Loading...</span></div>';
