@@ -1114,54 +1114,64 @@ async function renderJobDetail(c,job){
 }
 
 async function renderCreateJob(c){
-  const pkgRes=await get({action:'getPackages',department:USER.department});
-  const _packages=(pkgRes.packages||[]);
-  const pkgIds=[...new Set(_packages.map(p=>p.pkgId))].sort();
-  window._pkgData=_packages;
+  document.getElementById('tb-title').textContent='New Job Assignment';
+  c.innerHTML='<div class="loading"><div class="spinner"></div><span>Loading...</span></div>';
+  const [pkgRes,poolRes]=await Promise.all([
+    get({action:'getPackages',department:USER.department}),
+    get({action:'getPool'})
+  ]);
+  const packages=pkgRes.packages||[];
+  const pool=poolRes.pool||{};
+  const pkgIds=[...new Set(packages.map(p=>p.pkgId))].sort();
+  window._pkgData=packages;
+  window._poolData=pool;
   c.innerHTML=`
-  <div class="slbl">New job assignment</div>
-  <div class="card" style="padding:14px">
+  <div class="slbl">Job details</div>
+  <div class="card" style="padding:14px;margin-bottom:10px">
     <div class="fg"><label class="flbl">Well Number</label><input type="text" class="finput" id="cj-w" placeholder="W-2241"></div>
     <div class="fg"><label class="flbl">Rig Number</label><input type="text" class="finput" id="cj-r" placeholder="R-15"></div>
-    <div class="fg">
-      <label class="flbl">Package</label>
-      <select class="finput" id="cj-p" onchange="loadPkgComps(this.value)" style="cursor:pointer">
-        <option value="">— Select package —</option>
-        ${pkgIds.map(id=>'<option value="'+id+'">'+id+'</option>').join('')}
-      </select>
-    </div>
-    <div id="pkg-comps"></div>
     <div class="fg" style="margin-bottom:0"><label class="flbl">Mobilization Date</label><input type="date" class="finput" id="cj-m"></div>
   </div>
-  <div style="margin-top:10px">
-    <button class="btn primary" onclick="submitJob()">Create Job Assignment</button>
-    <button class="btn ghost" onclick="goBack()">Cancel</button>
-  </div>`;
+  <div class="slbl">Select package</div>
+  <div class="card" style="margin-bottom:10px">
+    <select class="finput" id="cj-p" onchange="loadPkgComps(this.value)" style="border:none;border-radius:0;padding:13px 14px;font-size:13px;cursor:pointer">
+      <option value="">— Select a package —</option>
+      ${pkgIds.map(id=>'<option value="'+id+'">'+id+'</option>').join('')}
+    </select>
+  </div>
+  <div id="pkg-comps"></div>
+  <button class="btn primary" id="cj-submit" style="display:none" onclick="submitJobRequest()">Submit for Asset Manager approval</button>
+  <button class="btn ghost" onclick="goBack()">Cancel</button>`;
   document.getElementById('cj-m').value=new Date().toISOString().split('T')[0];
 }
 
-async function loadPkgComps(pkgId){
+function loadPkgComps(pkgId){
   const el=document.getElementById('pkg-comps');
-  if(!pkgId||!el){if(el)el.innerHTML='';return;}
-  const poolRes=await get({action:'getPool'});
-  const pool=poolRes.pool||{};
-  const pkgs=window._pkgData||[];
-  const pkg=pkgs.find(p=>p.pkgId===pkgId);
-  if(!pkg){el.innerHTML='';return;}
-  el.innerHTML=`
-    <div class="slbl" style="margin:12px 0 8px">Components — ${pkgId}</div>
-    <div class="card" style="margin-bottom:12px">
-      ${pkg.equipment.map(eq=>`
-        <div style="padding:9px 13px;border-bottom:1px solid var(--border)">
-          <div style="display:flex;justify-content:space-between;margin-bottom:5px">
-            <span style="font-size:11px;font-weight:600;color:var(--t1)">${eq.type}</span>
-            <span style="font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--t2)">${eq.equipmentId}</span>
-          </div>
-          ${(pool[eq.type]||[]).length>0?
-            '<select class="finput" id="sw-'+eq.equipmentId+'" style="font-size:11px;padding:7px 10px;cursor:pointer"><option value="'+eq.equipmentId+'">'+eq.equipmentId+' (default)</option>'+(pool[eq.type]||[]).map(p=>'<option value="'+p.id+'">'+p.id+' — pool</option>').join('')+'</select>'
-            :'<div style="font-size:10px;color:var(--t3);padding:3px 0">No pool alternatives</div>'}
-        </div>`).join('')}
-    </div>`;
+  const btn=document.getElementById('cj-submit');
+  if(!pkgId){if(el)el.innerHTML='';if(btn)btn.style.display='none';return;}
+  const pool=window._poolData||{};
+  const pkg=(window._pkgData||[]).find(p=>p.pkgId===pkgId);
+  if(!pkg){if(el)el.innerHTML='';if(btn)btn.style.display='none';return;}
+  const order=['Control Cabin','Power Pack','Injector','Goose Neck','Stripper','Work Reel','BOP','Fluid Pump','N2 Pump','Tool Box'];
+  const sorted=[...pkg.equipment].sort((a,b)=>{
+    return (order.indexOf(a.type)<0?99:order.indexOf(a.type))-(order.indexOf(b.type)<0?99:order.indexOf(b.type));
+  });
+  const typeCnt={};sorted.forEach(e=>{typeCnt[e.type]=(typeCnt[e.type]||0)+1;});
+  const typeIdx={};
+  let rows='';
+  sorted.forEach(eq=>{
+    typeIdx[eq.type]=(typeIdx[eq.type]||0)+1;
+    const idx=typeIdx[eq.type];
+    const cnt=typeCnt[eq.type];
+    const selId='eq-sel-'+eq.type.replace(/[^a-zA-Z0-9]/g,'')+idx;
+    const poolItems=(pool[eq.type]||[]).filter(p=>p.id!==eq.equipmentId);
+    const label=eq.type+(cnt>1?' '+idx:'');
+    rows+='<div style="padding:9px 13px;border-bottom:1px solid var(--border)"><div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="font-size:11px;font-weight:600;color:var(--t1)">'+label+'</span><span style="font-size:10px;color:var(--t2);font-family:monospace">'+eq.equipmentId+'</span></div><select class="finput" id="'+selId+'" style="font-size:12px;padding:8px 10px;cursor:pointer"><option value="'+eq.equipmentId+'">'+eq.equipmentId+' (default)</option>'+poolItems.map(p=>'<option value="'+p.id+'">'+p.id+' (pool)</option>').join('')+'<option value="__EMPTY__">— Leave empty —</option></select></div>';
+  });
+  el.innerHTML='<div class="slbl" style="margin-bottom:8px">Package equipment</div><div class="card" style="margin-bottom:10px">'+rows+'</div>';
+  window._currentPkgEquipment=sorted;
+  window._currentPkg=pkg;
+  if(btn)btn.style.display='flex';
 }
 
 async function renderHistory(c){
