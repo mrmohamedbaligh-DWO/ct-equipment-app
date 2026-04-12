@@ -1217,11 +1217,46 @@ async function submitExemption(jobId,pkgId){
   alert(`Exemption ${res.exemptionId} submitted to 4 approvers.`);loadView('home');
 }
 
-async function submitJob(){
-  const w=document.getElementById('cj-w').value.trim(),r=document.getElementById('cj-r').value.trim(),p=document.getElementById('cj-p').value.trim(),m=document.getElementById('cj-m').value;
-  if(!w||!r||!p||!m)return alert('Please fill all fields');
-  // Legacy path — shouldn't reach here
-  alert('Please use the new Job Assignment form with package selection.');
+async function submitJob(){ submitJobRequest(); }
+
+async function submitJobRequest(){
+  const well  = (document.getElementById('cj-w')||{value:''}).value.trim();
+  const rig   = (document.getElementById('cj-r')||{value:''}).value.trim();
+  const pkgId = (document.getElementById('cj-p')||{value:''}).value;
+  const mob   = (document.getElementById('cj-m')||{value:''}).value;
+  if(!well||!rig||!pkgId||!mob){ alert('Please fill all required fields'); return; }
+  const pkg = window._currentPkg || (window._pkgData||[]).find(p=>p.pkgId===pkgId);
+  if(!pkg){ alert('Please select a package first'); return; }
+  const sortedEq = window._currentPkgEquipment || pkg.equipment || [];
+  const typeIdx = {};
+  const selectedEq = sortedEq.map(eq=>{
+    typeIdx[eq.type] = (typeIdx[eq.type]||0)+1;
+    const selId = 'eq-sel-' + eq.type.replace(/[^a-zA-Z0-9]/g,'') + typeIdx[eq.type];
+    const sel = document.getElementById(selId);
+    const val = sel ? sel.value : eq.equipmentId;
+    return val === '__EMPTY__' ? null : val;
+  }).filter(Boolean);
+  const btn = document.getElementById('cj-submit');
+  if(btn){ btn.textContent='Submitting...'; btn.disabled=true; }
+  try {
+    const res = await post({
+      action:'submitJobRequest',
+      packageId:pkgId, ctuNumber:pkg.ctuNumber||'',
+      department:USER.department, cellLeader:USER.username,
+      wellNumber:well, rigNumber:rig, mobDate:mob,
+      equipmentList:selectedEq
+    });
+    if(res.success){
+      alert('Job request '+res.requestId+' submitted! Waiting for Asset Manager approval.');
+      goBack(); loadView('home');
+    } else {
+      alert('Error: '+(res.error||'Unknown'));
+      if(btn){ btn.textContent='Submit for Asset Manager approval'; btn.disabled=false; }
+    }
+  } catch(e){
+    alert('Connection error. Please try again.');
+    if(btn){ btn.textContent='Submit for Asset Manager approval'; btn.disabled=false; }
+  }
 }
 
 async function approveReq(requestId, role, notes){
