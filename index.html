@@ -513,16 +513,19 @@ async function renderCL(c){
 // ASSET MANAGER
 // ═══════════════════════════════════════════
 async function renderAM(c){
-  const[poolR,mntR,jR,pmR,reqR]=await Promise.all([
-    get({action:'getPool'}),get({action:'getMNT'}),
-    get({action:'getJobs',department:'All'}),get({action:'getPMAlerts',department:'All'}),
-    get({action:'getJobRequests',department:'All',role:'Asset Manager'})
-  ]);
+  let poolR={pool:{}},mntR={records:[]},jR={jobs:[]},pmR={alerts:[]},reqR={requests:[]};
+  try{
+    [poolR,mntR,jR,pmR,reqR]=await Promise.all([
+      get({action:'getPool'}),get({action:'getMNT'}),
+      get({action:'getJobs',department:'All'}),get({action:'getPMAlerts',department:'All'}),
+      get({action:'getJobRequests',department:'All',role:'Asset Manager'})
+    ]);
+  }catch(e){ console.error('AM fetch error',e); }
   const pool=poolR.pool||{},poolTotal=Object.values(pool).reduce((s,a)=>s+a.length,0);
   const mntRecs=(mntR.records||[]).filter(r=>r.status==='Under MNT');
   const _pmRaw=(pmR.alerts||[]).filter(a=>a.daysLeft<=30);const _pmSeen=new Set();const pm=_pmRaw.filter(a=>{const k=a.equipmentId+a.pmType;if(_pmSeen.has(k))return false;_pmSeen.add(k);return true;});
   const jobs=jR.jobs||[],running=jobs.filter(j=>j.status==='Running'||j.status==='Exemption');
-  const reqs=reqR.requests||[];
+  const reqs=(reqR&&reqR.requests)||[];
   const pendingAM=reqs.filter(r=>r.status==='Pending AM');
   // Fleet status counts
   const onJob=running.reduce((s,j)=>s+(j.equipment||[]).length,0);
@@ -609,7 +612,9 @@ async function renderAM(c){
 // MNT MANAGER
 // ═══════════════════════════════════════════
 async function renderMNT(c){
-  const[mntR,pmR]=await Promise.all([get({action:'getMNT'}),get({action:'getPMAlerts',department:'All'})]);
+  let mntR={records:[]},pmR={alerts:[]};
+  try{ [mntR,pmR]=await Promise.all([get({action:'getMNT'}),get({action:'getPMAlerts',department:'All'})]); }
+  catch(e){ console.error('MNT fetch error',e); }
   const underMNT=(mntR.records||[]).filter(r=>r.status==='Under MNT');
   const awaiting=(mntR.records||[]).filter(r=>r.status==='Awaiting QAQC');
   const done=(mntR.records||[]).filter(r=>r.status==='Done');
@@ -668,7 +673,8 @@ async function renderMNT(c){
 // QAQC MANAGER
 // ═══════════════════════════════════════════
 async function renderQA(c){
-  const mntR=await get({action:'getMNT'});
+  let mntR={records:[]};
+  try{ mntR=await get({action:'getMNT'}); }catch(e){ console.error('QA fetch error',e); }
   const recs=mntR.records||[];
   const awaiting=recs.filter(r=>r.status==='Awaiting QAQC');
   const done=recs.filter(r=>r.status==='Done');
@@ -933,7 +939,8 @@ async function renderOP(c){
 // TICKETING
 // ═══════════════════════════════════════════
 async function renderTK(c){
-  const res=await get({action:'getTickets'});
+  let res={tickets:[]};
+  try{ res=await get({action:'getTickets'}); }catch(e){ console.error('TK fetch error',e); }
   const tickets=res.tickets||[];
   const notAck=tickets.filter(t=>t.status==='Not Acknowledged');
   const acked=tickets.filter(t=>t.status==='Acknowledged');
