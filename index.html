@@ -756,8 +756,17 @@ async function renderQA(c){
 // FSM
 // ═══════════════════════════════════════════
 async function renderFSM(c){
-  const[jR,pmR]=await Promise.all([get({action:'getJobs',department:USER.department}),get({action:'getPMAlerts',department:USER.department})]);
+  let jR={jobs:[]},pmR={alerts:[]},reqR={requests:[]};
+  try{
+    [jR,pmR,reqR]=await Promise.all([
+      get({action:'getJobs',department:USER.department}),
+      get({action:'getPMAlerts',department:USER.department}),
+      get({action:'getJobRequests',department:USER.department,role:'FSM'})
+    ]);
+  }catch(e){console.error('FSM fetch error',e);}
   const jobs=jR.jobs||[],running=jobs.filter(j=>j.status==='Running'||j.status==='Exemption'),done=jobs.filter(j=>j.status==='Completed');
+  const reqs=(reqR&&reqR.requests)||[];
+  const pendingFSM=reqs.filter(r=>r.status==='Pending FSM'&&r.department===USER.department);
   const _pmRaw=(pmR.alerts||[]).filter(a=>a.daysLeft<=30);const _pmSeen=new Set();const pm=_pmRaw.filter(a=>{const k=a.equipmentId+a.pmType;if(_pmSeen.has(k))return false;_pmSeen.add(k);return true;});
   // Package utilization
   // Deduplicate jobs by jobId
@@ -776,7 +785,26 @@ async function renderFSM(c){
   const runningUnique=uniqueJobs.filter(j=>j.status==='Running'||j.status==='Exemption');
   c.innerHTML=`
   <div class="kpi-row">
-    <div class="kpi g" onclick="toggleKPI('fsm-run')"><div class="kpi-lbl">Jobs running <span class="kpi-tap">tap ▸</span></div><div class="kpi-val g">${running.length}</div><div class="kpi-sub">${USER.department}</div></div>
+    <div class="kpi g" onclick="toggleKPI('fsm-run')"><div class="kpi-lbl">Jobs running <span class="kpi-tap">tap ▸</span></div><div class="kpi-val g">${running.length}</div><div class="kpi-sub">${USER.department}</div>
+  ${(pendingFSM||[]).length>0?`
+  <div class="slbl" style="color:var(--amber);margin-top:10px">⚡ Job requests — awaiting your approval (${(pendingFSM||[]).length})</div>
+  ${(pendingFSM||[]).map(r=>`
+    <div class="card" style="margin-bottom:8px;border:1px solid var(--amber-b)">
+      <div style="padding:12px 13px;display:flex;flex-direction:column;gap:6px">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <span style="font-size:13px;font-weight:700;color:var(--t1)">${r.requestId}</span>
+          <span class="bdg b">Pending FSM</span>
+        </div>
+        <div style="font-size:12px;color:var(--t2)">${r.packageId} · ${r.cellLeader}</div>
+        <div style="font-size:11px;color:var(--t2)">${r.wellNumber} / ${r.rigNumber} · Mob: ${r.mobDate}</div>
+        <div style="font-size:10px;color:var(--green)">✓ AM Approved — ${r.amDate}</div>
+        <textarea class="ftextarea" id="fsm-note-${r.requestId}" rows="1" placeholder="Notes (optional)..." style="margin-top:4px"></textarea>
+        <div style="display:flex;gap:8px;margin-top:2px">
+          <button class="btn success" style="flex:1;padding:10px;font-size:12px" onclick="approveReq('${r.requestId}','FSM',document.getElementById('fsm-note-${r.requestId}').value)">✓ Approve — Start job</button>
+          <button class="btn danger" style="flex:1;padding:10px;font-size:12px" onclick="rejectReq('${r.requestId}','FSM',document.getElementById('fsm-note-${r.requestId}').value)">✗ Reject</button>
+        </div>
+      </div>
+    </div>`).join('')}`:''}</div>
     <div class="kpi b" onclick="toggleKPI('fsm-done')"><div class="kpi-lbl">Completed <span class="kpi-tap">tap ▸</span></div><div class="kpi-val b">${done.length}</div><div class="kpi-sub">this year</div></div>
     <div class="kpi a" onclick="toggleKPI('fsm-pending')" style="grid-column:1/-1"><div class="kpi-lbl">Pending FSM approval <span class="kpi-tap">tap ▸</span></div><div class="kpi-val a">${pendingFSM.length}</div><div class="kpi-sub">job requests waiting for you</div></div>
   </div>
