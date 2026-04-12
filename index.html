@@ -420,9 +420,19 @@ function donut(data,total,cx,cy,r,sw){
 // CELL LEADER
 // ═══════════════════════════════════════════
 async function renderCL(c){
-  const[jR,pmR]=await Promise.all([get({action:'getJobs',department:USER.department}),get({action:'getPMAlerts',department:USER.department})]);
+  let jR={jobs:[]},pmR={alerts:[]},reqR={requests:[]};
+  try{
+    [jR,pmR,reqR]=await Promise.all([
+      get({action:'getJobs',department:USER.department}),
+      get({action:'getPMAlerts',department:USER.department}),
+      get({action:'getJobRequests',department:USER.department,role:USER.role,username:USER.username})
+    ]);
+  }catch(e){ console.error('CL fetch error',e); }
   const jobs=jR.jobs||[],running=jobs.filter(j=>j.status==='Running'||j.status==='Exemption'),done=jobs.filter(j=>j.status==='Completed');
   const _pmRaw=(pmR.alerts||[]).filter(a=>a.daysLeft<=30);const _pmSeen=new Set();const pm=_pmRaw.filter(a=>{const k=a.equipmentId+a.pmType;if(_pmSeen.has(k))return false;_pmSeen.add(k);return true;});
+  const reqs=(reqR&&reqR.requests)||[];
+  const pendingReqs=reqs.filter(r=>r.status==='Pending AM'||r.status==='Pending FSM');
+  const rejectedReqs=reqs.filter(r=>r.status==='Rejected');
   // Utilization per package
   const pkgUtil={};
   jobs.forEach(j=>{
@@ -438,8 +448,8 @@ async function renderCL(c){
   <div class="kpi-row">
     <div class="kpi g" onclick="toggleKPI('cl-run')"><div class="kpi-lbl">Jobs running <span class="kpi-tap">tap ▸</span></div><div class="kpi-val g">${running.length}</div><div class="kpi-sub">${USER.department}</div></div>
     <div class="kpi b" onclick="toggleKPI('cl-done')"><div class="kpi-lbl">Jobs completed <span class="kpi-tap">tap ▸</span></div><div class="kpi-val b">${done.length}</div><div class="kpi-sub">this year</div></div>
-    <div class="kpi a" onclick="toggleKPI('cl-pending')"><div class="kpi-lbl">Pending approval <span class="kpi-tap">tap ▸</span></div><div class="kpi-val a">${pendingReqs.length}</div><div class="kpi-sub">awaiting AM / FSM</div></div>
-    <div class="kpi r" onclick="toggleKPI('cl-rejected')"><div class="kpi-lbl">Rejected <span class="kpi-tap">tap ▸</span></div><div class="kpi-val r">${rejectedReqs.length}</div><div class="kpi-sub">needs review</div></div>
+    <div class="kpi a" onclick="toggleKPI('cl-pending')"><div class="kpi-lbl">Pending approval <span class="kpi-tap">tap ▸</span></div><div class="kpi-val a">${(pendingReqs||[]).length}</div><div class="kpi-sub">awaiting AM / FSM</div></div>
+    <div class="kpi r" onclick="toggleKPI('cl-rejected')"><div class="kpi-lbl">Rejected <span class="kpi-tap">tap ▸</span></div><div class="kpi-val r">${(rejectedReqs||[]).length}</div><div class="kpi-sub">needs review</div></div>
   </div>
   <div id="cl-run" style="display:none"><div class="expand">
     <div class="exp-head"><span class="exp-title">Running jobs — ${USER.department}</span><span class="exp-close" onclick="toggleKPI('cl-run')">close</span></div>
