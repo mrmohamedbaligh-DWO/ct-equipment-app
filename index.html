@@ -1220,9 +1220,31 @@ async function submitExemption(jobId,pkgId){
 async function submitJob(){
   const w=document.getElementById('cj-w').value.trim(),r=document.getElementById('cj-r').value.trim(),p=document.getElementById('cj-p').value.trim(),m=document.getElementById('cj-m').value;
   if(!w||!r||!p||!m)return alert('Please fill all fields');
-  const res=await post({action:'createJob',wellNumber:w,rigNumber:r,packageId:p,department:USER.department,cellLeader:USER.fullName,mobDate:m});
-  if(res.success){alert(`Job ${res.jobId} created!`);goBack();loadView('home');}
-  else alert('Error: '+(res.error||'Unknown'));
+  // Legacy path — shouldn't reach here
+  alert('Please use the new Job Assignment form with package selection.');
+}
+
+async function approveReq(requestId, role, notes){
+  try {
+    const res = await post({ action:'approveJobRequest', requestId, role, notes: notes||'' });
+    if(res.success){
+      alert(role==='FSM' ? 'Approved! Job is now Running.' : 'Approved! Sent to FSM for confirmation.');
+      Object.keys(CACHE).forEach(k=>delete CACHE[k]);
+      loadView('home');
+    } else { alert('Error: '+(res.error||'Unknown')); }
+  } catch(e){ alert('Connection error. Try again.'); }
+}
+
+async function rejectReq(requestId, role, notes){
+  if(!notes){ alert('Please enter a reason for rejection'); return; }
+  try {
+    const res = await post({ action:'rejectJobRequest', requestId, role, notes });
+    if(res.success){
+      alert('Request rejected.');
+      Object.keys(CACHE).forEach(k=>delete CACHE[k]);
+      loadView('home');
+    } else { alert('Error: '+(res.error||'Unknown')); }
+  } catch(e){ alert('Connection error. Try again.'); }
 }
 
 async function markMNTDone(mntId,eqId){await post({action:'markMNTDone',mntId,equipmentId:eqId});alert(`${eqId} done → sent to QAQC.`);loadView('home');}
