@@ -767,6 +767,26 @@ async function renderFSM(c){
   const jobs=jR.jobs||[],running=jobs.filter(j=>j.status==='Running'||j.status==='Exemption'),done=jobs.filter(j=>j.status==='Completed');
   const reqs=(reqR&&reqR.requests)||[];
   const pendingFSM=reqs.filter(r=>r.status==='Pending FSM'&&r.department===USER.department);
+  // Ticket stats per month
+  const tktR2=await get({action:'getTickets'}).catch(()=>({tickets:[]}));
+  const deptTickets=(tktR2.tickets||[]).filter(t=>t.department===USER.department);
+  const mStats={};
+  deptTickets.forEach(t=>{
+    if(!t.completionDate)return;
+    const m=t.completionDate.slice(0,7);
+    if(!mStats[m])mStats[m]={total:0,done:0};
+    mStats[m].total++;
+    if(t.status==='Done')mStats[m].done++;
+  });
+  const months=Object.keys(mStats).sort().slice(-4);
+  const maxT=Math.max(...months.map(m=>mStats[m].total),1);
+  // Running jobs deduped
+  const seenFSM={};
+  const runningFSM=jobs.filter(j=>{
+    if(j.status!=='Running'&&j.status!=='Exemption')return false;
+    if(seenFSM[j.jobId])return false;
+    seenFSM[j.jobId]=true;return true;
+  });
   const _pmRaw=(pmR.alerts||[]).filter(a=>a.daysLeft<=30);const _pmSeen=new Set();const pm=_pmRaw.filter(a=>{const k=a.equipmentId+a.pmType;if(_pmSeen.has(k))return false;_pmSeen.add(k);return true;});
   // Package utilization
   // Deduplicate jobs by jobId
