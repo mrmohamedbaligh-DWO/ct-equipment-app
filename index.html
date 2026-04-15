@@ -1371,26 +1371,89 @@ async function renderEditRequest(c,req){
   const[pkgRes,poolRes]=await Promise.all([get({action:'getPackages',department:USER.department}),get({action:'getPool'})]);
   const packages=pkgRes.packages||[],pool=poolRes.pool||{};
   window._pkgData=packages;window._poolData=pool;window._editReq=req;
+  // Original equipment from request
+  const origEqList=req.equipmentList||[];
   const pkgOpts=[...new Set(packages.filter(p=>!p.busy||p.pkgId===req.packageId).map(p=>p.pkgId))].sort().map(id=>`<option value="${id}"${id===req.packageId?' selected':''}>${id}${id===req.packageId?' (current)':''}</option>`).join('');
   c.innerHTML=`
   <div class="alert r" style="margin-bottom:12px"><span class="alert-icon">❌</span><div><strong>Rejected:</strong> ${req.amNotes||req.fsmNotes||'No reason provided'}</div></div>
+  <div class="slbl">Original equipment (${origEqList.length} units)</div>
+  <div class="card" style="margin-bottom:10px;padding:10px 13px">
+    <div style="display:flex;flex-wrap:wrap;gap:5px">${origEqList.map(e=>`<span style="font-size:11px;font-family:monospace;background:var(--s3);color:var(--t2);padding:3px 8px;border-radius:4px;border:1px solid var(--border2)">${e}</span>`).join('')}</div>
+  </div>
   <div class="slbl">Update job details</div>
   <div class="card" style="padding:14px;margin-bottom:10px">
     <div class="fg"><label class="flbl">Well Number</label><input type="text" class="finput" id="cj-w" value="${req.wellNumber}"></div>
     <div class="fg"><label class="flbl">Rig Number</label><input type="text" class="finput" id="cj-r" value="${req.rigNumber}"></div>
     <div class="fg" style="margin-bottom:0"><label class="flbl">Mobilization Date</label><input type="date" class="finput" id="cj-m" value="${req.mobDate}"></div>
   </div>
-  <div class="slbl">Select package</div>
+  <div class="slbl">Select package <span style="font-size:9px;color:var(--t3)">(change or keep same)</span></div>
   <div class="card" style="margin-bottom:10px">
-    <select class="finput" id="cj-p" onchange="loadPkgComps(this.value)" style="border:none;border-radius:0;padding:13px 14px;font-size:13px;cursor:pointer">
+    <select class="finput" id="cj-p" onchange="loadPkgCompsEdit(this.value)" style="border:none;border-radius:0;padding:13px 14px;font-size:13px;cursor:pointer">
       <option value="">— Select a package —</option>${pkgOpts}
     </select>
   </div>
   <div id="pkg-comps"></div>
-  <button class="btn warning" id="cj-submit" style="display:none" onclick="submitResubmit()">Resubmit for approval</button>
+  <button class="btn warning" id="cj-submit" style="display:none" onclick="submitResubmit()">↻ Resubmit for approval</button>
   <button class="btn ghost" onclick="goBack()">Cancel</button>`;
-  if(req.packageId)setTimeout(()=>{const s=document.getElementById('cj-p');if(s){s.value=req.packageId;loadPkgComps(req.packageId);}},100);
+  if(req.packageId)setTimeout(()=>{
+    const s=document.getElementById('cj-p');
+    if(s){s.value=req.packageId;loadPkgCompsEdit(req.packageId,origEqList);}
+  },150);
 }
+
+// loadPkgComps variant that pre-selects original equipment from the request
+function loadPkgCompsEdit(pkgId, origEqList){
+  window._origEqList=origEqList||[];
+  loadPkgComps(pkgId);
+  // After loadPkgComps renders, pre-select original equipment
+  setTimeout(()=>{
+    const orig=window._origEqList||[];
+    if(!orig.length)return;
+    const sortedEq=window._currentPkgEquipment||[];
+    const typeIdx={};
+    sortedEq.forEach(eq=>{
+      typeIdx[eq.type]=(typeIdx[eq.type]||0)+1;
+      const selId='eq-sel-'+eq.type.replace(/[^a-zA-Z0-9]/g,'')+typeIdx[eq.type];
+      const sel=document.getElementById(selId);
+      if(!sel)return;
+      // Find matching original equipment for this slot
+      // Try to match by position in type group
+      const typeCount=typeIdx[eq.type];
+      const origForType=orig.filter(id=>{
+        // Check if this id was in the original list and matches type
+        const pkg=window._pkgData||[];
+        for(const p of pkg){
+          const found=p.equipment.find(e=>e.equipmentId===id&&e.type===eq.type);
+          if(found)return true;
+        }
+        // Fallback: just check pool
+        const pool=window._poolData||{};
+        const poolItems=pool[eq.type]||[];
+        return poolItems.some(p=>p.id===id);
+      });
+      const origVal=origForType[typeCount-1];
+      if(origVal){
+        // Check if option exists in select
+        const opts=Array.from(sel.options).map(o=>o.value);
+        if(opts.includes(origVal)){sel.value=origVal;}
+      }
+    });
+  },300);
+}
+async function deleteRequest(requestId){
+  if(!confirm('Delete request '+requestId+'? This cannot be undone.'))return;
+  try{
+    const res=await post({action:'deleteJobRequest',requestId});
+    if(res.success){
+      alert('Request deleted.');
+      Object.keys(CACHE).forEach(k=>delete CACHE[k]);
+      loadView('home');
+    }else{
+      alert('Error: '+(res.error||'Unknown'));
+    }
+  }catch(e){alert('Connection error: '+e.message);}
+}
+
 async function submitResubmit(){
   const req=window._editReq;
   if(!req){alert('Error: request not found');return;}
@@ -1399,18 +1462,48 @@ async function submitResubmit(){
   const pkgId=(document.getElementById('cj-p')||{value:''}).value;
   const mob=(document.getElementById('cj-m')||{value:''}).value;
   if(!well||!rig||!pkgId||!mob){alert('Please fill all required fields');return;}
-  const pkg=window._currentPkg||(window._pkgData||[]).find(p=>p.pkgId===pkgId);
-  if(!pkg){alert('Please select a package');return;}
-  const sortedEq=window._currentPkgEquipment||pkg.equipment||[];
-  const typeIdx={};
-  const selectedEq=sortedEq.map(eq=>{typeIdx[eq.type]=(typeIdx[eq.type]||0)+1;const selId='eq-sel-'+eq.type.replace(/[^a-zA-Z0-9]/g,'')+typeIdx[eq.type];const sel=document.getElementById(selId);const val=sel?sel.value:eq.equipmentId;return val==='__EMPTY__'?null:val;}).filter(Boolean);
+  // Collect selected equipment from dropdowns
+  let selectedEq=[];
+  const sortedEq=window._currentPkgEquipment||[];
+  if(sortedEq.length>0){
+    const typeIdx={};
+    selectedEq=sortedEq.map(eq=>{
+      typeIdx[eq.type]=(typeIdx[eq.type]||0)+1;
+      const selId='eq-sel-'+eq.type.replace(/[^a-zA-Z0-9]/g,'')+typeIdx[eq.type];
+      const sel=document.getElementById(selId);
+      const val=sel?sel.value:eq.equipmentId;
+      return val==='__EMPTY__'?null:val;
+    }).filter(Boolean);
+  }
+  // Fallback: use original equipment list if no dropdowns rendered
+  if(selectedEq.length===0){
+    selectedEq=req.equipmentList||[];
+  }
+  if(selectedEq.length===0){alert('No equipment selected');return;}
   const btn=document.getElementById('cj-submit');
   if(btn){btn.textContent='Submitting...';btn.disabled=true;}
   try{
-    const res=await post({action:'resubmitJobRequest',requestId:req.requestId,packageId:pkgId,mobDate:mob,equipmentList:selectedEq});
-    if(res.success){alert('Request '+res.requestId+' resubmitted!');Object.keys(CACHE).forEach(k=>delete CACHE[k]);goBack();loadView('home');}
-    else{alert('Error: '+(res.error||'Unknown'));if(btn){btn.textContent='Resubmit for approval';btn.disabled=false;}}
-  }catch(e){alert('Connection error.');if(btn){btn.textContent='Resubmit for approval';btn.disabled=false;}}
+    const res=await post({
+      action:'resubmitJobRequest',
+      requestId:req.requestId,
+      packageId:pkgId,
+      wellNumber:well,
+      rigNumber:rig,
+      mobDate:mob,
+      equipmentList:selectedEq
+    });
+    if(res.success){
+      alert('Request '+res.requestId+' resubmitted! Waiting for Asset Manager approval.');
+      Object.keys(CACHE).forEach(k=>delete CACHE[k]);
+      goBack();loadView('home');
+    }else{
+      alert('Error: '+(res.error||'Unknown error — check Apps Script logs'));
+      if(btn){btn.textContent='↻ Resubmit for approval';btn.disabled=false;}
+    }
+  }catch(e){
+    alert('Connection error: '+e.message);
+    if(btn){btn.textContent='↻ Resubmit for approval';btn.disabled=false;}
+  }
 }
 function openDoneTicketModal(ticketId,jobId,wellNum,pkgId){
   openMod(`<div class="modal-title">Complete ticket</div>
