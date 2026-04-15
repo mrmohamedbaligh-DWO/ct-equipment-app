@@ -243,7 +243,7 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:
     <div class="tb-title" id="tb-title">Dashboard</div>
     <div style="display:flex;align-items:center;gap:8px">
       <span class="role-chip" id="tb-chip"></span>
-      <div class="tb-av" id="tb-av" onclick="navTo('home')" style="cursor:pointer">U</div>
+      <div class="tb-av" id="tb-av" onclick="USER&&USER.role==='Admin'?openAdminSwitcher():navTo('home')" style="cursor:pointer">U</div>
     </div>
   </div>
   <div class="content" id="mc">
@@ -298,7 +298,7 @@ async function doLogin(){
   btn.textContent='Signing in...';btn.disabled=true;err.style.display='none';
   try{
     const res=await get({action:'login',username:u,password:p},true);
-    if(res.success){USER=res;showApp();}
+    if(res.success){USER=res;if(res.role==='Admin')USER._isAdmin=true;showApp();}
     else{err.style.display='block';btn.textContent='Sign in';btn.disabled=false;}
   }catch(e){err.textContent='Connection error';err.style.display='block';btn.textContent='Sign in';btn.disabled=false;}
 }
@@ -308,10 +308,15 @@ document.getElementById('lp').addEventListener('keypress',e=>{if(e.key==='Enter'
 async function showApp(){
   document.getElementById('login-screen').classList.remove('active');
   document.getElementById('app-screen').classList.add('active');
-  const init=USER.fullName.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
-  document.getElementById('tb-av').textContent=init;
+  const init=USER.role==='Admin'?'🔑':USER.fullName.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
+  const av=document.getElementById('tb-av');
+  av.textContent=init;
+  av.style.fontSize=USER.role==='Admin'?'18px':'12px';
   const rm={'Cell Leader':'rc-cl','Asset Manager':'rc-am','MNT Manager':'rc-mnt','QAQC Manager':'rc-qa','FSM':'rc-fsm','Operation Manager':'rc-op','Ticketing':'rc-tk','Technical Engineer':'rc-op','Admin':'rc-am'};
-  const chip=document.getElementById('tb-chip');chip.textContent=USER.role;chip.className='role-chip '+(rm[USER.role]||'rc-tk');
+  const chip=document.getElementById('tb-chip');
+  const isActing=USER._isAdmin&&USER.role!=='Admin';
+  chip.textContent=USER.role+(isActing?' [Admin]':'');
+  chip.className='role-chip '+(rm[USER.role]||'rc-tk');
   setupNav();
   document.getElementById('mc').innerHTML='<div class="loading"><div class="spinner"></div><span>Loading your data...</span></div>';
   await preload();loadView('home');
@@ -1254,13 +1259,43 @@ async function renderAdmin(c){
   <button class="btn ghost" onclick="navTo('equipment')">⚙ View all equipment</button>`;
 }
 function adminSwitch(role,dept,username,label){
-  USER=Object.assign({},USER,{role,department:dept,username,fullName:label});
+  USER=Object.assign({},USER,{role,department:dept,username,fullName:label,_isAdmin:true});
   const rm={'Cell Leader':'rc-cl','Asset Manager':'rc-am','MNT Manager':'rc-mnt','QAQC Manager':'rc-qa','FSM':'rc-fsm','Operation Manager':'rc-op','Ticketing':'rc-tk'};
   const chip=document.getElementById('tb-chip');
   chip.textContent=role;chip.className='role-chip '+(rm[role]||'rc-tk');
-  document.getElementById('tb-av').textContent=label.slice(0,2).toUpperCase();
+  // Keep avatar as 🔑 for Admin
+  document.getElementById('tb-av').textContent='🔑';
+  document.getElementById('tb-av').style.fontSize='18px';
   Object.keys(CACHE).forEach(k=>delete CACHE[k]);
+  document.getElementById('movl').classList.remove('open');
   setupNav();navTo('home');
+}
+
+function openAdminSwitcher(){
+  const ROLES=[
+    {role:'Cell Leader',dept:'D&WO',username:'Mohamed.Baligh',label:'Cell Leader D&WO'},
+    {role:'Cell Leader',dept:'D&WO',username:'Mohamed.Hamdy',label:'Cell Leader D&WO (2)'},
+    {role:'Cell Leader',dept:'UC',username:'Mohamed.Amin',label:'Cell Leader UC'},
+    {role:'Cell Leader',dept:'SAWCOD',username:'Maged.abdelhalim',label:'Cell Leader SAWCOD'},
+    {role:'Asset Manager',dept:'All',username:'Shehab.Hussain',label:'Asset Manager'},
+    {role:'MNT Manager',dept:'All',username:'Tanveer.Hussain',label:'MNT Manager'},
+    {role:'QAQC Manager',dept:'All',username:'Mohamed.Sharkawy',label:'QAQC Manager'},
+    {role:'FSM',dept:'D&WO',username:'Mohamed.Hosny',label:'FSM D&WO'},
+    {role:'FSM',dept:'UC',username:'Moahmed.Abujarror',label:'FSM UC'},
+    {role:'FSM',dept:'SAWCOD',username:'Muath.Madkhali',label:'FSM SAWCOD'},
+    {role:'Operation Manager',dept:'All',username:'Yaman.Kademati',label:'Operation Manager'},
+    {role:'Ticketing',dept:'All',username:'Archi.FTY',label:'Ticketing'},
+  ];
+  const rm={'Cell Leader':'rc-cl','Asset Manager':'rc-am','MNT Manager':'rc-mnt','QAQC Manager':'rc-qa','FSM':'rc-fsm','Operation Manager':'rc-op','Ticketing':'rc-tk'};
+  const rows=ROLES.map(r=>`
+    <div class="crow" onclick="adminSwitch('${r.role}','${r.dept}','${r.username}','${r.label}')">
+      <div class="cb"><div class="ct2">${r.label}</div><div class="cs">${r.username} · ${r.dept}</div></div>
+      <div class="cr"><span class="role-chip ${rm[r.role]||'rc-tk'}">${r.role}</span><span class="chev">›</span></div>
+    </div>`).join('');
+  openMod(`<div class="modal-title">🔑 Switch role</div>
+    <div style="font-size:11px;color:var(--t3);margin-bottom:12px">Current: <strong style="color:var(--t1)">${USER.role==='Admin'?'Admin':USER.role+' — '+USER.fullName}</strong></div>
+    <div class="card" style="margin-bottom:8px">${rows}</div>
+    <button class="btn ghost" onclick="closeMod()">Close</button>`);
 }
 
 // ═══════════════════════════════════════════
