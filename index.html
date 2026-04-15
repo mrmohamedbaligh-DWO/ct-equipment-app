@@ -509,9 +509,9 @@ async function renderCL(c){
         </div>
         <span style="font-size:10px;color:var(--t2)">${r.wellNumber} / ${r.rigNumber} · Mob ${r.mobDate}</span>
         <span style="font-size:10px;color:var(--red)">${r.amNotes||r.fsmNotes||'No reason provided'}</span>
-        <div class="btn-row" style="margin-top:6px">
-          <button class="btn warning" style="padding:8px;font-size:12px" onclick="pushView('edit-request',${JSON.stringify(r).replace(/"/g,'&quot;')},'Edit Request')">✏ Edit &amp; Resubmit</button>
-          <button class="btn danger" style="padding:8px;font-size:12px;flex:0 0 auto" onclick="deleteRequest('${r.requestId}',this)">🗑 Delete</button>
+        <div class="btn-row" style="margin-top:8px">
+          <button class="btn warning" style="padding:10px;font-size:13px;flex:1;margin-bottom:0" onclick="pushView('edit-request',${JSON.stringify(r).replace(/"/g,'&quot;')},'Edit Request')">✏ Edit &amp; Resubmit</button>
+          <button class="btn danger" style="padding:10px;font-size:13px;flex:1;margin-bottom:0" onclick="deleteRequest('${r.requestId}',this)">🗑 Delete</button>
         </div>
       </div>`).join('')}
   </div></div>
@@ -650,11 +650,14 @@ async function renderAM(c){
         </div>
         <div style="font-size:12px;color:var(--t2)">${r.packageId} · ${r.department} · ${r.cellLeader}</div>
         <div style="font-size:11px;color:var(--t2)">${r.wellNumber} / ${r.rigNumber} · Mob: ${r.mobDate}</div>
-        <div style="font-size:10px;color:var(--t3)">Equipment: ${r.equipmentList.slice(0,4).join(', ')}${r.equipmentList.length>4?'...':''}</div>
-        <textarea class="ftextarea" id="am-note-${r.requestId}" rows="1" placeholder="Notes (optional)..." style="margin-top:4px"></textarea>
-        <div style="display:flex;gap:8px;margin-top:2px">
-          <button class="btn success" style="flex:1;padding:10px;font-size:12px" onclick="approveReq('${r.requestId}','Asset Manager',document.getElementById('am-note-${r.requestId}').value)">✓ Approve</button>
-          <button class="btn danger" style="flex:1;padding:10px;font-size:12px" onclick="rejectReq('${r.requestId}','Asset Manager',document.getElementById('am-note-${r.requestId}').value)">✗ Reject</button>
+        <div style="margin-bottom:8px;padding:8px;background:var(--s3);border-radius:6px">
+          <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:5px">Equipment requested (${r.equipmentList.length} units)</div>
+          <div style="display:flex;flex-wrap:wrap;gap:4px">${r.equipmentList.map(e=>`<span style="font-size:10px;font-family:'JetBrains Mono',monospace;background:var(--s2);color:var(--t2);padding:2px 7px;border-radius:4px;border:1px solid var(--border2)">${e}</span>`).join('')}</div>
+        </div>
+        <textarea class="ftextarea" id="am-note-${r.requestId}" rows="2" placeholder="Notes (optional)..." style="margin-top:4px"></textarea>
+        <div class="btn-row" style="margin-top:8px">
+          <button class="btn success" style="flex:1;padding:11px;font-size:13px;margin-bottom:0" onclick="approveReq('${r.requestId}','Asset Manager',document.getElementById('am-note-${r.requestId}').value,this)">✓ Approve</button>
+          <button class="btn danger" style="flex:1;padding:11px;font-size:13px;margin-bottom:0" onclick="rejectReq('${r.requestId}','Asset Manager',document.getElementById('am-note-${r.requestId}').value,this)">✗ Reject</button>
         </div>
       </div>
     </div>`).join('')}`:''}
@@ -846,9 +849,9 @@ async function renderFSM(c){
         <div style="font-size:10px;color:var(--green);margin-bottom:8px">AM Approved ✓ ${r.amDate}</div>
         <div style="font-size:10px;color:var(--t2);margin-bottom:6px">Equipment: ${(r.equipmentList||[]).join(', ')}</div>
         <textarea class="ftextarea" id="fsm-note-${r.requestId}" rows="1" placeholder="Notes (optional)..." style="margin-bottom:8px"></textarea>
-        <div class="btn-row">
-          <button class="btn success" style="padding:9px;font-size:12px" onclick="approveReq('${r.requestId}','FSM',document.getElementById('fsm-note-${r.requestId}').value)">✓ Approve</button>
-          <button class="btn danger" style="padding:9px;font-size:12px" onclick="rejectReq('${r.requestId}','FSM',document.getElementById('fsm-note-${r.requestId}').value)">✗ Reject</button>
+        <div class="btn-row" style="margin-top:4px">
+          <button class="btn success" style="flex:1;padding:11px;font-size:13px;margin-bottom:0" onclick="approveReq('${r.requestId}','FSM',document.getElementById('fsm-note-${r.requestId}').value,this)">✓ Approve</button>
+          <button class="btn danger" style="flex:1;padding:11px;font-size:13px;margin-bottom:0" onclick="rejectReq('${r.requestId}','FSM',document.getElementById('fsm-note-${r.requestId}').value,this)">✗ Reject</button>
         </div>
       </div>`).join('')}
   </div></div>
@@ -1153,7 +1156,13 @@ async function renderJobDetail(c,job){
     <div class="crow nc"><div style="font-size:10px;color:var(--t3);min-width:80px">Status</div><span class="bdg ${job.status==='Exemption'?'a':job.status==='Completed'?'b':'g'}">${job.status}</span></div>
   </div>
   <div class="slbl" style="margin-top:10px">Equipment (${(job.equipment||[]).length} units)</div>
-  <div class="card">${(job.equipment||[]).map(eq=>`<div class="crow nc"><div style="width:8px;height:8px;border-radius:50%;background:${eq.status==='Running'?'var(--green)':eq.status==='Exemption'?'var(--amber)':'var(--blue)'};flex-shrink:0"></div><div class="cb"><div class="ct2">${eq.type}</div></div><span style="font-size:11px;font-weight:500;color:var(--t2);font-family:'JetBrains Mono',monospace">${eq.equipmentId}</span></div>`).join('')}</div>
+  <div class="card">${(job.equipment||[]).map(eq=>{
+    const typeMap={'CC':'Control Cabin','PP':'Power Pack','IJ':'Injector','GK':'Gooseneck','GN':'Gooseneck','SB':'Stripper','ST':'Stripper','WR':'Work Reel','BP':'BOP','PU':'Fluid Pump','FP':'Fluid Pump','N2':'N2 Pump','TB':'Tool Box','TL':'Tool Box'};
+    const prefix=(eq.equipmentId||'').slice(0,2).toUpperCase();
+    const displayType=eq.type||(typeMap[prefix]||eq.equipmentId);
+    const dot=eq.status==='Running'?'var(--green)':eq.status==='Exemption'?'var(--amber)':'var(--blue)';
+    return `<div class="crow nc"><div style="width:8px;height:8px;border-radius:50%;background:${dot};flex-shrink:0"></div><div class="cb"><div class="ct2">${displayType}</div></div><span style="font-size:11px;font-weight:500;color:var(--t2);font-family:'JetBrains Mono',monospace">${eq.equipmentId}</span></div>`;
+  }).join('')}</div>
   ${job.status!=='Completed'&&USER.role==='Cell Leader'?`
   <div class="divider"></div>
   <button class="btn danger" onclick="openFaultModal('${job.jobId}','${job.packageId}')">⚠ Report fault / swap equipment</button>
@@ -1543,15 +1552,11 @@ function openFaultModal(jobId,pkgId){
     <button class="btn danger" onclick="submitFault('${jobId}','${pkgId}')">Submit fault report</button>`);
 }
 async function submitFault(jobId,pkgId){
-  const btn=event.target;if(btn&&btn.disabled)return;
   const o=document.getElementById('fo').value.trim(),n=document.getElementById('fn').value.trim(),t=document.getElementById('ft').value.trim(),r=document.getElementById('fr').value.trim();
   if(!o||!r)return alert('Please fill required fields');
-  lockBtn(btn,'Reporting...');
-  try{
-    await post({action:'reportFault',jobId,packageId:pkgId,equipmentId:o,equipmentType:t,oldEquipment:o,newEquipment:n,department:USER.department,cellLeader:USER.fullName,reason:r,mntManager:'Tanveer.Hussain'});
-    document.getElementById('movl').classList.remove('open');
-    alert('Fault reported. Notifications sent.');loadView('home');
-  }catch(e){unlockBtn(btn);alert('Connection error.');}
+  await post({action:'reportFault',jobId,packageId:pkgId,equipmentId:o,equipmentType:t,oldEquipment:o,newEquipment:n,department:USER.department,cellLeader:USER.fullName,reason:r,mntManager:'Tanveer.Hussain'});
+  document.getElementById('movl').classList.remove('open');
+  alert('Fault reported. Notifications sent.');loadView('home');
 }
 
 function openDemobModal(jobId,well,pkgId,mob){
@@ -1560,14 +1565,10 @@ function openDemobModal(jobId,well,pkgId,mob){
     <button class="btn primary" onclick="submitDemob('${jobId}','${well}','${pkgId}','${mob}')">Confirm demob — close job</button>`);
 }
 async function submitDemob(jobId,well,pkgId,mob){
-  const btn=event.target;if(btn&&btn.disabled)return;
   const d=document.getElementById('dd').value;if(!d)return;
-  lockBtn(btn,'Closing job...');
-  try{
-    const res=await post({action:'demoJob',jobId,wellNumber:well,packageId:pkgId,department:USER.department,mobDate:mob,demobDate:d});
-    document.getElementById('movl').classList.remove('open');
-    alert(`Job closed. Ticket ${res.ticketId} created.`);loadView('home');
-  }catch(e){unlockBtn(btn);alert('Connection error.');}
+  const res=await post({action:'demoJob',jobId,wellNumber:well,packageId:pkgId,department:USER.department,mobDate:mob,demobDate:d});
+  document.getElementById('movl').classList.remove('open');
+  alert(`Job closed. Ticket ${res.ticketId} created.`);loadView('home');
 }
 
 function openExemptionModal(jobId,pkgId){
@@ -1577,15 +1578,11 @@ function openExemptionModal(jobId,pkgId){
     <button class="btn warning" onclick="submitExemption('${jobId}','${pkgId}')">Submit exemption request</button>`);
 }
 async function submitExemption(jobId,pkgId){
-  const btn=event.target;if(btn&&btn.disabled)return;
   const e=document.getElementById('ee').value.trim(),r=document.getElementById('er').value.trim();
   if(!e||!r)return alert('Please fill all fields');
-  lockBtn(btn,'Submitting...');
-  try{
-    const res=await post({action:'requestExemption',jobId,packageId:pkgId,equipmentId:e,department:USER.department,reason:r});
-    document.getElementById('movl').classList.remove('open');
-    alert(`Exemption ${res.exemptionId} submitted to 4 approvers.`);loadView('home');
-  }catch(e2){unlockBtn(btn);alert('Connection error.');}
+  const res=await post({action:'requestExemption',jobId,packageId:pkgId,equipmentId:e,department:USER.department,reason:r});
+  document.getElementById('movl').classList.remove('open');
+  alert(`Exemption ${res.exemptionId} submitted to 4 approvers.`);loadView('home');
 }
 
 async function submitJob(){ submitJobRequest(); }
