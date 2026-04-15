@@ -243,7 +243,7 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:
     <div class="tb-title" id="tb-title">Dashboard</div>
     <div style="display:flex;align-items:center;gap:8px">
       <span class="role-chip" id="tb-chip"></span>
-      <div class="tb-av" id="tb-av" onclick="USER&&USER.role==='Admin'?openAdminSwitcher():navTo('home')" style="cursor:pointer">U</div>
+      <div class="tb-av" id="tb-av" onclick="USER&&USER._isAdmin?openAdminSwitcher():navTo('home')" style="cursor:pointer">U</div>
     </div>
   </div>
   <div class="content" id="mc">
@@ -311,7 +311,8 @@ async function showApp(){
   const init=USER.role==='Admin'?'🔑':USER.fullName.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
   const av=document.getElementById('tb-av');
   av.textContent=init;
-  av.style.fontSize=USER.role==='Admin'?'18px':'12px';
+  av.style.fontSize=USER._isAdmin?'18px':'12px';
+  if(USER._isAdmin)av.onclick=function(){openAdminSwitcher();};
   const rm={'Cell Leader':'rc-cl','Asset Manager':'rc-am','MNT Manager':'rc-mnt','QAQC Manager':'rc-qa','FSM':'rc-fsm','Operation Manager':'rc-op','Ticketing':'rc-tk','Technical Engineer':'rc-op','Admin':'rc-am'};
   const chip=document.getElementById('tb-chip');
   const isActing=USER._isAdmin&&USER.role!=='Admin';
@@ -1263,9 +1264,11 @@ function adminSwitch(role,dept,username,label){
   const rm={'Cell Leader':'rc-cl','Asset Manager':'rc-am','MNT Manager':'rc-mnt','QAQC Manager':'rc-qa','FSM':'rc-fsm','Operation Manager':'rc-op','Ticketing':'rc-tk'};
   const chip=document.getElementById('tb-chip');
   chip.textContent=role;chip.className='role-chip '+(rm[role]||'rc-tk');
-  // Keep avatar as 🔑 for Admin
-  document.getElementById('tb-av').textContent='🔑';
-  document.getElementById('tb-av').style.fontSize='18px';
+  // Keep 🔑 avatar always visible for admin
+  const _av=document.getElementById('tb-av');
+  _av.textContent='🔑';
+  _av.style.fontSize='18px';
+  _av.onclick=function(){openAdminSwitcher();};
   Object.keys(CACHE).forEach(k=>delete CACHE[k]);
   document.getElementById('movl').classList.remove('open');
   setupNav();navTo('home');
