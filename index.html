@@ -768,6 +768,9 @@ async function renderAM(c){
     <div class="kpi a" onclick="toggleKPI('am-mnt')"><div class="kpi-lbl">Under MNT <span class="kpi-tap">tap ▸</span></div><div class="kpi-val a">${mntRecs.length}</div><div class="kpi-sub">equipment</div></div>
     <div class="kpi g" onclick="toggleKPI('am-run')"><div class="kpi-lbl">Jobs running <span class="kpi-tap">tap ▸</span></div><div class="kpi-val g">${running.length}</div><div class="kpi-sub">all depts</div></div>
     <div class="kpi r" onclick="toggleKPI('am-pm')"><div class="kpi-lbl">PM alerts <span class="kpi-tap">tap ▸</span></div><div class="kpi-val r">${pm.length}</div><div class="kpi-sub">need action</div></div>
+  ${mkFaultKpi((crR.changeRequests||[]).filter(r=>r.amDecision==='Pending'))}
+  ${mkExKpi((exR.exemptions||[]).filter(e=>!e.assetDecision||e.assetDecision==='Pending'),'assetDecision',true,'📋 Exemptions pending')}
+  ${mkExKpi(exR.exemptions||[],'assetDecision',false,'📋 All exemptions')}
   </div>
   <!-- Fleet donut + Package util donut -->
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
@@ -883,6 +886,8 @@ async function renderMNT(c){
     <div class="kpi b" onclick="toggleKPI('mnt-aw')"><div class="kpi-lbl">Awaiting QAQC <span class="kpi-tap">tap ▸</span></div><div class="kpi-val b">${awaiting.length}</div><div class="kpi-sub">pending review</div></div>
     <div class="kpi g" onclick="toggleKPI('mnt-done')"><div class="kpi-lbl">Done this year <span class="kpi-tap">tap ▸</span></div><div class="kpi-val g">${done.length}</div><div class="kpi-sub">completed</div></div>
     <div class="kpi r" onclick="toggleKPI('mnt-pm')"><div class="kpi-lbl">PM due soon <span class="kpi-tap">tap ▸</span></div><div class="kpi-val r">${pm.length}</div><div class="kpi-sub">next 30 days</div></div>
+  ${mkExKpi((exR.exemptions||[]).filter(e=>!e.mntDecision||e.mntDecision==='Pending'),'mntDecision',true,'📋 Exemptions pending')}
+  ${mkExKpi(exR.exemptions||[],'mntDecision',false,'📋 All exemptions')}
   </div>
   <!-- MNT status donut -->
   <div class="slbl">MNT status breakdown</div>
