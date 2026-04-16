@@ -286,7 +286,7 @@ async function preload(){
     get({action:'getJobs',department:dept}),
     get({action:'getEquipment',department:dept}),
     get({action:'getPMAlerts',department:dept}),
-    get({action:'getMNT'}),get({action:'getTickets'}),get({action:'getExemptions'}),
+    get({action:'getMNT'}),get({action:'getTickets'}),get({action:'getExemptions'}),get({action:'getChangeRequests',department:USER.department}),
     (dept==='All'||role==='Technical Engineer')&&get({action:'getPool'}),
     (dept==='All'||role==='Technical Engineer')&&get({action:'getDashboard',department:'All'}),
   ].filter(Boolean));
@@ -440,15 +440,124 @@ function donut(data,total,cx,cy,r,sw){
 // ═══════════════════════════════════════════
 // CELL LEADER
 // ═══════════════════════════════════════════
+// ─── FAULT REPORT APPROVAL ───────────────────────────────────────
+async function approveFault(crId,btnEl){
+  const btn=btnEl||event.target;
+  if(btn&&btn.disabled)return;
+  lockBtn(btn,'Approving...');
+  try{
+    const res=await post({action:'approveChange',crId,role:USER.role,reason:''});
+    if(res.success){alert('Fault report approved.');Object.keys(CACHE).forEach(k=>delete CACHE[k]);loadView('home');}
+    else{unlockBtn(btn);alert('Error: '+(res.error||'Unknown'));}
+  }catch(e){unlockBtn(btn);alert('Connection error.');}
+}
+async function rejectFault(crId,btnEl){
+  const btn=btnEl||event.target;
+  if(btn&&btn.disabled)return;
+  const reason=prompt('Rejection reason:');
+  if(!reason)return;
+  lockBtn(btn,'Rejecting...');
+  try{
+    const res=await post({action:'rejectChange',crId,role:USER.role,reason});
+    if(res.success){alert('Fault report rejected.');Object.keys(CACHE).forEach(k=>delete CACHE[k]);loadView('home');}
+    else{unlockBtn(btn);alert('Error: '+(res.error||'Unknown'));}
+  }catch(e){unlockBtn(btn);alert('Connection error.');}
+}
+
+// ─── EXEMPTION APPROVAL ──────────────────────────────────────────
+async function approveExemption(exemptionId,btnEl){
+  const btn=btnEl||event.target;
+  if(btn&&btn.disabled)return;
+  lockBtn(btn,'Approving...');
+  try{
+    const res=await post({action:'approveExemption',exemptionId,role:USER.role});
+    if(res.success){alert('Exemption approved.');Object.keys(CACHE).forEach(k=>delete CACHE[k]);loadView('home');}
+    else{unlockBtn(btn);alert('Error: '+(res.error||'Unknown'));}
+  }catch(e){unlockBtn(btn);alert('Connection error.');}
+}
+async function rejectExemption(exemptionId,btnEl){
+  const btn=btnEl||event.target;
+  if(btn&&btn.disabled)return;
+  const reason=prompt('Rejection reason:');
+  if(!reason)return;
+  lockBtn(btn,'Rejecting...');
+  try{
+    const res=await post({action:'rejectExemption',exemptionId,role:USER.role,reason});
+    if(res.success){alert('Exemption rejected.');Object.keys(CACHE).forEach(k=>delete CACHE[k]);loadView('home');}
+    else{unlockBtn(btn);alert('Error: '+(res.error||'Unknown'));}
+  }catch(e){unlockBtn(btn);alert('Connection error.');}
+}
+
+// ─── FAULT REPORT KPI CARD ───────────────────────────────────────
+function renderFaultKPI(changeRequests, filterFn, expandId){
+  const filtered = (changeRequests||[]).filter(filterFn);
+  if(!filtered.length) return '';
+  return `
+  <div class="divider"></div>
+  <div class="slbl" style="color:var(--amber)">⚠ Fault reports — pending your review (${filtered.length})</div>
+  ${filtered.map(r=>`
+    <div class="card" style="margin-bottom:8px;border:1px solid var(--amber-b)">
+      <div style="padding:12px 13px;display:flex;flex-direction:column;gap:6px">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <span style="font-size:13px;font-weight:700;color:var(--t1)">${r.crId}</span>
+          <span class="bdg a">Fault Report</span>
+        </div>
+        <div style="font-size:12px;color:var(--t2)">${r.packageId} · ${r.department} · ${r.cellLeader}</div>
+        <div style="font-size:11px;color:var(--t2)">Faulty: <strong>${r.oldEquipment}</strong> → Replace: <strong>${r.newEquipment||'N/A'}</strong></div>
+        <div style="font-size:11px;color:var(--t3)">Reason: ${r.reason}</div>
+        <div style="font-size:10px;color:var(--t3)">Submitted: ${r.submitDate}</div>
+        ${r.amDecision!=='Pending'?`<div style="font-size:10px;color:${r.amDecision==='Approved'?'var(--green)':'var(--red)'}">AM: ${r.amDecision} ${r.amNotes?'— '+r.amNotes:''}</div>`:''}
+        <div class="btn-row" style="margin-top:4px">
+          <button class="btn success" style="padding:10px;font-size:13px;margin-bottom:0" onclick="approveFault('${r.crId}',this)">✓ Approve</button>
+          <button class="btn danger" style="padding:10px;font-size:13px;margin-bottom:0" onclick="rejectFault('${r.crId}',this)">✗ Reject</button>
+        </div>
+      </div>
+    </div>`).join('')}`;
+}
+
+// ─── EXEMPTION KPI CARD ──────────────────────────────────────────
+function renderExemptionKPI(exemptions, filterFn, role){
+  const filtered = (exemptions||[]).filter(filterFn);
+  if(!filtered.length) return '';
+  const roleColMap = {'MNT Manager':'mntDecision','Asset Manager':'assetDecision','FSM':'fsmDecision','Operation Manager':'opDecision'};
+  const myCol = roleColMap[role];
+  return `
+  <div class="divider"></div>
+  <div class="slbl" style="color:var(--amber)">📋 Exemption requests — pending your review (${filtered.length})</div>
+  ${filtered.map(r=>`
+    <div class="card" style="margin-bottom:8px;border:1px solid var(--amber-b)">
+      <div style="padding:12px 13px;display:flex;flex-direction:column;gap:6px">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <span style="font-size:13px;font-weight:700;color:var(--t1)">${r.exemptionId}</span>
+          <span class="bdg a">Exemption</span>
+        </div>
+        <div style="font-size:12px;color:var(--t2)">${r.packageId} · ${r.department}</div>
+        <div style="font-size:11px;color:var(--t2)">Equipment: <strong>${r.equipmentId}</strong></div>
+        <div style="font-size:11px;color:var(--t3)">Reason: ${r.reason}</div>
+        <div style="font-size:10px;color:var(--t3)">Submitted: ${r.startDate} · Expires: ${r.expiryDate}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:2px">
+          ${[['MNT',r.mntDecision],['AM',r.assetDecision],['FSM',r.fsmDecision],['OP',r.opDecision]].map(([lbl,dec])=>`<span class="bdg ${dec==='Approved'?'g':dec==='Rejected'?'r':'gray'}">${lbl}: ${dec||'Pending'}</span>`).join('')}
+        </div>
+        ${myCol&&(r[myCol]==='Pending'||!r[myCol])?`
+        <div class="btn-row" style="margin-top:4px">
+          <button class="btn success" style="padding:10px;font-size:13px;margin-bottom:0" onclick="approveExemption('${r.exemptionId}',this)">✓ Approve</button>
+          <button class="btn danger" style="padding:10px;font-size:13px;margin-bottom:0" onclick="rejectExemption('${r.exemptionId}',this)">✗ Reject</button>
+        </div>`:''}
+      </div>
+    </div>`).join('')}`;
+}
+
 async function renderCL(c){
-  let jR={jobs:[]},pmR={alerts:[]},reqR={requests:[]};
+  let jR={jobs:[]},pmR={alerts:[]},reqR={requests:[]},exR={exemptions:[]};
   try{
     [jR,pmR,reqR]=await Promise.all([
       get({action:'getJobs',department:USER.department}),
       get({action:'getPMAlerts',department:USER.department}),
-      get({action:'getJobRequests',department:USER.department,role:USER.role,username:USER.username})
+      get({action:'getJobRequests',department:USER.department,role:USER.role,username:USER.username}),
+      get({action:'getExemptions'})
     ]);
   }catch(e){ console.error('CL fetch error',e); }
+  window._clExemptions = exR.exemptions||[];
   const jobs=jR.jobs||[],running=jobs.filter(j=>j.status==='Running'||j.status==='Exemption'),done=jobs.filter(j=>j.status==='Completed');
   const _pmRaw=(pmR.alerts||[]).filter(a=>a.daysLeft<=30);const _pmSeen=new Set();const pm=_pmRaw.filter(a=>{const k=a.equipmentId+a.pmType;if(_pmSeen.has(k))return false;_pmSeen.add(k);return true;});
   const reqs=(reqR&&reqR.requests)||[];
@@ -539,6 +648,29 @@ async function renderCL(c){
       </div>`;}).join('')}
   </div></div>`:''}
   ${pm.length>0?`<div class="slbl" style="margin-top:4px">PM alerts — contact Asset Manager</div>${pm.map(a=>`<div class="alert ${a.status==='Overdue'?'r':'a'}"><span class="alert-icon">${a.status==='Overdue'?'🔴':'⚠️'}</span><div><strong>${a.equipmentId}</strong> ${a.pmType} — Due ${a.dueDate} — ${a.status==='Overdue'?'OVERDUE':a.daysLeft+' days left'}</div></div>`).join('')}`:''}
+
+  ${(()=>{
+    const myEx=(window._clExemptions||[]);
+    const clEx=myEx.filter(e=>e.department===USER.department);
+    if(!clEx.length)return '';
+    return '<div class="divider"></div><div class="slbl">Exemption requests status</div>'+clEx.map(e=>`
+      <div class="card" style="margin-bottom:8px">
+        <div style="padding:12px 13px;display:flex;flex-direction:column;gap:6px">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <span style="font-size:13px;font-weight:700;color:var(--t1)">${e.exemptionId}</span>
+            <span class="bdg ${e.status&&e.status.includes('Active')?'g':e.status==='Rejected'?'r':'a'}">${e.status||'Pending'}</span>
+          </div>
+          <div style="font-size:12px;color:var(--t2)">Equipment: <strong>${e.equipmentId}</strong> · ${e.packageId}</div>
+          <div style="font-size:11px;color:var(--t3)">${e.reason}</div>
+          <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">
+            <span class="bdg ${e.mntDecision==='Approved'?'g':e.mntDecision==='Rejected'?'r':'gray'}">MNT: ${e.mntDecision||'Pending'}</span>
+            <span class="bdg ${e.assetDecision==='Approved'?'g':e.assetDecision==='Rejected'?'r':'gray'}">AM: ${e.assetDecision||'Pending'}</span>
+            <span class="bdg ${e.fsmDecision==='Approved'?'g':e.fsmDecision==='Rejected'?'r':'gray'}">FSM: ${e.fsmDecision||'Pending'}</span>
+            <span class="bdg ${e.opDecision==='Approved'?'g':e.opDecision==='Rejected'?'r':'gray'}">OP: ${e.opDecision||'Pending'}</span>
+          </div>
+        </div>
+      </div>`).join('');
+  })()}
   <div class="divider"></div>
   <button class="btn primary" onclick="pushView('create-job',null,'New Job Assignment')">+ New Job Assignment</button>
   <button class="btn ghost" onclick="navTo('jobs')">View all jobs</button>`;
@@ -548,12 +680,14 @@ async function renderCL(c){
 // ASSET MANAGER
 // ═══════════════════════════════════════════
 async function renderAM(c){
-  let poolR={pool:{}},mntR={records:[]},jR={jobs:[]},pmR={alerts:[]},reqR={requests:[]};
+  let poolR={pool:{}},mntR={records:[]},jR={jobs:[]},pmR={alerts:[]},reqR={requests:[]},crR={changeRequests:[]},exR={exemptions:[]};
   try{
-    [poolR,mntR,jR,pmR,reqR]=await Promise.all([
+    [poolR,mntR,jR,pmR,reqR,crR,exR]=await Promise.all([
       get({action:'getPool'}),get({action:'getMNT'}),
       get({action:'getJobs',department:'All'}),get({action:'getPMAlerts',department:'All'}),
-      get({action:'getJobRequests',department:'All',role:'Asset Manager'})
+      get({action:'getJobRequests',department:'All',role:'Asset Manager'}),
+      get({action:'getChangeRequests',department:'All'}),
+      get({action:'getExemptions'})
     ]);
   }catch(e){ console.error('AM fetch error',e); }
   const pool=poolR.pool||{},poolTotal=Object.values(pool).reduce((s,a)=>s+a.length,0);
@@ -579,7 +713,7 @@ async function renderAM(c){
     <div>
       <div class="slbl">Fleet status</div>
       <div class="card"><div class="card-body" style="padding:10px">
-        <div style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:4px 0">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:4px 0">
           <svg width="90" height="90" viewBox="0 0 90 90">
             <circle cx="45" cy="45" r="34" fill="none" stroke="var(--s3)" stroke-width="14"/>
             ${donut([{val:onJob,color:'var(--green)'},{val:mntCnt,color:'var(--red)'},{val:poolCnt,color:'var(--blue)'}],total,45,45,34,14)}
@@ -667,15 +801,18 @@ async function renderAM(c){
     </div>`).join('')}`:''}
   <div class="divider"></div>
   <button class="btn ghost" onclick="navTo('equipment')">View all equipment</button>
-  <button class="btn ghost" onclick="navTo('jobs')">View all jobs</button>`;
+  <button class="btn ghost" onclick="navTo('jobs')">View all jobs</button>
+  ${renderFaultKPI(crR.changeRequests, r=>r.status==='Pending'&&r.amDecision==='Pending')}
+  ${renderExemptionKPI(exR.exemptions, r=>!r.assetDecision||r.assetDecision==='Pending', 'Asset Manager')}
+  `;
 }
 
 // ═══════════════════════════════════════════
 // MNT MANAGER
 // ═══════════════════════════════════════════
 async function renderMNT(c){
-  let mntR={records:[]},pmR={alerts:[]};
-  try{ [mntR,pmR]=await Promise.all([get({action:'getMNT'}),get({action:'getPMAlerts',department:'All'})]); }
+  let mntR={records:[]},pmR={alerts:[]},exR={exemptions:[]};
+  try{ [mntR,pmR,exR]=await Promise.all([get({action:'getMNT'}),get({action:'getPMAlerts',department:'All'}),get({action:'getExemptions'})]); }
   catch(e){ console.error('MNT fetch error',e); }
   const underMNT=(mntR.records||[]).filter(r=>r.status==='Under MNT');
   const awaiting=(mntR.records||[]).filter(r=>r.status==='Awaiting QAQC');
@@ -728,7 +865,8 @@ async function renderMNT(c){
   <div id="mnt-pm" style="display:none"><div class="expand">
     <div class="exp-head"><span class="exp-title">PM due alerts</span><span class="exp-close" onclick="toggleKPI('mnt-pm')">close</span></div>
     <div style="padding:10px 13px">${pm.map(a=>`<div class="alert ${a.status==='Overdue'?'r':'a'}" style="margin-bottom:6px"><span class="alert-icon">${a.status==='Overdue'?'🔴':'⚠️'}</span><div><strong>${a.equipmentId}</strong> ${a.pmType} — <strong>${a.dueDate}</strong> — ${a.status==='Overdue'?'OVERDUE':a.daysLeft+' days'}</div></div>`).join('')}${pm.length===0?'<div class="empty">No alerts</div>':''}</div>
-  </div></div>`;
+  </div></div>
+  ${renderExemptionKPI(exR.exemptions, r=>r.mntDecision==='Pending'||!r.mntDecision, 'MNT Manager')}`;
 }
 
 // ═══════════════════════════════════════════
@@ -788,12 +926,14 @@ async function renderQA(c){
 // FSM
 // ═══════════════════════════════════════════
 async function renderFSM(c){
-  let jR={jobs:[]},pmR={alerts:[]},reqR={requests:[]};
+  let jR={jobs:[]},pmR={alerts:[]},reqR={requests:[]},crR={changeRequests:[]},exR={exemptions:[]};
   try{
-    [jR,pmR,reqR]=await Promise.all([
+    [jR,pmR,reqR,crR,exR]=await Promise.all([
       get({action:'getJobs',department:USER.department}),
       get({action:'getPMAlerts',department:USER.department}),
-      get({action:'getJobRequests',department:USER.department,role:'FSM'})
+      get({action:'getJobRequests',department:USER.department,role:'FSM'}),
+      get({action:'getChangeRequests',department:USER.department}),
+      get({action:'getExemptions'})
     ]);
   }catch(e){console.error('FSM fetch error',e);}
   const jobs=jR.jobs||[],running=jobs.filter(j=>j.status==='Running'||j.status==='Exemption'),done=jobs.filter(j=>j.status==='Completed');
@@ -890,7 +1030,9 @@ async function renderFSM(c){
   </div></div>
   ${pm.length>0?`<div class="divider"></div><div class="slbl">PM alerts — ${USER.department}</div>${pm.map(a=>`<div class="alert ${a.status==='Overdue'?'r':'a'}"><span class="alert-icon">${a.status==='Overdue'?'🔴':'⚠️'}</span><div><strong>${a.equipmentId}</strong> ${a.pmType} — <strong>${a.dueDate}</strong> — ${a.status==='Overdue'?'OVERDUE':a.daysLeft+' days'}</div></div>`).join('')}`:''}
   ${(function(){var cy=new Date().getFullYear().toString(),cm=new Date().toISOString().slice(0,7),d2=deptTickets.filter(function(t){return t.status==='Done'&&t.amount>0;}),ay=d2.filter(function(t){return t.ticketDoneDate&&t.ticketDoneDate.slice(0,4)===cy;}).reduce(function(s,t){return s+t.amount;},0),am=d2.filter(function(t){return t.ticketDoneDate&&t.ticketDoneDate.slice(0,7)===cm;}).reduce(function(s,t){return s+t.amount;},0);return d2.length>0?'<div class="divider"></div><div class="slbl">Revenue — '+USER.department+'</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px"><div style="background:var(--green-bg);border:1px solid var(--green-b);border-radius:var(--r);padding:12px"><div style="font-size:9px;color:var(--t3);margin-bottom:3px">THIS MONTH</div><div style="font-size:20px;font-weight:700;color:var(--green)">SAR '+am.toLocaleString()+'</div></div><div style="background:var(--teal-bg);border:1px solid var(--teal-b);border-radius:var(--r);padding:12px"><div style="font-size:9px;color:var(--t3);margin-bottom:3px">THIS YEAR</div><div style="font-size:20px;font-weight:700;color:var(--teal)">SAR '+ay.toLocaleString()+'</div></div></div>':'';})()}
-  ${months.length>0?`
+  ${renderFaultKPI(crR.changeRequests, r=>r.amDecision==='Approved'&&r.fsmDecision==='Pending'&&r.department===USER.department, 'fsm-fault')}
+  ${renderExemptionKPI(exR.exemptions, r=>(r.fsmDecision==='Pending'||!r.fsmDecision)&&r.department===USER.department, 'FSM')}
+    ${months.length>0?`
   <div class="divider"></div>
   <div class="slbl">Tickets — ${USER.department} per month</div>
   <div class="card"><div class="card-body">
@@ -920,9 +1062,9 @@ async function renderFSM(c){
 // OPERATION MANAGER
 // ═══════════════════════════════════════════
 async function renderOP(c){
-  const[dashR,tktR,poolR]=await Promise.all([
+  const[dashR,tktR,poolR,exR2]=await Promise.all([
     get({action:'getDashboard',department:'All'}),
-    get({action:'getTickets'}),get({action:'getPool'})
+    get({action:'getTickets'}),get({action:'getPool'}),get({action:'getExemptions'})
   ]);
   const kpis=dashR.kpis||{},mntPerf=dashR.mntPerformance||[];
   const runningJobs=dashR.runningJobs||[],tickets=tktR.tickets||[];
@@ -1002,6 +1144,7 @@ async function renderOP(c){
     <div class="exp-head"><span class="exp-title">MNT alerts</span><span class="exp-close" onclick="toggleKPI('op-mntperf')">close</span></div>
     <div style="padding:10px 13px">${mntPerf.filter(m=>m.alert).map(m=>`<div class="alert r" style="margin-bottom:6px"><span class="alert-icon">🔴</span><div><strong>${m.type}</strong> — ${m.pct}% under MNT (${m.underMnt}/${m.total})</div></div>`).join('')||'<div class="empty">No alerts</div>'}</div>
   </div></div>
+  ${renderExemptionKPI((exR2||{}).exemptions, r=>r.opDecision==='Pending'||!r.opDecision, 'Operation Manager')}
 `;
 }
 // ═══════════════════════════════════════════
@@ -1154,7 +1297,6 @@ async function renderMNTList(c){
 }
 
 async function renderJobDetail(c,job){
-  // Store equipment for fault/exemption modals
   window._currentJobEquipment = job.equipment||[];
   c.innerHTML=`
   <div class="slbl">Job info</div>
@@ -1551,21 +1693,15 @@ function closeMod(e){if(!e||e.target===document.getElementById('movl'))document.
 
 async function openFaultModal(jobId,pkgId){
   const equipment = window._currentJobEquipment||[];
-  // Build equipment options for "with fault" dropdown
   const eqOpts = equipment.map(e=>`<option value="${e.equipmentId}">${e.equipmentId}</option>`).join('');
-  // Initial pool fetch for replacement
   const poolR = await get({action:'getPool'}).catch(()=>({pool:{}}));
-  const pool = poolR.pool||{};
-  
-  // Type map for display
-  const typeMap={'CC':'Control Cabin','PP':'Power Pack','IJ':'Injector','GK':'Gooseneck','GN':'Gooseneck','SB':'Stripper','ST':'Stripper','WR':'Work Reel','BP':'BOP','PU':'Fluid Pump','FP':'Fluid Pump','N2':'N2 Pump','TB':'Tool Box'};
-  
+  window._faultPool = poolR.pool||{};
+  window._faultEquipment = equipment;
   openMod(`<div class="modal-title">Report fault / swap equipment</div>
     <div class="fg">
       <label class="flbl">Equipment with fault</label>
       <select class="finput" id="fo" onchange="updateReplacementDropdown(this.value)" style="cursor:pointer">
-        <option value="">— Select equipment —</option>
-        ${eqOpts}
+        <option value="">— Select equipment —</option>${eqOpts}
       </select>
     </div>
     <div class="fg">
@@ -1573,45 +1709,34 @@ async function openFaultModal(jobId,pkgId){
       <input type="text" class="finput" id="ft" placeholder="Auto-filled" readonly style="opacity:0.7">
     </div>
     <div class="fg">
-      <label class="flbl">Replacement equipment</label>
+      <label class="flbl">Replacement from pool</label>
       <select class="finput" id="fn" style="cursor:pointer">
         <option value="">— Select fault equipment first —</option>
       </select>
     </div>
     <div class="fg"><label class="flbl">Reason</label><textarea class="ftextarea" id="fr" rows="3" placeholder="Describe the fault..."></textarea></div>
     <button class="btn danger" onclick="submitFault('${jobId}','${pkgId}')">Submit fault report</button>`);
-  
-  // Store pool and equipment for dropdown update
-  window._faultPool = pool;
-  window._faultEquipment = equipment;
-  window._faultTypeMap = typeMap;
 }
 
-async function updateReplacementDropdown(selectedId){
-  if(!selectedId) return;
-  const eq = (window._faultEquipment||[]).find(e=>e.equipmentId===selectedId);
-  const typeMap = window._faultTypeMap||{};
-  const prefix = selectedId.slice(0,2).toUpperCase();
-  const eqType = (eq&&eq.type) || typeMap[prefix] || '';
-  
-  // Set type field
-  const ftEl = document.getElementById('ft');
-  if(ftEl) ftEl.value = eqType;
-  
-  // Get pool items matching this type
-  const pool = window._faultPool||{};
-  let replacements = [];
-  Object.entries(pool).forEach(([type, items])=>{
-    const typePrefix = type==='Control Cabin'?'CC':type==='Power Pack'?'PP':type==='Injector'?'IJ':type==='Gooseneck'?'GK':type==='Stripper'?'SB':type==='Work Reel'?'WR':type==='BOP'?'BP':type==='Fluid Pump'?'PU':type==='N2 Pump'?'N2':type==='Tool Box'?'TB':'';
-    const selPrefix = selectedId.slice(0,2).toUpperCase();
-    if(typePrefix===selPrefix || type===eqType) replacements = replacements.concat(items);
+function updateReplacementDropdown(selectedId){
+  if(!selectedId)return;
+  const typeMap={'CC':'Control Cabin','PP':'Power Pack','IJ':'Injector','GK':'Gooseneck','GN':'Gooseneck','SB':'Stripper','ST':'Stripper','WR':'Work Reel','BP':'BOP','PU':'Fluid Pump','FP':'Fluid Pump','N2':'N2 Pump','TB':'Tool Box'};
+  const eq=(window._faultEquipment||[]).find(e=>e.equipmentId===selectedId);
+  const prefix=selectedId.slice(0,2).toUpperCase();
+  const eqType=(eq&&eq.type)||typeMap[prefix]||'';
+  const ftEl=document.getElementById('ft');
+  if(ftEl)ftEl.value=eqType;
+  const pool=window._faultPool||{};
+  let replacements=[];
+  Object.entries(pool).forEach(([type,items])=>{
+    if(type===eqType||items.some(i=>i.id.slice(0,2).toUpperCase()===prefix))
+      replacements=replacements.concat(items);
   });
-  
-  const fnEl = document.getElementById('fn');
+  const fnEl=document.getElementById('fn');
   if(fnEl){
-    fnEl.innerHTML = replacements.length>0
-      ? '<option value="">— Select replacement —</option>'+replacements.map(i=>`<option value="${i.id}">${i.id}</option>`).join('')
-      : '<option value="">No pool equipment of this type</option>';
+    fnEl.innerHTML=replacements.length>0
+      ?'<option value="">— Select replacement —</option>'+replacements.map(i=>`<option value="${i.id}">${i.id}</option>`).join('')
+      :'<option value="">No pool equipment of this type</option>';
   }
 }
 async function submitFault(jobId,pkgId){
@@ -1635,14 +1760,13 @@ async function submitDemob(jobId,well,pkgId,mob){
 }
 
 function openExemptionModal(jobId,pkgId){
-  const equipment = window._currentJobEquipment||[];
-  const eqOpts = equipment.map(e=>`<option value="${e.equipmentId}">${e.equipmentId}</option>`).join('');
+  const equipment=window._currentJobEquipment||[];
+  const eqOpts=equipment.map(e=>`<option value="${e.equipmentId}">${e.equipmentId}</option>`).join('');
   openMod(`<div class="modal-title">Request exemption</div>
     <div class="fg">
       <label class="flbl">Equipment ID</label>
       <select class="finput" id="ee" style="cursor:pointer">
-        <option value="">— Select equipment —</option>
-        ${eqOpts}
+        <option value="">— Select equipment —</option>${eqOpts}
       </select>
     </div>
     <div class="fg"><label class="flbl">Reason</label><textarea class="ftextarea" id="er" rows="3" placeholder="Why can't this be replaced?"></textarea></div>
