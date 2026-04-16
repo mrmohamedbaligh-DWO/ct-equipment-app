@@ -333,6 +333,10 @@ function setupNav(){
   else if(role==='Admin'){nav.innerHTML=`<div class="ni active" id="n1" onclick="navTo('home')"><div class="ni-icon">🔑</div>Admin</div><div class="ni" id="n2" onclick="navTo('jobs')"><div class="ni-icon">📋</div>Jobs</div><div class="ni" id="n3" onclick="navTo('equipment')"><div class="ni-icon">⚙</div>Equip</div>`;}
   else if(role==='Technical Engineer'){nav.innerHTML=`<div class="ni active" id="n1" onclick="navTo('home')"><div class="ni-icon">⊞</div>Home</div><div class="ni" id="n2" onclick="navTo('jobs')"><div class="ni-icon">📋</div>Jobs</div>`;}
   nav.style.display='flex';
+  if(USER&&USER._isAdmin){
+    const _adminAv=document.getElementById('tb-av');
+    if(_adminAv){_adminAv.textContent='🔑';_adminAv.style.fontSize='18px';_adminAv.onclick=function(){openAdminSwitcher();};}
+  }
 }
 
 // ─── NAV ───────────────────────────────────
@@ -510,8 +514,8 @@ async function renderCL(c){
         <span style="font-size:10px;color:var(--t2)">${r.wellNumber} / ${r.rigNumber} · Mob ${r.mobDate}</span>
         <span style="font-size:10px;color:var(--red)">${r.amNotes||r.fsmNotes||'No reason provided'}</span>
         <div class="btn-row" style="margin-top:8px">
-          <button class="btn warning" style="padding:11px;font-size:13px;flex:1;margin-bottom:0" onclick="pushView('edit-request',${JSON.stringify(r).replace(/"/g,'&quot;')},'Edit Request')">✏ Edit &amp; Resubmit</button>
-          <button class="btn danger" style="padding:11px;font-size:13px;flex:1;margin-bottom:0" onclick="deleteRequest('${r.requestId}',this)">🗑 Delete</button>
+          <button class="btn warning" style="padding:10px;font-size:13px;flex:1;margin-bottom:0" onclick="pushView('edit-request',${JSON.stringify(r).replace(/"/g,'&quot;')},'Edit Request')">✏ Edit &amp; Resubmit</button>
+          <button class="btn danger" style="padding:10px;font-size:13px;flex:1;margin-bottom:0" onclick="deleteRequest('${r.requestId}',this)">🗑 Delete</button>
         </div>
       </div>`).join('')}
   </div></div>
@@ -593,14 +597,14 @@ async function renderAM(c){
     <div>
       <div class="slbl">Package util</div>
       <div class="card"><div class="card-body" style="padding:10px">
-        ${running.length>0?`<svg width="100%" height="120" viewBox="0 0 110 120">
+        ${running.length>0?`<svg width="100%" height="150" viewBox="0 0 110 150">
           <circle cx="55" cy="55" r="42" fill="none" stroke="var(--s3)" stroke-width="16"/>
           ${donut([{val:running.length,color:'var(--green)'},{val:Math.max(0,14-running.length-2),color:'var(--blue)'},{val:2,color:'var(--red)'}],14,55,55,42,16)}
           <text x="55" y="51" text-anchor="middle" font-size="14" font-weight="700" fill="var(--t1)">14</text>
           <text x="55" y="63" text-anchor="middle" font-size="8" fill="var(--t3)">packages</text>
-          <circle cx="12" cy="85" r="5" fill="var(--green)"/><text x="20" y="89" font-size="8" fill="var(--t2)">Run ${running.length}</text>
-          <circle cx="12" cy="100" r="5" fill="var(--blue)"/><text x="20" y="104" font-size="8" fill="var(--t2)">Avail ${Math.max(0,14-running.length-2)}</text>
-          <circle cx="60" cy="85" r="5" fill="var(--red)"/><text x="68" y="89" font-size="8" fill="var(--t2)">MNT 2</text>
+          <circle cx="12" cy="118" r="5" fill="var(--green)"/><text x="20" y="122" font-size="8" fill="var(--t2)">Run ${running.length}</text>
+          <circle cx="12" cy="133" r="5" fill="var(--blue)"/><text x="20" y="137" font-size="8" fill="var(--t2)">Avail ${Math.max(0,14-running.length-2)}</text>
+          <circle cx="60" cy="118" r="5" fill="var(--red)"/><text x="68" y="122" font-size="8" fill="var(--t2)">MNT 2</text>
         </svg>`:'<div class="empty" style="padding:20px">No data</div>'}
       </div></div>
     </div>
