@@ -579,7 +579,7 @@ async function renderAM(c){
     <div>
       <div class="slbl">Fleet status</div>
       <div class="card"><div class="card-body" style="padding:10px">
-        <div style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:4px 0">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:4px 0">
           <svg width="90" height="90" viewBox="0 0 90 90">
             <circle cx="45" cy="45" r="34" fill="none" stroke="var(--s3)" stroke-width="14"/>
             ${donut([{val:onJob,color:'var(--green)'},{val:mntCnt,color:'var(--red)'},{val:poolCnt,color:'var(--blue)'}],total,45,45,34,14)}
@@ -1154,6 +1154,8 @@ async function renderMNTList(c){
 }
 
 async function renderJobDetail(c,job){
+  // Store equipment for fault/exemption modals
+  window._currentJobEquipment = job.equipment||[];
   c.innerHTML=`
   <div class="slbl">Job info</div>
   <div class="card">${[['Job ID',job.jobId],['Well / Rig',`${job.wellNumber} / ${job.rigNumber}`],['Package',job.packageId],['Department',job.department],['Cell Leader',job.cellLeader],['Mob date',job.mobDate],['Days on job',job.daysOnJob||'Ongoing']].map(([k,v])=>`<div class="crow nc"><div style="font-size:10px;color:var(--t3);min-width:80px">${k}</div><div style="font-size:13px;font-weight:500;color:var(--t1)">${v}</div></div>`).join('')}
@@ -1547,13 +1549,70 @@ async function submitDoneTicket(ticketId){
 function openMod(html){document.getElementById('mbody').innerHTML=`<div class="modal-handle"></div>${html}`;document.getElementById('movl').classList.add('open');}
 function closeMod(e){if(!e||e.target===document.getElementById('movl'))document.getElementById('movl').classList.remove('open');}
 
-function openFaultModal(jobId,pkgId){
+async function openFaultModal(jobId,pkgId){
+  const equipment = window._currentJobEquipment||[];
+  // Build equipment options for "with fault" dropdown
+  const eqOpts = equipment.map(e=>`<option value="${e.equipmentId}">${e.equipmentId}</option>`).join('');
+  // Initial pool fetch for replacement
+  const poolR = await get({action:'getPool'}).catch(()=>({pool:{}}));
+  const pool = poolR.pool||{};
+  
+  // Type map for display
+  const typeMap={'CC':'Control Cabin','PP':'Power Pack','IJ':'Injector','GK':'Gooseneck','GN':'Gooseneck','SB':'Stripper','ST':'Stripper','WR':'Work Reel','BP':'BOP','PU':'Fluid Pump','FP':'Fluid Pump','N2':'N2 Pump','TB':'Tool Box'};
+  
   openMod(`<div class="modal-title">Report fault / swap equipment</div>
-    <div class="fg"><label class="flbl">Equipment with fault</label><input type="text" class="finput" id="fo" placeholder="e.g. PU-014"></div>
-    <div class="fg"><label class="flbl">Replacement equipment</label><input type="text" class="finput" id="fn" placeholder="e.g. PU-021"></div>
-    <div class="fg"><label class="flbl">Equipment type</label><input type="text" class="finput" id="ft" placeholder="e.g. Fluid Pump"></div>
+    <div class="fg">
+      <label class="flbl">Equipment with fault</label>
+      <select class="finput" id="fo" onchange="updateReplacementDropdown(this.value)" style="cursor:pointer">
+        <option value="">— Select equipment —</option>
+        ${eqOpts}
+      </select>
+    </div>
+    <div class="fg">
+      <label class="flbl">Equipment type</label>
+      <input type="text" class="finput" id="ft" placeholder="Auto-filled" readonly style="opacity:0.7">
+    </div>
+    <div class="fg">
+      <label class="flbl">Replacement equipment</label>
+      <select class="finput" id="fn" style="cursor:pointer">
+        <option value="">— Select fault equipment first —</option>
+      </select>
+    </div>
     <div class="fg"><label class="flbl">Reason</label><textarea class="ftextarea" id="fr" rows="3" placeholder="Describe the fault..."></textarea></div>
     <button class="btn danger" onclick="submitFault('${jobId}','${pkgId}')">Submit fault report</button>`);
+  
+  // Store pool and equipment for dropdown update
+  window._faultPool = pool;
+  window._faultEquipment = equipment;
+  window._faultTypeMap = typeMap;
+}
+
+async function updateReplacementDropdown(selectedId){
+  if(!selectedId) return;
+  const eq = (window._faultEquipment||[]).find(e=>e.equipmentId===selectedId);
+  const typeMap = window._faultTypeMap||{};
+  const prefix = selectedId.slice(0,2).toUpperCase();
+  const eqType = (eq&&eq.type) || typeMap[prefix] || '';
+  
+  // Set type field
+  const ftEl = document.getElementById('ft');
+  if(ftEl) ftEl.value = eqType;
+  
+  // Get pool items matching this type
+  const pool = window._faultPool||{};
+  let replacements = [];
+  Object.entries(pool).forEach(([type, items])=>{
+    const typePrefix = type==='Control Cabin'?'CC':type==='Power Pack'?'PP':type==='Injector'?'IJ':type==='Gooseneck'?'GK':type==='Stripper'?'SB':type==='Work Reel'?'WR':type==='BOP'?'BP':type==='Fluid Pump'?'PU':type==='N2 Pump'?'N2':type==='Tool Box'?'TB':'';
+    const selPrefix = selectedId.slice(0,2).toUpperCase();
+    if(typePrefix===selPrefix || type===eqType) replacements = replacements.concat(items);
+  });
+  
+  const fnEl = document.getElementById('fn');
+  if(fnEl){
+    fnEl.innerHTML = replacements.length>0
+      ? '<option value="">— Select replacement —</option>'+replacements.map(i=>`<option value="${i.id}">${i.id}</option>`).join('')
+      : '<option value="">No pool equipment of this type</option>';
+  }
 }
 async function submitFault(jobId,pkgId){
   const o=document.getElementById('fo').value.trim(),n=document.getElementById('fn').value.trim(),t=document.getElementById('ft').value.trim(),r=document.getElementById('fr').value.trim();
@@ -1576,8 +1635,16 @@ async function submitDemob(jobId,well,pkgId,mob){
 }
 
 function openExemptionModal(jobId,pkgId){
+  const equipment = window._currentJobEquipment||[];
+  const eqOpts = equipment.map(e=>`<option value="${e.equipmentId}">${e.equipmentId}</option>`).join('');
   openMod(`<div class="modal-title">Request exemption</div>
-    <div class="fg"><label class="flbl">Equipment ID</label><input type="text" class="finput" id="ee" placeholder="e.g. CC-706"></div>
+    <div class="fg">
+      <label class="flbl">Equipment ID</label>
+      <select class="finput" id="ee" style="cursor:pointer">
+        <option value="">— Select equipment —</option>
+        ${eqOpts}
+      </select>
+    </div>
     <div class="fg"><label class="flbl">Reason</label><textarea class="ftextarea" id="er" rows="3" placeholder="Why can't this be replaced?"></textarea></div>
     <button class="btn warning" onclick="submitExemption('${jobId}','${pkgId}')">Submit exemption request</button>`);
 }
