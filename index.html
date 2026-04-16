@@ -510,8 +510,8 @@ async function renderCL(c){
         <span style="font-size:10px;color:var(--t2)">${r.wellNumber} / ${r.rigNumber} · Mob ${r.mobDate}</span>
         <span style="font-size:10px;color:var(--red)">${r.amNotes||r.fsmNotes||'No reason provided'}</span>
         <div class="btn-row" style="margin-top:8px">
-          <button class="btn warning" style="padding:10px;font-size:13px;flex:1;margin-bottom:0" onclick="pushView('edit-request',${JSON.stringify(r).replace(/"/g,'&quot;')},'Edit Request')">✏ Edit &amp; Resubmit</button>
-          <button class="btn danger" style="padding:10px;font-size:13px;flex:1;margin-bottom:0" onclick="deleteRequest('${r.requestId}',this)">🗑 Delete</button>
+          <button class="btn warning" style="padding:11px;font-size:13px;flex:1;margin-bottom:0" onclick="pushView('edit-request',${JSON.stringify(r).replace(/"/g,'&quot;')},'Edit Request')">✏ Edit &amp; Resubmit</button>
+          <button class="btn danger" style="padding:11px;font-size:13px;flex:1;margin-bottom:0" onclick="deleteRequest('${r.requestId}',this)">🗑 Delete</button>
         </div>
       </div>`).join('')}
   </div></div>
