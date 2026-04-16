@@ -333,10 +333,7 @@ function setupNav(){
   else if(role==='Admin'){nav.innerHTML=`<div class="ni active" id="n1" onclick="navTo('home')"><div class="ni-icon">🔑</div>Admin</div><div class="ni" id="n2" onclick="navTo('jobs')"><div class="ni-icon">📋</div>Jobs</div><div class="ni" id="n3" onclick="navTo('equipment')"><div class="ni-icon">⚙</div>Equip</div>`;}
   else if(role==='Technical Engineer'){nav.innerHTML=`<div class="ni active" id="n1" onclick="navTo('home')"><div class="ni-icon">⊞</div>Home</div><div class="ni" id="n2" onclick="navTo('jobs')"><div class="ni-icon">📋</div>Jobs</div>`;}
   nav.style.display='flex';
-  if(USER&&USER._isAdmin){
-    const _adminAv=document.getElementById('tb-av');
-    if(_adminAv){_adminAv.textContent='🔑';_adminAv.style.fontSize='18px';_adminAv.onclick=function(){openAdminSwitcher();};}
-  }
+  if(USER&&USER._isAdmin){const _av=document.getElementById('tb-av');if(_av){_av.textContent='🔑';_av.style.fontSize='18px';_av.onclick=function(){openAdminSwitcher();};}}
 }
 
 // ─── NAV ───────────────────────────────────
@@ -440,206 +437,200 @@ function donut(data,total,cx,cy,r,sw){
 // ═══════════════════════════════════════════
 // CELL LEADER
 // ═══════════════════════════════════════════
-// ─── In-app rejection modal ──────────────────────────────────
-function openRejectionModal(title, onConfirm){
+// ── Rejection modal (in-app) ──────────────────────────────────
+function openRejModal(title,cb){
   openMod(`<div class="modal-title">${title}</div>
     <div class="fg"><label class="flbl">Rejection reason</label>
-      <textarea class="ftextarea" id="rejReason" rows="3" placeholder="Enter reason..."></textarea></div>
+      <textarea class="ftextarea" id="rejR" rows="3" placeholder="Enter reason..."></textarea></div>
     <div class="btn-row">
-      <button class="btn success" onclick="confirmRejection()">✓ Confirm</button>
+      <button class="btn success" onclick="doRej()">✓ Confirm</button>
       <button class="btn ghost" onclick="document.getElementById('movl').classList.remove('open')">Cancel</button>
     </div>`);
-  window._rejectionCallback=onConfirm;
+  window._rejCb=cb;
 }
-function confirmRejection(){
-  const reason=document.getElementById('rejReason').value.trim();
-  if(!reason){alert('Please enter a reason');return;}
+function doRej(){
+  const r=document.getElementById('rejR').value.trim();
+  if(!r){alert('Please enter a reason');return;}
   document.getElementById('movl').classList.remove('open');
-  if(window._rejectionCallback)window._rejectionCallback(reason);
+  if(window._rejCb)window._rejCb(r);
 }
 
-// ─── Fault approve/reject ─────────────────────────────────────
+// ── Fault approve/reject ──────────────────────────────────────
 async function approveFault(crId,btnEl){
   if(btnEl&&btnEl.disabled)return;
   if(btnEl){btnEl.disabled=true;btnEl.textContent='...';}
   try{
     const res=await post({action:'approveChange',crId,role:USER.role,reason:''});
     if(res.success){Object.keys(CACHE).forEach(k=>delete CACHE[k]);loadView('home');}
-    else{if(btnEl){btnEl.disabled=false;btnEl.textContent='✓ Approve';}alert('Error: '+(res.error||'Unknown'));}
-  }catch(e){if(btnEl){btnEl.disabled=false;btnEl.textContent='✓ Approve';}alert('Connection error.');}
+    else{if(btnEl){btnEl.disabled=false;btnEl.textContent='✓';}alert('Error: '+(res.error||'?'));}
+  }catch(e){if(btnEl){btnEl.disabled=false;btnEl.textContent='✓';}alert('Error');}
 }
 function rejectFault(crId,btnEl){
-  openRejectionModal('Reject fault report',async(reason)=>{
+  openRejModal('Reject fault report',async(reason)=>{
     if(btnEl){btnEl.disabled=true;btnEl.textContent='...';}
     try{
       const res=await post({action:'rejectChange',crId,role:USER.role,reason});
       if(res.success){Object.keys(CACHE).forEach(k=>delete CACHE[k]);loadView('home');}
-      else alert('Error: '+(res.error||'Unknown'));
-    }catch(e){alert('Connection error.');}
+      else alert('Error: '+(res.error||'?'));
+    }catch(e){alert('Error');}
   });
 }
 
-// ─── Exemption approve/reject ─────────────────────────────────
+// ── Exemption approve/reject ──────────────────────────────────
 async function approveExemption(exemptionId,btnEl){
   if(btnEl&&btnEl.disabled)return;
   if(btnEl){btnEl.disabled=true;btnEl.textContent='...';}
   try{
     const res=await post({action:'approveExemption',exemptionId,role:USER.role});
     if(res.success){Object.keys(CACHE).forEach(k=>delete CACHE[k]);loadView('home');}
-    else{if(btnEl){btnEl.disabled=false;btnEl.textContent='✓';}alert('Error: '+(res.error||'Unknown'));}
-  }catch(e){if(btnEl){btnEl.disabled=false;btnEl.textContent='✓';}alert('Connection error.');}
+    else{if(btnEl){btnEl.disabled=false;btnEl.textContent='✓';}alert('Error: '+(res.error||'?'));}
+  }catch(e){if(btnEl){btnEl.disabled=false;btnEl.textContent='✓';}alert('Error');}
 }
 function rejectExemption(exemptionId,btnEl){
-  openRejectionModal('Reject exemption',async(reason)=>{
+  openRejModal('Reject exemption',async(reason)=>{
     if(btnEl){btnEl.disabled=true;btnEl.textContent='...';}
     try{
       const res=await post({action:'rejectExemption',exemptionId,role:USER.role,reason});
       if(res.success){Object.keys(CACHE).forEach(k=>delete CACHE[k]);loadView('home');}
-      else alert('Error: '+(res.error||'Unknown'));
-    }catch(e){alert('Connection error.');}
+      else alert('Error: '+(res.error||'?'));
+    }catch(e){alert('Error');}
   });
 }
 
-// ─── FAULT KPI CARD — ⚠ badge style inside kpi-row ──────────
-// returns HTML string to splice into kpi-row
-function faultKpiCard(crList){
-  if(!crList||!crList.length)return '';
-  // Tappable KPI card that expands inline
-  const id='fault-kpi-'+Math.random().toString(36).slice(2,7);
-  return `<div class="kpi r" onclick="toggleKPI('${id}')" style="grid-column:1/-1">
+// ── KPI CARD BUILDERS ─────────────────────────────────────────
+// Each returns HTML to splice INSIDE the kpi-row div
+// Uses grid-column:1/-1 to span full width
+// Expand section also spans full width inline
+
+function mkFaultKpi(list){
+  if(!list||!list.length)return '';
+  const id='fk'+Date.now();
+  return `
+  <div class="kpi r" onclick="toggleKPI('${id}')" style="grid-column:1/-1;cursor:pointer">
     <div class="kpi-lbl">⚠ Fault reports <span class="kpi-tap">tap ▾</span></div>
-    <div class="kpi-val r">${crList.length}</div>
+    <div class="kpi-val r">${list.length}</div>
     <div class="kpi-sub">pending your review</div>
   </div>
   <div id="${id}" style="display:none;grid-column:1/-1">
-    ${crList.map(r=>`
-    <div class="card" style="margin-bottom:6px;border:1px solid var(--red-b)">
-      <div style="padding:11px 13px;display:flex;flex-direction:column;gap:5px">
-        <div style="display:flex;align-items:center;justify-content:space-between">
-          <span style="font-size:12px;font-weight:700;color:var(--t1)">${r.crId}</span>
-          <span class="bdg a">Fault</span>
-        </div>
-        <div style="font-size:11px;color:var(--t2)">${r.packageId} · ${r.department} · ${r.cellLeader}</div>
-        <div style="font-size:11px;color:var(--t2)">Faulty: <b>${r.oldEquipment}</b> → Replace: <b>${r.newEquipment||'N/A'}</b></div>
-        <div style="font-size:10px;color:var(--t3)">Reason: ${r.reason}</div>
-        ${r.amDecision&&r.amDecision!=='Pending'?`<div style="font-size:10px;color:${r.amDecision==='Approved'?'var(--green)':'var(--red)'}">AM: ${r.amDecision}${r.amNotes?' — '+r.amNotes:''}</div>`:''}
-        <div class="btn-row" style="margin-top:4px">
-          <button class="btn success" style="padding:9px;font-size:12px;margin-bottom:0" onclick="approveFault('${r.crId}',this)">✓ Approve</button>
-          <button class="btn danger" style="padding:9px;font-size:12px;margin-bottom:0" onclick="rejectFault('${r.crId}',this)">✗ Reject</button>
-        </div>
+  ${list.map(r=>`<div class="expand" style="margin-bottom:6px">
+    <div class="exp-head">
+      <span class="exp-title">${r.crId} · ${r.oldEquipment} → ${r.newEquipment||'N/A'}</span>
+      <span class="bdg a">Fault</span>
+    </div>
+    <div style="padding:10px 13px;display:flex;flex-direction:column;gap:4px">
+      <div style="font-size:11px;color:var(--t2)">${r.packageId} · ${r.department} · ${r.cellLeader}</div>
+      <div style="font-size:11px;color:var(--t3)">Reason: ${r.reason}</div>
+      <div style="font-size:10px;color:var(--t3)">Submitted: ${r.submitDate}</div>
+      ${r.amDecision&&r.amDecision!=='Pending'?`<div style="font-size:10px;color:${r.amDecision==='Approved'?'var(--green)':'var(--red)'}">AM: ${r.amDecision}${r.amNotes?' — '+r.amNotes:''}</div>`:''}
+      <div class="btn-row" style="margin-top:6px">
+        <button class="btn success" style="padding:9px;font-size:12px;margin-bottom:0" onclick="approveFault('${r.crId}',this)">✓ Approve</button>
+        <button class="btn danger" style="padding:9px;font-size:12px;margin-bottom:0" onclick="rejectFault('${r.crId}',this)">✗ Reject</button>
       </div>
-    </div>`).join('')}
+    </div>
+  </div>`).join('')}
   </div>`;
 }
 
-// ─── EXEMPTION KPI CARD — 📋 badge style inside kpi-row ──────
-// showAll=true → show all, showAll=false → show only pending mine
-function exemptionKpiCard(exList, myDecisionField, showAll){
-  const pending=(exList||[]).filter(e=>showAll?true:(!e[myDecisionField]||e[myDecisionField]==='Pending'));
-  if(!pending.length)return '';
-  const id='ex-kpi-'+Math.random().toString(36).slice(2,7);
-  const label=showAll?'📋 Exemptions':'📋 Exemption requests';
-  return `<div class="kpi a" onclick="toggleKPI('${id}')" style="grid-column:1/-1">
-    <div class="kpi-lbl">${label} <span class="kpi-tap">tap ▾</span></div>
-    <div class="kpi-val a">${pending.length}</div>
-    <div class="kpi-sub">${showAll?'total exemptions':'pending your review'}</div>
+function mkExKpi(list,myField,pendingOnly,labelTxt){
+  const filtered=pendingOnly?(list||[]).filter(e=>!e[myField]||e[myField]==='Pending'):(list||[]);
+  if(!filtered.length)return '';
+  const id='ek'+Date.now()+Math.random().toString(36).slice(2,5);
+  const lbl=labelTxt||'📋 Exemptions';
+  return `
+  <div class="kpi a" onclick="toggleKPI('${id}')" style="grid-column:1/-1;cursor:pointer">
+    <div class="kpi-lbl">${lbl} <span class="kpi-tap">tap ▾</span></div>
+    <div class="kpi-val a">${filtered.length}</div>
+    <div class="kpi-sub">${pendingOnly?'pending your review':'total exemptions'}</div>
   </div>
   <div id="${id}" style="display:none;grid-column:1/-1">
-    ${pending.map(r=>{
-      const needsAct=myDecisionField&&(!r[myDecisionField]||r[myDecisionField]==='Pending');
-      return `<div class="card" style="margin-bottom:6px;border:1px solid var(--amber-b)">
-        <div style="padding:11px 13px;display:flex;flex-direction:column;gap:5px">
-          <div style="display:flex;align-items:center;justify-content:space-between">
-            <span style="font-size:12px;font-weight:700;color:var(--t1)">${r.exemptionId}</span>
-            <span class="bdg ${r.status&&r.status.includes('Active')?'g':r.status==='Rejected'?'r':'a'}">${r.status||'Pending'}</span>
-          </div>
-          <div style="font-size:11px;color:var(--t2)">${r.packageId} · ${r.department} · Equip: <b>${r.equipmentId}</b></div>
-          <div style="font-size:10px;color:var(--t3)">Reason: ${r.reason}</div>
-          <div style="font-size:10px;color:var(--t3)">Start: ${r.startDate} · Expires: ${r.expiryDate}</div>
-          <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:2px">
-            ${[['MNT',r.mntDecision],['AM',r.assetDecision],['FSM',r.fsmDecision],['OP',r.opDecision]].map(([l,d])=>`<span class="bdg ${d==='Approved'?'g':d==='Rejected'?'r':'gray'}">${l}: ${d||'Pending'}</span>`).join('')}
-          </div>
-          ${needsAct?`<div class="btn-row" style="margin-top:4px">
-            <button class="btn success" style="padding:9px;font-size:12px;margin-bottom:0" onclick="approveExemption('${r.exemptionId}',this)">✓ Approve</button>
-            <button class="btn danger" style="padding:9px;font-size:12px;margin-bottom:0" onclick="rejectExemption('${r.exemptionId}',this)">✗ Reject</button>
-          </div>`:''}
-        </div>
-      </div>`;
-    }).join('')}
+  ${filtered.map(r=>{
+    const needsAct=myField&&(!r[myField]||r[myField]==='Pending');
+    const sc=r.status&&r.status.includes('Active')?'g':r.status==='Rejected'?'r':'a';
+    return `<div class="expand" style="margin-bottom:6px">
+    <div class="exp-head">
+      <span class="exp-title">${r.exemptionId} · ${r.equipmentId}</span>
+      <span class="bdg ${sc}">${r.status||'Pending'}</span>
+    </div>
+    <div style="padding:10px 13px;display:flex;flex-direction:column;gap:4px">
+      <div style="font-size:11px;color:var(--t2)">${r.packageId} · ${r.department}</div>
+      <div style="font-size:10px;color:var(--t3)">Reason: ${r.reason}</div>
+      <div style="font-size:10px;color:var(--t3)">Start: ${r.startDate} · Expires: ${r.expiryDate}</div>
+      <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:2px">
+        ${[['MNT',r.mntDecision],['AM',r.assetDecision],['FSM',r.fsmDecision],['OP',r.opDecision]].map(([l,d])=>`<span class="bdg ${d==='Approved'?'g':d==='Rejected'?'r':'gray'}">${l}: ${d||'Pending'}</span>`).join('')}
+      </div>
+      ${needsAct?`<div class="btn-row" style="margin-top:6px">
+        <button class="btn success" style="padding:9px;font-size:12px;margin-bottom:0" onclick="approveExemption('${r.exemptionId}',this)">✓ Approve</button>
+        <button class="btn danger" style="padding:9px;font-size:12px;margin-bottom:0" onclick="rejectExemption('${r.exemptionId}',this)">✗ Reject</button>
+      </div>`:''}
+    </div>
+  </div>`;}).join('')}
   </div>`;
 }
 
-// ─── CL Fault Status Card ─────────────────────────────────────
-function clFaultStatusCard(crList){
-  if(!crList||!crList.length)return '';
-  const id='cl-fault-'+Math.random().toString(36).slice(2,7);
-  return `<div class="kpi b" onclick="toggleKPI('${id}')" style="grid-column:1/-1">
+function mkClFaultKpi(list){
+  if(!list||!list.length)return '';
+  const id='clf'+Date.now();
+  return `
+  <div class="kpi b" onclick="toggleKPI('${id}')" style="grid-column:1/-1;cursor:pointer">
     <div class="kpi-lbl">⚠ My fault reports <span class="kpi-tap">tap ▾</span></div>
-    <div class="kpi-val b">${crList.length}</div>
+    <div class="kpi-val b">${list.length}</div>
     <div class="kpi-sub">tap to view status</div>
   </div>
   <div id="${id}" style="display:none;grid-column:1/-1">
-    ${crList.map(r=>{
-      const st=r.status||'Pending';
-      const sc=st==='Completed'?'g':st==='Rejected'?'r':'a';
-      const did='cr-det-'+r.crId;
-      return `<div class="card" style="margin-bottom:6px;cursor:pointer" onclick="document.getElementById('${did}').style.display=document.getElementById('${did}').style.display==='none'?'block':'none'">
-        <div style="padding:10px 13px;display:flex;align-items:center;justify-content:space-between">
-          <div>
-            <div style="font-size:12px;font-weight:600;color:var(--t1)">${r.crId} · ${r.oldEquipment} → ${r.newEquipment||'N/A'}</div>
-            <div style="font-size:10px;color:var(--t3)">${r.packageId} · ${r.submitDate}</div>
+  ${list.map(r=>{
+    const st=r.status||'Pending';
+    const sc=st==='Completed'?'g':st==='Rejected'?'r':'a';
+    const did='cd'+r.crId;
+    return `<div class="expand" style="margin-bottom:6px;cursor:pointer" onclick="document.getElementById('${did}').style.display=document.getElementById('${did}').style.display==='none'?'block':'none'">
+      <div class="exp-head">
+        <span class="exp-title">${r.crId} · ${r.oldEquipment}→${r.newEquipment||'N/A'}</span>
+        <span class="bdg ${sc}">${st}</span>
+      </div>
+    </div>
+    <div id="${did}" style="display:none;margin-bottom:6px">
+      <div class="card" style="border:1px solid var(--border2)">
+        <div style="padding:10px 13px;display:flex;flex-direction:column;gap:4px">
+          <div style="font-size:11px;color:var(--t2)">Faulty: <b>${r.oldEquipment}</b> → <b>${r.newEquipment||'N/A'}</b></div>
+          <div style="font-size:10px;color:var(--t3)">Reason: ${r.reason} · ${r.submitDate}</div>
+          <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:4px">
+            <span class="bdg ${r.amDecision==='Approved'?'g':r.amDecision==='Rejected'?'r':'gray'}">AM: ${r.amDecision||'Pending'}</span>
+            <span class="bdg ${r.fsmDecision==='Approved'?'g':r.fsmDecision==='Rejected'?'r':'gray'}">FSM: ${r.fsmDecision||'Pending'}</span>
           </div>
-          <span class="bdg ${sc}">${st}</span>
+          ${r.amNotes?`<div style="font-size:10px;color:var(--red)">AM: ${r.amNotes}</div>`:''}
+          ${r.fsmNotes?`<div style="font-size:10px;color:var(--red)">FSM: ${r.fsmNotes}</div>`:''}
         </div>
       </div>
-      <div id="${did}" style="display:none;margin-bottom:6px">
-        <div class="card" style="border:1px solid var(--border2)">
-          <div style="padding:11px 13px;display:flex;flex-direction:column;gap:4px">
-            <div style="font-size:11px;color:var(--t2)">Faulty: <b>${r.oldEquipment}</b> → Replacement: <b>${r.newEquipment||'N/A'}</b></div>
-            <div style="font-size:10px;color:var(--t3)">Reason: ${r.reason}</div>
-            <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:4px">
-              <span class="bdg ${r.amDecision==='Approved'?'g':r.amDecision==='Rejected'?'r':'gray'}">AM: ${r.amDecision||'Pending'}</span>
-              <span class="bdg ${r.fsmDecision==='Approved'?'g':r.fsmDecision==='Rejected'?'r':'gray'}">FSM: ${r.fsmDecision||'Pending'}</span>
-              <span class="bdg ${sc}">Status: ${st}</span>
-            </div>
-            ${r.amNotes?`<div style="font-size:10px;color:var(--red)">AM note: ${r.amNotes}</div>`:''}
-            ${r.fsmNotes?`<div style="font-size:10px;color:var(--red)">FSM note: ${r.fsmNotes}</div>`:''}
-          </div>
-        </div>
-      </div>`;
-    }).join('')}
+    </div>`;}).join('')}
   </div>`;
 }
 
-// ─── CL Exemption Status Card ─────────────────────────────────
-function clExemptionStatusCard(exList){
-  if(!exList||!exList.length)return '';
-  const id='cl-ex-'+Math.random().toString(36).slice(2,7);
-  return `<div class="kpi p" onclick="toggleKPI('${id}')" style="grid-column:1/-1">
+function mkClExKpi(list){
+  if(!list||!list.length)return '';
+  const id='cle'+Date.now();
+  return `
+  <div class="kpi p" onclick="toggleKPI('${id}')" style="grid-column:1/-1;cursor:pointer">
     <div class="kpi-lbl">📋 My exemptions <span class="kpi-tap">tap ▾</span></div>
-    <div class="kpi-val p">${exList.length}</div>
+    <div class="kpi-val p">${list.length}</div>
     <div class="kpi-sub">tap to view status</div>
   </div>
   <div id="${id}" style="display:none;grid-column:1/-1">
-    ${exList.map(r=>{
-      const st=r.status||'Pending';
-      const sc=st&&st.includes('Active')?'g':st==='Rejected'?'r':'a';
-      return `<div class="card" style="margin-bottom:6px;border:1px solid var(--border2)">
-        <div style="padding:11px 13px;display:flex;flex-direction:column;gap:4px">
-          <div style="display:flex;align-items:center;justify-content:space-between">
-            <span style="font-size:12px;font-weight:600;color:var(--t1)">${r.exemptionId} · ${r.equipmentId}</span>
-            <span class="bdg ${sc}">${st}</span>
-          </div>
-          <div style="font-size:10px;color:var(--t3)">Reason: ${r.reason}</div>
-          <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:4px">
-            <span class="bdg ${r.mntDecision==='Approved'?'g':r.mntDecision==='Rejected'?'r':'gray'}">MNT: ${r.mntDecision||'Pending'}</span>
-            <span class="bdg ${r.assetDecision==='Approved'?'g':r.assetDecision==='Rejected'?'r':'gray'}">AM: ${r.assetDecision||'Pending'}</span>
-            <span class="bdg ${r.fsmDecision==='Approved'?'g':r.fsmDecision==='Rejected'?'r':'gray'}">FSM: ${r.fsmDecision||'Pending'}</span>
-            <span class="bdg ${r.opDecision==='Approved'?'g':r.opDecision==='Rejected'?'r':'gray'}">OP: ${r.opDecision||'Pending'}</span>
-          </div>
+  ${list.map(r=>{
+    const sc=r.status&&r.status.includes('Active')?'g':r.status==='Rejected'?'r':'a';
+    return `<div class="expand" style="margin-bottom:6px">
+      <div class="exp-head">
+        <span class="exp-title">${r.exemptionId} · ${r.equipmentId}</span>
+        <span class="bdg ${sc}">${r.status||'Pending'}</span>
+      </div>
+      <div style="padding:10px 13px;display:flex;flex-direction:column;gap:4px">
+        <div style="font-size:10px;color:var(--t3)">Reason: ${r.reason}</div>
+        <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:4px">
+          <span class="bdg ${r.mntDecision==='Approved'?'g':r.mntDecision==='Rejected'?'r':'gray'}">MNT: ${r.mntDecision||'Pending'}</span>
+          <span class="bdg ${r.assetDecision==='Approved'?'g':r.assetDecision==='Rejected'?'r':'gray'}">AM: ${r.assetDecision||'Pending'}</span>
+          <span class="bdg ${r.fsmDecision==='Approved'?'g':r.fsmDecision==='Rejected'?'r':'gray'}">FSM: ${r.fsmDecision||'Pending'}</span>
+          <span class="bdg ${r.opDecision==='Approved'?'g':r.opDecision==='Rejected'?'r':'gray'}">OP: ${r.opDecision||'Pending'}</span>
         </div>
-      </div>`;
-    }).join('')}
+      </div>
+    </div>`;}).join('')}
   </div>`;
 }
 
@@ -676,8 +667,8 @@ async function renderCL(c){
     <div class="kpi b" onclick="toggleKPI('cl-done')"><div class="kpi-lbl">Jobs completed <span class="kpi-tap">tap ▸</span></div><div class="kpi-val b">${done.length}</div><div class="kpi-sub">this year</div></div>
     <div class="kpi a" onclick="toggleKPI('cl-pending')"><div class="kpi-lbl">Pending approval <span class="kpi-tap">tap ▸</span></div><div class="kpi-val a">${(pendingReqs||[]).length}</div><div class="kpi-sub">awaiting AM / FSM</div></div>
     <div class="kpi r" onclick="toggleKPI('cl-rejected')"><div class="kpi-lbl">Rejected <span class="kpi-tap">tap ▸</span></div><div class="kpi-val r">${(rejectedReqs||[]).length}</div><div class="kpi-sub">needs review</div></div>
-  ${clFaultStatusCard((crR.changeRequests||[]).filter(r=>r.department===USER.department))}
-  ${clExemptionStatusCard((exR.exemptions||[]).filter(e=>e.department===USER.department))}
+  ${mkClFaultKpi((crR.changeRequests||[]).filter(r=>r.department===USER.department))}
+  ${mkClExKpi((exR.exemptions||[]).filter(e=>e.department===USER.department))}
   </div>
   <div id="cl-run" style="display:none"><div class="expand">
     <div class="exp-head"><span class="exp-title">Running jobs — ${USER.department}</span><span class="exp-close" onclick="toggleKPI('cl-run')">close</span></div>
@@ -782,11 +773,10 @@ async function renderAM(c){
     <div class="kpi a" onclick="toggleKPI('am-mnt')"><div class="kpi-lbl">Under MNT <span class="kpi-tap">tap ▸</span></div><div class="kpi-val a">${mntRecs.length}</div><div class="kpi-sub">equipment</div></div>
     <div class="kpi g" onclick="toggleKPI('am-run')"><div class="kpi-lbl">Jobs running <span class="kpi-tap">tap ▸</span></div><div class="kpi-val g">${running.length}</div><div class="kpi-sub">all depts</div></div>
     <div class="kpi r" onclick="toggleKPI('am-pm')"><div class="kpi-lbl">PM alerts <span class="kpi-tap">tap ▸</span></div><div class="kpi-val r">${pm.length}</div><div class="kpi-sub">need action</div></div>
-  ${faultKpiCard((crR.changeRequests||[]).filter(r=>r.amDecision==='Pending'))}
-  ${exemptionKpiCard((exR.exemptions||[]).filter(e=>!e.assetDecision||e.assetDecision==='Pending'),'assetDecision',false)}
-  ${exemptionKpiCard(exR.exemptions||[],'assetDecision',true)}
+  ${mkFaultKpi((crR.changeRequests||[]).filter(r=>r.amDecision==='Pending'))}
+  ${mkExKpi((exR.exemptions||[]).filter(e=>!e.assetDecision||e.assetDecision==='Pending'),'assetDecision',true,'📋 Exemptions pending')}
+  ${mkExKpi(exR.exemptions||[],'assetDecision',false,'📋 All exemptions')}
   </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
     <div>
       <div class="slbl">Fleet status</div>
@@ -900,9 +890,8 @@ async function renderMNT(c){
     <div class="kpi b" onclick="toggleKPI('mnt-aw')"><div class="kpi-lbl">Awaiting QAQC <span class="kpi-tap">tap ▸</span></div><div class="kpi-val b">${awaiting.length}</div><div class="kpi-sub">pending review</div></div>
     <div class="kpi g" onclick="toggleKPI('mnt-done')"><div class="kpi-lbl">Done this year <span class="kpi-tap">tap ▸</span></div><div class="kpi-val g">${done.length}</div><div class="kpi-sub">completed</div></div>
     <div class="kpi r" onclick="toggleKPI('mnt-pm')"><div class="kpi-lbl">PM due soon <span class="kpi-tap">tap ▸</span></div><div class="kpi-val r">${pm.length}</div><div class="kpi-sub">next 30 days</div></div>
-  ${exemptionKpiCard((exR.exemptions||[]).filter(e=>!e.mntDecision||e.mntDecision==='Pending'),'mntDecision',false)}
-  ${exemptionKpiCard(exR.exemptions||[],'mntDecision',true)}
   </div>
+  <!-- MNT status donut -->
   <div class="slbl">MNT status breakdown</div>
   <div class="card"><div class="card-body">
     <div class="donut-wrap">
@@ -1055,9 +1044,9 @@ async function renderFSM(c){
     <div class="kpi g" onclick="toggleKPI('fsm-run')"><div class="kpi-lbl">Jobs running <span class="kpi-tap">tap ▸</span></div><div class="kpi-val g">${running.length}</div><div class="kpi-sub">${USER.department}</div></div>
     <div class="kpi b" onclick="toggleKPI('fsm-done')"><div class="kpi-lbl">Completed <span class="kpi-tap">tap ▸</span></div><div class="kpi-val b">${done.length}</div><div class="kpi-sub">this year</div></div>
     <div class="kpi a" onclick="toggleKPI('fsm-pending')" style="grid-column:1/-1"><div class="kpi-lbl">Pending FSM approval <span class="kpi-tap">tap ▸</span></div><div class="kpi-val a">${pendingFSM.length}</div><div class="kpi-sub">job requests waiting for you</div></div>
-  ${faultKpiCard((crR.changeRequests||[]).filter(r=>r.amDecision==='Approved'&&(!r.fsmDecision||r.fsmDecision==='Pending')&&r.department===USER.department))}
-  ${exemptionKpiCard((exR.exemptions||[]).filter(e=>(!e.fsmDecision||e.fsmDecision==='Pending')&&e.department===USER.department),'fsmDecision',false)}
-  ${exemptionKpiCard((exR.exemptions||[]).filter(e=>e.department===USER.department),'fsmDecision',true)}
+  ${mkFaultKpi((crR.changeRequests||[]).filter(r=>r.amDecision==='Approved'&&(!r.fsmDecision||r.fsmDecision==='Pending')&&r.department===USER.department))}
+  ${mkExKpi((exR.exemptions||[]).filter(e=>(!e.fsmDecision||e.fsmDecision==='Pending')&&e.department===USER.department),'fsmDecision',true,'📋 Exemptions pending')}
+  ${mkExKpi((exR.exemptions||[]).filter(e=>e.department===USER.department),'fsmDecision',false,'📋 All exemptions')}
   </div>
   <div id="fsm-pending" style="display:none"><div class="expand">
     <div class="exp-head"><span class="exp-title">Job requests — pending your approval</span><span class="exp-close" onclick="toggleKPI('fsm-pending')">close</span></div>
@@ -1138,9 +1127,9 @@ async function renderFSM(c){
 // OPERATION MANAGER
 // ═══════════════════════════════════════════
 async function renderOP(c){
-  const[dashR,tktR,poolR]=await Promise.all([
+  const[dashR,tktR,poolR,exRop]=await Promise.all([
     get({action:'getDashboard',department:'All'}),
-    get({action:'getTickets'}),get({action:'getPool'})
+    get({action:'getTickets'}),get({action:'getPool'}),get({action:'getExemptions'})
   ]);
   const kpis=dashR.kpis||{},mntPerf=dashR.mntPerformance||[];
   const runningJobs=dashR.runningJobs||[],tickets=tktR.tickets||[];
@@ -1175,8 +1164,8 @@ async function renderOP(c){
     <div class="kpi t" onclick="toggleKPI('op-pool')"><div class="kpi-lbl">Pool available <span class="kpi-tap">tap ▸</span></div><div class="kpi-val t">${poolTotal}</div><div class="kpi-sub">ready to assign</div></div>
     <div class="kpi a" onclick="toggleKPI('op-ex')"><div class="kpi-lbl">Exemptions <span class="kpi-tap">tap ▸</span></div><div class="kpi-val a">${kpis.activeExemptions||0}</div><div class="kpi-sub">active now</div></div>
     <div class="kpi r" onclick="toggleKPI('op-mntperf')"><div class="kpi-lbl">MNT alerts <span class="kpi-tap">tap ▸</span></div><div class="kpi-val r">${mntPerf.filter(m=>m.alert).length}</div><div class="kpi-sub">over 25%</div></div>
-  ${exemptionKpiCard(((exRop||{}).exemptions||[]).filter(e=>!e.opDecision||e.opDecision==='Pending'),'opDecision',false)}
-  ${exemptionKpiCard((exRop||{}).exemptions||[],'opDecision',true)}
+  ${mkExKpi(((exRop||{}).exemptions||[]).filter(e=>!e.opDecision||e.opDecision==='Pending'),'opDecision',true,'📋 Exemptions pending')}
+  ${mkExKpi((exRop||{}).exemptions||[],'opDecision',false,'📋 All exemptions')}
   </div>
   <div class="slbl">Revenue summary</div>
   <div class="card" style="margin-bottom:10px">
@@ -1374,7 +1363,7 @@ async function renderMNTList(c){
 }
 
 async function renderJobDetail(c,job){
-  window._currentJobEquipment = job.equipment||[];
+  window._currentJobEquipment=job.equipment||[];
   c.innerHTML=`
   <div class="slbl">Job info</div>
   <div class="card">${[['Job ID',job.jobId],['Well / Rig',`${job.wellNumber} / ${job.rigNumber}`],['Package',job.packageId],['Department',job.department],['Cell Leader',job.cellLeader],['Mob date',job.mobDate],['Days on job',job.daysOnJob||'Ongoing']].map(([k,v])=>`<div class="crow nc"><div style="font-size:10px;color:var(--t3);min-width:80px">${k}</div><div style="font-size:13px;font-weight:500;color:var(--t1)">${v}</div></div>`).join('')}
@@ -1769,42 +1758,38 @@ function openMod(html){document.getElementById('mbody').innerHTML=`<div class="m
 function closeMod(e){if(!e||e.target===document.getElementById('movl'))document.getElementById('movl').classList.remove('open');}
 
 async function openFaultModal(jobId,pkgId){
-  const equipment=window._currentJobEquipment||[];
-  const eqOpts=equipment.map(e=>`<option value="${e.equipmentId}">${e.equipmentId}</option>`).join('');
+  const eq=window._currentJobEquipment||[];
+  const opts=eq.map(e=>`<option value="${e.equipmentId}">${e.equipmentId}</option>`).join('');
   const poolR=await get({action:'getPool'}).catch(()=>({pool:{}}));
-  window._faultPool=poolR.pool||{};window._faultEquipment=equipment;
+  window._faultPool=poolR.pool||{};window._faultEq=eq;
   openMod(`<div class="modal-title">Report fault / swap equipment</div>
     <div class="fg"><label class="flbl">Equipment with fault</label>
-      <select class="finput" id="fo" onchange="updateReplacementDropdown(this.value)" style="cursor:pointer">
-        <option value="">— Select equipment —</option>${eqOpts}</select></div>
+      <select class="finput" id="fo" onchange="updateReplDD(this.value)" style="cursor:pointer">
+        <option value="">— Select —</option>${opts}</select></div>
     <div class="fg"><label class="flbl">Equipment type</label>
       <input type="text" class="finput" id="ft" placeholder="Auto-filled" readonly style="opacity:0.7"></div>
     <div class="fg"><label class="flbl">Replacement from pool</label>
-      <select class="finput" id="fn" style="cursor:pointer">
-        <option value="">— Select fault equipment first —</option></select></div>
+      <select class="finput" id="fn" style="cursor:pointer"><option value="">— Select fault first —</option></select></div>
     <div class="fg"><label class="flbl">Reason</label>
       <textarea class="ftextarea" id="fr" rows="3" placeholder="Describe the fault..."></textarea></div>
-    <button class="btn danger" id="submitFaultBtn" onclick="submitFault('${jobId}','${pkgId}',this)">Submit fault report</button>`);
+    <button class="btn danger" id="sfBtn" onclick="submitFault('${jobId}','${pkgId}',this)">Submit fault report</button>`);
 }
-function updateReplacementDropdown(selectedId){
-  if(!selectedId)return;
-  const typeMap={'CC':'Control Cabin','PP':'Power Pack','IJ':'Injector','GK':'Gooseneck','GN':'Gooseneck','SB':'Stripper','ST':'Stripper','WR':'Work Reel','BP':'BOP','PU':'Fluid Pump','FP':'Fluid Pump','N2':'N2 Pump','TB':'Tool Box'};
-  const eq=(window._faultEquipment||[]).find(e=>e.equipmentId===selectedId);
-  const prefix=selectedId.slice(0,2).toUpperCase();
-  const eqType=(eq&&eq.type)||typeMap[prefix]||'';
-  const ftEl=document.getElementById('ft');if(ftEl)ftEl.value=eqType;
-  const pool=window._faultPool||{};let replacements=[];
-  Object.entries(pool).forEach(([type,items])=>{
-    if(type===eqType||items.some(i=>i.id&&i.id.slice(0,2).toUpperCase()===prefix))replacements=replacements.concat(items);
-  });
-  const fnEl=document.getElementById('fn');
-  if(fnEl){fnEl.innerHTML=replacements.length>0?'<option value="">— Select replacement —</option>'+replacements.map(i=>`<option value="${i.id}">${i.id}</option>`).join(''):'<option value="">No pool equipment of this type</option>';}
+function updateReplDD(sel){
+  if(!sel)return;
+  const tm={'CC':'Control Cabin','PP':'Power Pack','IJ':'Injector','GK':'Gooseneck','GN':'Gooseneck','SB':'Stripper','ST':'Stripper','WR':'Work Reel','BP':'BOP','PU':'Fluid Pump','FP':'Fluid Pump','N2':'N2 Pump','TB':'Tool Box'};
+  const eq=(window._faultEq||[]).find(e=>e.equipmentId===sel);
+  const px=sel.slice(0,2).toUpperCase();
+  const tp=(eq&&eq.type)||tm[px]||'';
+  const ft=document.getElementById('ft');if(ft)ft.value=tp;
+  const pool=window._faultPool||{};let reps=[];
+  Object.entries(pool).forEach(([t,items])=>{if(t===tp||items.some(i=>i.id&&i.id.slice(0,2).toUpperCase()===px))reps=reps.concat(items);});
+  const fn=document.getElementById('fn');
+  if(fn)fn.innerHTML=reps.length?'<option value="">— Select —</option>'+reps.map(i=>`<option value="${i.id}">${i.id}</option>`).join(''):'<option value="">None available</option>';
 }
 async function submitFault(jobId,pkgId,btnEl){
   const o=document.getElementById('fo').value.trim(),n=document.getElementById('fn').value.trim(),t=document.getElementById('ft').value.trim(),r=document.getElementById('fr').value.trim();
   if(!o||!r)return alert('Please fill required fields');
-  const sfBtn=btnEl||document.getElementById('submitFaultBtn');
-  if(sfBtn){sfBtn.disabled=true;sfBtn.style.display='none';}
+  const sb=btnEl||document.getElementById('sfBtn');if(sb){sb.disabled=true;sb.style.display='none';}
   await post({action:'reportFault',jobId,packageId:pkgId,equipmentId:o,equipmentType:t,oldEquipment:o,newEquipment:n,department:USER.department,cellLeader:USER.fullName,reason:r,mntManager:'Tanveer.Hussain'});
   document.getElementById('movl').classList.remove('open');
   alert('Fault reported. Notifications sent.');loadView('home');
@@ -1823,21 +1808,19 @@ async function submitDemob(jobId,well,pkgId,mob){
 }
 
 function openExemptionModal(jobId,pkgId){
-  const equipment=window._currentJobEquipment||[];
-  const eqOpts=equipment.map(e=>`<option value="${e.equipmentId}">${e.equipmentId}</option>`).join('');
+  const eq=window._currentJobEquipment||[];
+  const opts=eq.map(e=>`<option value="${e.equipmentId}">${e.equipmentId}</option>`).join('');
   openMod(`<div class="modal-title">Request exemption</div>
     <div class="fg"><label class="flbl">Equipment ID</label>
-      <select class="finput" id="ee" style="cursor:pointer">
-        <option value="">— Select equipment —</option>${eqOpts}</select></div>
+      <select class="finput" id="ee" style="cursor:pointer"><option value="">— Select —</option>${opts}</select></div>
     <div class="fg"><label class="flbl">Reason</label>
       <textarea class="ftextarea" id="er" rows="3" placeholder="Why can't this be replaced?"></textarea></div>
-    <button class="btn warning" id="submitExBtn" onclick="submitExemption('${jobId}','${pkgId}',this)">Submit exemption request</button>`);
+    <button class="btn warning" id="seBtn" onclick="submitExemption('${jobId}','${pkgId}',this)">Submit exemption request</button>`);
 }
 async function submitExemption(jobId,pkgId,btnEl){
   const e=document.getElementById('ee').value.trim(),r=document.getElementById('er').value.trim();
   if(!e||!r)return alert('Please fill all fields');
-  const exBtn=btnEl||document.getElementById('submitExBtn');
-  if(exBtn){exBtn.disabled=true;exBtn.style.display='none';}
+  const sb=btnEl||document.getElementById('seBtn');if(sb){sb.disabled=true;sb.style.display='none';}
   const res=await post({action:'requestExemption',jobId,packageId:pkgId,equipmentId:e,department:USER.department,reason:r});
   document.getElementById('movl').classList.remove('open');
   alert(`Exemption ${res.exemptionId} submitted to 4 approvers.`);loadView('home');
