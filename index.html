@@ -184,7 +184,7 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:
 .btn.success{background:var(--green);color:#fff}
 .btn.warning{background:var(--amber);color:#0A1628}
 .btn.ghost{background:var(--s3);color:var(--t1);border:1px solid var(--border2)}
-.btn-row{display:flex;gap:8px}.btn-row .btn{margin-bottom:0}
+.btn-row{display:flex;gap:8px;width:100%}.btn-row .btn{margin-bottom:0;flex:1}
 
 /* FORM */
 .fg{margin-bottom:13px}
@@ -243,7 +243,7 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:
     <div class="tb-title" id="tb-title">Dashboard</div>
     <div style="display:flex;align-items:center;gap:8px">
       <span class="role-chip" id="tb-chip"></span>
-      <div class="tb-av" id="tb-av" onclick="navTo('home')" style="cursor:pointer">U</div>
+      <div class="tb-av" id="tb-av" onclick="USER&&USER._isAdmin?openAdminSwitcher():navTo('home')" style="cursor:pointer">U</div>
     </div>
   </div>
   <div class="content" id="mc">
@@ -265,6 +265,8 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:
 <script>
 const API='https://script.google.com/macros/s/AKfycbxzUp3TylmC-rMZX4FqC3jcgBtENCkedeyVAfzMbnQZW_SCVTnGEphm9I9zg-ELCOj6/exec';
 let USER=null,NAV=[],CACHE={},OKPI=null;
+function lockBtn(btn,msg){if(!btn)return;btn.disabled=true;btn._origText=btn.textContent;btn.textContent=msg||'Processing...';btn.style.opacity='0.6';}
+function unlockBtn(btn){if(!btn)return;btn.disabled=false;btn.textContent=btn._origText||btn.textContent;btn.style.opacity='';}
 
 // ─── API ───────────────────────────────────
 async function get(p,force){
@@ -279,14 +281,14 @@ async function post(data){
   return r.json();
 }
 async function preload(){
-  const dept=USER.department;
+  const dept=USER.department,role=USER.role;
   await Promise.all([
     get({action:'getJobs',department:dept}),
     get({action:'getEquipment',department:dept}),
     get({action:'getPMAlerts',department:dept}),
     get({action:'getMNT'}),get({action:'getTickets'}),get({action:'getExemptions'}),
-    dept==='All'&&get({action:'getPool'}),
-    dept==='All'&&get({action:'getDashboard',department:'All'}),
+    (dept==='All'||role==='Technical Engineer')&&get({action:'getPool'}),
+    (dept==='All'||role==='Technical Engineer')&&get({action:'getDashboard',department:'All'}),
   ].filter(Boolean));
 }
 
@@ -298,7 +300,7 @@ async function doLogin(){
   btn.textContent='Signing in...';btn.disabled=true;err.style.display='none';
   try{
     const res=await get({action:'login',username:u,password:p},true);
-    if(res.success){USER=res;showApp();}
+    if(res.success){USER=res;if(res.role==='Admin')USER._isAdmin=true;showApp();}
     else{err.style.display='block';btn.textContent='Sign in';btn.disabled=false;}
   }catch(e){err.textContent='Connection error';err.style.display='block';btn.textContent='Sign in';btn.disabled=false;}
 }
@@ -308,10 +310,16 @@ document.getElementById('lp').addEventListener('keypress',e=>{if(e.key==='Enter'
 async function showApp(){
   document.getElementById('login-screen').classList.remove('active');
   document.getElementById('app-screen').classList.add('active');
-  const init=USER.fullName.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
-  document.getElementById('tb-av').textContent=init;
-  const rm={'Cell Leader':'rc-cl','Asset Manager':'rc-am','MNT Manager':'rc-mnt','QAQC Manager':'rc-qa','FSM':'rc-fsm','Operation Manager':'rc-op','Ticketing':'rc-tk'};
-  const chip=document.getElementById('tb-chip');chip.textContent=USER.role;chip.className='role-chip '+(rm[USER.role]||'rc-tk');
+  const init=USER.role==='Admin'?'🔑':USER.fullName.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
+  const av=document.getElementById('tb-av');
+  av.textContent=init;
+  av.style.fontSize=USER._isAdmin?'18px':'12px';
+  if(USER._isAdmin)av.onclick=function(){openAdminSwitcher();};
+  const rm={'Cell Leader':'rc-cl','Asset Manager':'rc-am','MNT Manager':'rc-mnt','QAQC Manager':'rc-qa','FSM':'rc-fsm','Operation Manager':'rc-op','Ticketing':'rc-tk','Technical Engineer':'rc-op','Admin':'rc-am'};
+  const chip=document.getElementById('tb-chip');
+  const isActing=USER._isAdmin&&USER.role!=='Admin';
+  chip.textContent=USER.role+(isActing?' [Admin]':'');
+  chip.className='role-chip '+(rm[USER.role]||'rc-tk');
   setupNav();
   document.getElementById('mc').innerHTML='<div class="loading"><div class="spinner"></div><span>Loading your data...</span></div>';
   await preload();loadView('home');
@@ -322,6 +330,8 @@ function setupNav(){
   if(role==='Ticketing'){nav.innerHTML=`<div class="ni active" id="n1" onclick="navTo('home')"><div class="ni-icon">🎫</div>Tickets</div><div class="ni" id="n2" onclick="navTo('history')"><div class="ni-icon">📋</div>History</div>`;}
   else if(role==='MNT Manager'){nav.innerHTML=`<div class="ni active" id="n1" onclick="navTo('home')"><div class="ni-icon">⊞</div>Home</div><div class="ni" id="n2" onclick="navTo('mntlist')"><div class="ni-icon">🔧</div>MNT</div><div class="ni" id="n3" onclick="navTo('alerts')"><div class="ni-icon">🔔</div>Alerts</div>`;}
   else if(role==='QAQC Manager'){nav.innerHTML=`<div class="ni active" id="n1" onclick="navTo('home')"><div class="ni-icon">⊞</div>Home</div><div class="ni" id="n2" onclick="navTo('equipment')"><div class="ni-icon">⚙</div>Equipment</div>`;}
+  else if(role==='Admin'){nav.innerHTML=`<div class="ni active" id="n1" onclick="navTo('home')"><div class="ni-icon">🔑</div>Admin</div><div class="ni" id="n2" onclick="navTo('jobs')"><div class="ni-icon">📋</div>Jobs</div><div class="ni" id="n3" onclick="navTo('equipment')"><div class="ni-icon">⚙</div>Equip</div>`;}
+  else if(role==='Technical Engineer'){nav.innerHTML=`<div class="ni active" id="n1" onclick="navTo('home')"><div class="ni-icon">⊞</div>Home</div><div class="ni" id="n2" onclick="navTo('jobs')"><div class="ni-icon">📋</div>Jobs</div>`;}
   nav.style.display='flex';
 }
 
@@ -350,8 +360,12 @@ function goBack(){
     if(NAV.length===1){
       document.getElementById('tb-back').style.display='none';
       document.getElementById('tb-title').textContent='Dashboard';
+    }else{
+      document.getElementById('tb-title').textContent=prev.title||'Dashboard';
     }
     loadView(prev.v,prev.p,prev.title);
+  }else{
+    navTo('home');
   }
 }
 async function loadView(v,p,title){
@@ -370,6 +384,7 @@ async function loadView(v,p,title){
     else if(v==='job-detail')await renderJobDetail(c,p);
     else if(v==='create-job')renderCreateJob(c);
     else if(v==='history')await renderHistory(c);
+    else if(v==='edit-request')await renderEditRequest(c,p);
     else c.innerHTML='<div class="empty">Not found</div>';
   }catch(e){c.innerHTML=`<div class="empty">Error: ${e.message}</div>`;}
 }
@@ -400,6 +415,8 @@ async function renderHome(c){
   else if(role==='FSM')await renderFSM(c);
   else if(role==='Operation Manager')await renderOP(c);
   else if(role==='Ticketing')await renderTK(c);
+  else if(role==='Technical Engineer')await renderTE(c);
+  else if(role==='Admin')await renderAdmin(c);
 }
 
 // ─── DONUT SVG HELPER ──────────────────────
@@ -419,13 +436,208 @@ function donut(data,total,cx,cy,r,sw){
 // ═══════════════════════════════════════════
 // CELL LEADER
 // ═══════════════════════════════════════════
-async function renderCL(c){
-  let jR={jobs:[]},pmR={alerts:[]},reqR={requests:[]};
+// ── In-app rejection modal ───────────────────────────────────
+function openRejModal(title,cb){
+  openMod(`<div class="modal-title">${title}</div>
+    <div class="fg"><label class="flbl">Rejection reason</label>
+      <textarea class="ftextarea" id="rejR" rows="3" placeholder="Enter reason..."></textarea></div>
+    <div class="btn-row">
+      <button class="btn success" onclick="doRej()">✓ Confirm</button>
+      <button class="btn ghost" onclick="document.getElementById('movl').classList.remove('open')">Cancel</button>
+    </div>`);
+  window._rejCb=cb;
+}
+function doRej(){
+  const r=document.getElementById('rejR').value.trim();
+  if(!r){alert('Please enter a reason');return;}
+  document.getElementById('movl').classList.remove('open');
+  if(window._rejCb)window._rejCb(r);
+}
+
+// ── Fault approve/reject ─────────────────────────────────────
+async function approveFault(crId,btnEl){
+  if(btnEl&&btnEl.disabled)return;
+  if(btnEl){btnEl.disabled=true;btnEl.textContent='...';}
   try{
-    [jR,pmR,reqR]=await Promise.all([
+    const res=await post({action:'approveChange',crId,role:USER.role,reason:''});
+    if(res.success){Object.keys(CACHE).forEach(k=>delete CACHE[k]);loadView('home');}
+    else{if(btnEl){btnEl.disabled=false;btnEl.textContent='✓';}alert('Error: '+(res.error||'?'));}
+  }catch(e){if(btnEl){btnEl.disabled=false;btnEl.textContent='✓';}alert('Error');}
+}
+function rejectFault(crId,btnEl){
+  openRejModal('Reject fault report',async(reason)=>{
+    if(btnEl){btnEl.disabled=true;btnEl.textContent='...';}
+    try{
+      const res=await post({action:'rejectChange',crId,role:USER.role,reason});
+      if(res.success){Object.keys(CACHE).forEach(k=>delete CACHE[k]);loadView('home');}
+      else alert('Error: '+(res.error||'?'));
+    }catch(e){alert('Error');}
+  });
+}
+
+// ── Exemption approve/reject ─────────────────────────────────
+async function approveExemption(exemptionId,btnEl){
+  if(btnEl&&btnEl.disabled)return;
+  if(btnEl){btnEl.disabled=true;btnEl.textContent='...';}
+  try{
+    const res=await post({action:'approveExemption',exemptionId,role:USER.role});
+    if(res.success){Object.keys(CACHE).forEach(k=>delete CACHE[k]);loadView('home');}
+    else{if(btnEl){btnEl.disabled=false;btnEl.textContent='✓';}alert('Error: '+(res.error||'?'));}
+  }catch(e){if(btnEl){btnEl.disabled=false;btnEl.textContent='✓';}alert('Error');}
+}
+function rejectExemption(exemptionId,btnEl){
+  openRejModal('Reject exemption',async(reason)=>{
+    if(btnEl){btnEl.disabled=true;btnEl.textContent='...';}
+    try{
+      const res=await post({action:'rejectExemption',exemptionId,role:USER.role,reason});
+      if(res.success){Object.keys(CACHE).forEach(k=>delete CACHE[k]);loadView('home');}
+      else alert('Error: '+(res.error||'?'));
+    }catch(e){alert('Error');}
+  });
+}
+
+// ── KPI card: Fault reports (for AM/FSM) ─────────────────────
+function mkFaultKpi(list){
+  if(!list||!list.length)return '';
+  const id='fk'+Date.now();
+  return `
+  <div class="kpi r" onclick="toggleKPI('${id}')" style="grid-column:1/-1;cursor:pointer">
+    <div class="kpi-lbl">⚠ Fault reports <span class="kpi-tap">tap ▾</span></div>
+    <div class="kpi-val r">${list.length}</div>
+    <div class="kpi-sub">pending your review</div>
+  </div>
+  <div id="${id}" style="display:none;grid-column:1/-1">
+  ${list.map(r=>`<div class="expand" style="margin-bottom:6px">
+    <div class="exp-head">
+      <span class="exp-title">${r.crId} · ${r.oldEquipment}→${r.newEquipment||'N/A'}</span>
+      <span class="bdg a">Fault</span>
+    </div>
+    <div style="padding:10px 13px;display:flex;flex-direction:column;gap:4px">
+      <div style="font-size:11px;color:var(--t2)">${r.packageId} · ${r.department} · ${r.cellLeader}</div>
+      <div style="font-size:11px;color:var(--t3)">Reason: ${r.reason}</div>
+      <div style="font-size:10px;color:var(--t3)">Submitted: ${r.submitDate}</div>
+      ${r.amDecision&&r.amDecision!=='Pending'?`<div style="font-size:10px;color:${r.amDecision==='Approved'?'var(--green)':'var(--red)'}">AM: ${r.amDecision}${r.amNotes?' — '+r.amNotes:''}</div>`:''}
+      <div class="btn-row" style="margin-top:6px">
+        <button class="btn success" style="padding:9px;font-size:12px;margin-bottom:0" onclick="approveFault('${r.crId}',this)">✓ Approve</button>
+        <button class="btn danger" style="padding:9px;font-size:12px;margin-bottom:0" onclick="rejectFault('${r.crId}',this)">✗ Reject</button>
+      </div>
+    </div>
+  </div>`).join('')}
+  </div>`;
+}
+
+// ── KPI card: Exemptions (for AM/FSM/MNT/OP) ─────────────────
+function mkExKpi(list,myField,pendingOnly,lbl){
+  const filtered=pendingOnly?(list||[]).filter(e=>!e[myField]||e[myField]==='Pending'):(list||[]);
+  if(!filtered.length)return '';
+  const id='ek'+Date.now()+Math.random().toString(36).slice(2,5);
+  return `
+  <div class="kpi a" onclick="toggleKPI('${id}')" style="grid-column:1/-1;cursor:pointer">
+    <div class="kpi-lbl">${lbl||'📋 Exemptions'} <span class="kpi-tap">tap ▾</span></div>
+    <div class="kpi-val a">${filtered.length}</div>
+    <div class="kpi-sub">${pendingOnly?'pending your review':'total exemptions'}</div>
+  </div>
+  <div id="${id}" style="display:none;grid-column:1/-1">
+  ${filtered.map(r=>{
+    const needsAct=myField&&(!r[myField]||r[myField]==='Pending');
+    const sc=r.status&&r.status.includes('Active')?'g':r.status==='Rejected'?'r':'a';
+    return `<div class="expand" style="margin-bottom:6px">
+    <div class="exp-head">
+      <span class="exp-title">${r.exemptionId} · ${r.equipmentId}</span>
+      <span class="bdg ${sc}">${r.status||'Pending'}</span>
+    </div>
+    <div style="padding:10px 13px;display:flex;flex-direction:column;gap:4px">
+      <div style="font-size:11px;color:var(--t2)">${r.packageId} · ${r.department}</div>
+      <div style="font-size:10px;color:var(--t3)">Reason: ${r.reason}</div>
+      <div style="font-size:10px;color:var(--t3)">Start: ${r.startDate} · Expires: ${r.expiryDate}</div>
+      <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:2px">
+        ${[['MNT',r.mntDecision],['AM',r.assetDecision],['FSM',r.fsmDecision],['OP',r.opDecision]].map(([l,d])=>`<span class="bdg ${d==='Approved'?'g':d==='Rejected'?'r':'gray'}">${l}: ${d||'Pending'}</span>`).join('')}
+      </div>
+      ${needsAct?`<div class="btn-row" style="margin-top:6px">
+        <button class="btn success" style="padding:9px;font-size:12px;margin-bottom:0" onclick="approveExemption('${r.exemptionId}',this)">✓ Approve</button>
+        <button class="btn danger" style="padding:9px;font-size:12px;margin-bottom:0" onclick="rejectExemption('${r.exemptionId}',this)">✗ Reject</button>
+      </div>`:''}
+    </div>
+  </div>`;}).join('')}
+  </div>`;
+}
+
+// ── KPI card: CL fault status ─────────────────────────────────
+function mkClFaultKpi(list){
+  if(!list||!list.length)return '';
+  const id='clf'+Date.now();
+  return `
+  <div class="kpi b" onclick="toggleKPI('${id}')" style="grid-column:1/-1;cursor:pointer">
+    <div class="kpi-lbl">⚠ My fault reports <span class="kpi-tap">tap ▾</span></div>
+    <div class="kpi-val b">${list.length}</div>
+    <div class="kpi-sub">tap to view status</div>
+  </div>
+  <div id="${id}" style="display:none;grid-column:1/-1">
+  ${list.map(r=>{
+    const st=r.status||'Pending';
+    const sc=st==='Completed'?'g':st==='Rejected'?'r':'a';
+    const did='cd'+r.crId.replace(/[^a-z0-9]/gi,'');
+    return `<div class="expand" style="margin-bottom:6px;cursor:pointer" onclick="document.getElementById('${did}').style.display=document.getElementById('${did}').style.display==='none'?'block':'none'">
+      <div class="exp-head">
+        <span class="exp-title">${r.crId} · ${r.oldEquipment}→${r.newEquipment||'N/A'}</span>
+        <span class="bdg ${sc}">${st}</span>
+      </div>
+    </div>
+    <div id="${did}" style="display:none;margin-bottom:6px">
+      <div style="padding:10px 13px;background:var(--s2);border:1px solid var(--border2);border-radius:var(--r);">
+        <div style="font-size:11px;color:var(--t2)">Faulty: <b>${r.oldEquipment}</b> → <b>${r.newEquipment||'N/A'}</b></div>
+        <div style="font-size:10px;color:var(--t3);margin-top:3px">Reason: ${r.reason} · ${r.submitDate}</div>
+        <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px">
+          <span class="bdg ${r.amDecision==='Approved'?'g':r.amDecision==='Rejected'?'r':'gray'}">AM: ${r.amDecision||'Pending'}</span>
+          <span class="bdg ${r.fsmDecision==='Approved'?'g':r.fsmDecision==='Rejected'?'r':'gray'}">FSM: ${r.fsmDecision||'Pending'}</span>
+        </div>
+        ${r.amNotes?`<div style="font-size:10px;color:var(--red);margin-top:3px">AM note: ${r.amNotes}</div>`:''}
+        ${r.fsmNotes?`<div style="font-size:10px;color:var(--red);margin-top:3px">FSM note: ${r.fsmNotes}</div>`:''}
+      </div>
+    </div>`;}).join('')}
+  </div>`;
+}
+
+// ── KPI card: CL exemption status ────────────────────────────
+function mkClExKpi(list){
+  if(!list||!list.length)return '';
+  const id='cle'+Date.now();
+  return `
+  <div class="kpi p" onclick="toggleKPI('${id}')" style="grid-column:1/-1;cursor:pointer">
+    <div class="kpi-lbl">📋 My exemptions <span class="kpi-tap">tap ▾</span></div>
+    <div class="kpi-val p">${list.length}</div>
+    <div class="kpi-sub">tap to view status</div>
+  </div>
+  <div id="${id}" style="display:none;grid-column:1/-1">
+  ${list.map(r=>{
+    const sc=r.status&&r.status.includes('Active')?'g':r.status==='Rejected'?'r':'a';
+    return `<div class="expand" style="margin-bottom:6px">
+      <div class="exp-head">
+        <span class="exp-title">${r.exemptionId} · ${r.equipmentId}</span>
+        <span class="bdg ${sc}">${r.status||'Pending'}</span>
+      </div>
+      <div style="padding:10px 13px;display:flex;flex-direction:column;gap:4px">
+        <div style="font-size:10px;color:var(--t3)">Reason: ${r.reason}</div>
+        <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:4px">
+          <span class="bdg ${r.mntDecision==='Approved'?'g':r.mntDecision==='Rejected'?'r':'gray'}">MNT: ${r.mntDecision||'Pending'}</span>
+          <span class="bdg ${r.assetDecision==='Approved'?'g':r.assetDecision==='Rejected'?'r':'gray'}">AM: ${r.assetDecision||'Pending'}</span>
+          <span class="bdg ${r.fsmDecision==='Approved'?'g':r.fsmDecision==='Rejected'?'r':'gray'}">FSM: ${r.fsmDecision||'Pending'}</span>
+          <span class="bdg ${r.opDecision==='Approved'?'g':r.opDecision==='Rejected'?'r':'gray'}">OP: ${r.opDecision||'Pending'}</span>
+        </div>
+      </div>
+    </div>`;}).join('')}
+  </div>`;
+}
+
+async function renderCL(c){
+  let jR={jobs:[]},pmR={alerts:[]},reqR={requests:[]},crR={changeRequests:[]},exR={exemptions:[]};
+  try{
+    [jR,pmR,reqR,crR,exR]=await Promise.all([
       get({action:'getJobs',department:USER.department}),
       get({action:'getPMAlerts',department:USER.department}),
-      get({action:'getJobRequests',department:USER.department,role:USER.role,username:USER.username})
+      get({action:'getJobRequests',department:USER.department,role:USER.role,username:USER.username}),
+      get({action:'getChangeRequests',department:USER.department}),
+      get({action:'getExemptions'})
     ]);
   }catch(e){ console.error('CL fetch error',e); }
   const jobs=jR.jobs||[],running=jobs.filter(j=>j.status==='Running'||j.status==='Exemption'),done=jobs.filter(j=>j.status==='Completed');
@@ -450,6 +662,8 @@ async function renderCL(c){
     <div class="kpi b" onclick="toggleKPI('cl-done')"><div class="kpi-lbl">Jobs completed <span class="kpi-tap">tap ▸</span></div><div class="kpi-val b">${done.length}</div><div class="kpi-sub">this year</div></div>
     <div class="kpi a" onclick="toggleKPI('cl-pending')"><div class="kpi-lbl">Pending approval <span class="kpi-tap">tap ▸</span></div><div class="kpi-val a">${(pendingReqs||[]).length}</div><div class="kpi-sub">awaiting AM / FSM</div></div>
     <div class="kpi r" onclick="toggleKPI('cl-rejected')"><div class="kpi-lbl">Rejected <span class="kpi-tap">tap ▸</span></div><div class="kpi-val r">${(rejectedReqs||[]).length}</div><div class="kpi-sub">needs review</div></div>
+  ${mkClFaultKpi((crR.changeRequests||[]).filter(r=>r.department===USER.department))}
+  ${mkClExKpi((exR.exemptions||[]).filter(e=>e.department===USER.department))}
   </div>
   <div id="cl-run" style="display:none"><div class="expand">
     <div class="exp-head"><span class="exp-title">Running jobs — ${USER.department}</span><span class="exp-close" onclick="toggleKPI('cl-run')">close</span></div>
@@ -492,6 +706,10 @@ async function renderCL(c){
         </div>
         <span style="font-size:10px;color:var(--t2)">${r.wellNumber} / ${r.rigNumber} · Mob ${r.mobDate}</span>
         <span style="font-size:10px;color:var(--red)">${r.amNotes||r.fsmNotes||'No reason provided'}</span>
+        <div class="btn-row" style="margin-top:8px">
+          <button class="btn warning" style="padding:10px;font-size:13px;flex:1;margin-bottom:0" onclick="pushView('edit-request',${JSON.stringify(r).replace(/"/g,'&quot;')},'Edit Request')">✏ Edit &amp; Resubmit</button>
+          <button class="btn danger" style="padding:10px;font-size:13px;flex:1;margin-bottom:0" onclick="deleteRequest('${r.requestId}',this)">🗑 Delete</button>
+        </div>
       </div>`).join('')}
   </div></div>
   ${running.length>0?`
@@ -523,12 +741,14 @@ async function renderCL(c){
 // ASSET MANAGER
 // ═══════════════════════════════════════════
 async function renderAM(c){
-  let poolR={pool:{}},mntR={records:[]},jR={jobs:[]},pmR={alerts:[]},reqR={requests:[]};
+  let poolR={pool:{}},mntR={records:[]},jR={jobs:[]},pmR={alerts:[]},reqR={requests:[]},crR={changeRequests:[]},exR={exemptions:[]};
   try{
-    [poolR,mntR,jR,pmR,reqR]=await Promise.all([
+    [poolR,mntR,jR,pmR,reqR,crR,exR]=await Promise.all([
       get({action:'getPool'}),get({action:'getMNT'}),
       get({action:'getJobs',department:'All'}),get({action:'getPMAlerts',department:'All'}),
-      get({action:'getJobRequests',department:'All',role:'Asset Manager'})
+      get({action:'getJobRequests',department:'All',role:'Asset Manager'}),
+      get({action:'getChangeRequests',department:'All'}),
+      get({action:'getExemptions'})
     ]);
   }catch(e){ console.error('AM fetch error',e); }
   const pool=poolR.pool||{},poolTotal=Object.values(pool).reduce((s,a)=>s+a.length,0);
@@ -548,34 +768,41 @@ async function renderAM(c){
     <div class="kpi a" onclick="toggleKPI('am-mnt')"><div class="kpi-lbl">Under MNT <span class="kpi-tap">tap ▸</span></div><div class="kpi-val a">${mntRecs.length}</div><div class="kpi-sub">equipment</div></div>
     <div class="kpi g" onclick="toggleKPI('am-run')"><div class="kpi-lbl">Jobs running <span class="kpi-tap">tap ▸</span></div><div class="kpi-val g">${running.length}</div><div class="kpi-sub">all depts</div></div>
     <div class="kpi r" onclick="toggleKPI('am-pm')"><div class="kpi-lbl">PM alerts <span class="kpi-tap">tap ▸</span></div><div class="kpi-val r">${pm.length}</div><div class="kpi-sub">need action</div></div>
+  ${mkFaultKpi((crR.changeRequests||[]).filter(r=>r.amDecision==='Pending'))}
+  ${mkExKpi((exR.exemptions||[]).filter(e=>!e.assetDecision||e.assetDecision==='Pending'),'assetDecision',true,'📋 Exemptions pending')}
+  ${mkExKpi(exR.exemptions||[],'assetDecision',false,'📋 All exemptions')}
   </div>
   <!-- Fleet donut + Package util donut -->
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
     <div>
       <div class="slbl">Fleet status</div>
       <div class="card"><div class="card-body" style="padding:10px">
-        <svg width="100%" height="120" viewBox="0 0 110 120">
-          <circle cx="55" cy="55" r="42" fill="none" stroke="var(--s3)" stroke-width="16"/>
-          ${donut([{val:onJob,color:'var(--green)'},{val:mntCnt,color:'var(--red)'},{val:poolCnt,color:'var(--blue)'}],total,55,55,42,16)}
-          <text x="55" y="51" text-anchor="middle" font-size="14" font-weight="700" fill="var(--t1)">${total}</text>
-          <text x="55" y="63" text-anchor="middle" font-size="8" fill="var(--t3)">units</text>
-          <circle cx="12" cy="85" r="5" fill="var(--green)"/><text x="20" y="89" font-size="8" fill="var(--t2)">Job ${onJob}</text>
-          <circle cx="12" cy="100" r="5" fill="var(--red)"/><text x="20" y="104" font-size="8" fill="var(--t2)">MNT ${mntCnt}</text>
-          <circle cx="60" cy="85" r="5" fill="var(--blue)"/><text x="68" y="89" font-size="8" fill="var(--t2)">Pool ${poolCnt}</text>
-        </svg>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:4px 0">
+          <svg width="90" height="90" viewBox="0 0 90 90">
+            <circle cx="45" cy="45" r="34" fill="none" stroke="var(--s3)" stroke-width="14"/>
+            ${donut([{val:onJob,color:'var(--green)'},{val:mntCnt,color:'var(--red)'},{val:poolCnt,color:'var(--blue)'}],total,45,45,34,14)}
+            <text x="45" y="41" text-anchor="middle" font-size="14" font-weight="700" fill="var(--t1)">${total}</text>
+            <text x="45" y="53" text-anchor="middle" font-size="8" fill="var(--t3)">units</text>
+          </svg>
+          <div style="display:flex;flex-direction:column;gap:4px;width:100%">
+            <div style="display:flex;align-items:center;gap:5px"><div style="width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0"></div><span style="font-size:10px;color:var(--t2);flex:1">On Job</span><span style="font-size:11px;font-weight:600;color:var(--green)">${onJob}</span></div>
+            <div style="display:flex;align-items:center;gap:5px"><div style="width:8px;height:8px;border-radius:50%;background:var(--red);flex-shrink:0"></div><span style="font-size:10px;color:var(--t2);flex:1">MNT</span><span style="font-size:11px;font-weight:600;color:var(--red)">${mntCnt}</span></div>
+            <div style="display:flex;align-items:center;gap:5px"><div style="width:8px;height:8px;border-radius:50%;background:var(--blue);flex-shrink:0"></div><span style="font-size:10px;color:var(--t2);flex:1">Pool</span><span style="font-size:11px;font-weight:600;color:var(--blue)">${poolCnt}</span></div>
+          </div>
+        </div>
       </div></div>
     </div>
     <div>
       <div class="slbl">Package util</div>
       <div class="card"><div class="card-body" style="padding:10px">
-        ${running.length>0?`<svg width="100%" height="120" viewBox="0 0 110 120">
+        ${running.length>0?`<svg width="100%" height="150" viewBox="0 0 110 150">
           <circle cx="55" cy="55" r="42" fill="none" stroke="var(--s3)" stroke-width="16"/>
           ${donut([{val:running.length,color:'var(--green)'},{val:Math.max(0,14-running.length-2),color:'var(--blue)'},{val:2,color:'var(--red)'}],14,55,55,42,16)}
           <text x="55" y="51" text-anchor="middle" font-size="14" font-weight="700" fill="var(--t1)">14</text>
           <text x="55" y="63" text-anchor="middle" font-size="8" fill="var(--t3)">packages</text>
-          <circle cx="12" cy="85" r="5" fill="var(--green)"/><text x="20" y="89" font-size="8" fill="var(--t2)">Run ${running.length}</text>
-          <circle cx="12" cy="100" r="5" fill="var(--blue)"/><text x="20" y="104" font-size="8" fill="var(--t2)">Avail ${Math.max(0,14-running.length-2)}</text>
-          <circle cx="60" cy="85" r="5" fill="var(--red)"/><text x="68" y="89" font-size="8" fill="var(--t2)">MNT 2</text>
+          <circle cx="12" cy="118" r="5" fill="var(--green)"/><text x="20" y="122" font-size="8" fill="var(--t2)">Run ${running.length}</text>
+          <circle cx="12" cy="133" r="5" fill="var(--blue)"/><text x="20" y="137" font-size="8" fill="var(--t2)">Avail ${Math.max(0,14-running.length-2)}</text>
+          <circle cx="60" cy="118" r="5" fill="var(--red)"/><text x="68" y="122" font-size="8" fill="var(--t2)">MNT 2</text>
         </svg>`:'<div class="empty" style="padding:20px">No data</div>'}
       </div></div>
     </div>
@@ -625,11 +852,14 @@ async function renderAM(c){
         </div>
         <div style="font-size:12px;color:var(--t2)">${r.packageId} · ${r.department} · ${r.cellLeader}</div>
         <div style="font-size:11px;color:var(--t2)">${r.wellNumber} / ${r.rigNumber} · Mob: ${r.mobDate}</div>
-        <div style="font-size:10px;color:var(--t3)">Equipment: ${r.equipmentList.slice(0,4).join(', ')}${r.equipmentList.length>4?'...':''}</div>
-        <textarea class="ftextarea" id="am-note-${r.requestId}" rows="1" placeholder="Notes (optional)..." style="margin-top:4px"></textarea>
-        <div style="display:flex;gap:8px;margin-top:2px">
-          <button class="btn success" style="flex:1;padding:10px;font-size:12px" onclick="approveReq('${r.requestId}','Asset Manager',document.getElementById('am-note-${r.requestId}').value)">✓ Approve</button>
-          <button class="btn danger" style="flex:1;padding:10px;font-size:12px" onclick="rejectReq('${r.requestId}','Asset Manager',document.getElementById('am-note-${r.requestId}').value)">✗ Reject</button>
+        <div style="margin-bottom:8px;padding:8px;background:var(--s3);border-radius:6px">
+          <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:5px">Equipment requested (${r.equipmentList.length} units)</div>
+          <div style="display:flex;flex-wrap:wrap;gap:4px">${r.equipmentList.map(e=>`<span style="font-size:10px;font-family:'JetBrains Mono',monospace;background:var(--s2);color:var(--t2);padding:2px 7px;border-radius:4px;border:1px solid var(--border2)">${e}</span>`).join('')}</div>
+        </div>
+        <textarea class="ftextarea" id="am-note-${r.requestId}" rows="2" placeholder="Notes (optional)..." style="margin-top:4px"></textarea>
+        <div class="btn-row" style="margin-top:8px">
+          <button class="btn success" style="flex:1;padding:11px;font-size:13px;margin-bottom:0" onclick="approveReq('${r.requestId}','Asset Manager',document.getElementById('am-note-${r.requestId}').value,this)">✓ Approve</button>
+          <button class="btn danger" style="flex:1;padding:11px;font-size:13px;margin-bottom:0" onclick="rejectReq('${r.requestId}','Asset Manager',document.getElementById('am-note-${r.requestId}').value,this)">✗ Reject</button>
         </div>
       </div>
     </div>`).join('')}`:''}
@@ -642,8 +872,8 @@ async function renderAM(c){
 // MNT MANAGER
 // ═══════════════════════════════════════════
 async function renderMNT(c){
-  let mntR={records:[]},pmR={alerts:[]};
-  try{ [mntR,pmR]=await Promise.all([get({action:'getMNT'}),get({action:'getPMAlerts',department:'All'})]); }
+  let mntR={records:[]},pmR={alerts:[]},exR={exemptions:[]};
+  try{ [mntR,pmR,exR]=await Promise.all([get({action:'getMNT'}),get({action:'getPMAlerts',department:'All'}),get({action:'getExemptions'})]); }
   catch(e){ console.error('MNT fetch error',e); }
   const underMNT=(mntR.records||[]).filter(r=>r.status==='Under MNT');
   const awaiting=(mntR.records||[]).filter(r=>r.status==='Awaiting QAQC');
@@ -656,6 +886,8 @@ async function renderMNT(c){
     <div class="kpi b" onclick="toggleKPI('mnt-aw')"><div class="kpi-lbl">Awaiting QAQC <span class="kpi-tap">tap ▸</span></div><div class="kpi-val b">${awaiting.length}</div><div class="kpi-sub">pending review</div></div>
     <div class="kpi g" onclick="toggleKPI('mnt-done')"><div class="kpi-lbl">Done this year <span class="kpi-tap">tap ▸</span></div><div class="kpi-val g">${done.length}</div><div class="kpi-sub">completed</div></div>
     <div class="kpi r" onclick="toggleKPI('mnt-pm')"><div class="kpi-lbl">PM due soon <span class="kpi-tap">tap ▸</span></div><div class="kpi-val r">${pm.length}</div><div class="kpi-sub">next 30 days</div></div>
+  ${mkExKpi((exR.exemptions||[]).filter(e=>!e.mntDecision||e.mntDecision==='Pending'),'mntDecision',true,'📋 Exemptions pending')}
+  ${mkExKpi(exR.exemptions||[],'mntDecision',false,'📋 All exemptions')}
   </div>
   <!-- MNT status donut -->
   <div class="slbl">MNT status breakdown</div>
@@ -756,12 +988,14 @@ async function renderQA(c){
 // FSM
 // ═══════════════════════════════════════════
 async function renderFSM(c){
-  let jR={jobs:[]},pmR={alerts:[]},reqR={requests:[]};
+  let jR={jobs:[]},pmR={alerts:[]},reqR={requests:[]},crR={changeRequests:[]},exR={exemptions:[]};
   try{
-    [jR,pmR,reqR]=await Promise.all([
+    [jR,pmR,reqR,crR,exR]=await Promise.all([
       get({action:'getJobs',department:USER.department}),
       get({action:'getPMAlerts',department:USER.department}),
-      get({action:'getJobRequests',department:USER.department,role:'FSM'})
+      get({action:'getJobRequests',department:USER.department,role:'FSM'}),
+      get({action:'getChangeRequests',department:USER.department}),
+      get({action:'getExemptions'})
     ]);
   }catch(e){console.error('FSM fetch error',e);}
   const jobs=jR.jobs||[],running=jobs.filter(j=>j.status==='Running'||j.status==='Exemption'),done=jobs.filter(j=>j.status==='Completed');
@@ -805,48 +1039,31 @@ async function renderFSM(c){
   const runningUnique=uniqueJobs.filter(j=>j.status==='Running'||j.status==='Exemption');
   c.innerHTML=`
   <div class="kpi-row">
-    <div class="kpi g" onclick="toggleKPI('fsm-run')"><div class="kpi-lbl">Jobs running <span class="kpi-tap">tap ▸</span></div><div class="kpi-val g">${running.length}</div><div class="kpi-sub">${USER.department}</div>
-  ${(pendingFSM||[]).length>0?`
-  <div class="slbl" style="color:var(--amber);margin-top:10px">⚡ Job requests — awaiting your approval (${(pendingFSM||[]).length})</div>
-  ${(pendingFSM||[]).map(r=>`
-    <div class="card" style="margin-bottom:8px;border:1px solid var(--amber-b)">
-      <div style="padding:12px 13px;display:flex;flex-direction:column;gap:6px">
-        <div style="display:flex;align-items:center;justify-content:space-between">
-          <span style="font-size:13px;font-weight:700;color:var(--t1)">${r.requestId}</span>
-          <span class="bdg b">Pending FSM</span>
-        </div>
-        <div style="font-size:12px;color:var(--t2)">${r.packageId} · ${r.cellLeader}</div>
-        <div style="font-size:11px;color:var(--t2)">${r.wellNumber} / ${r.rigNumber} · Mob: ${r.mobDate}</div>
-        <div style="font-size:10px;color:var(--green)">✓ AM Approved — ${r.amDate}</div>
-        <textarea class="ftextarea" id="fsm-note-${r.requestId}" rows="1" placeholder="Notes (optional)..." style="margin-top:4px"></textarea>
-        <div style="display:flex;gap:8px;margin-top:2px">
-          <button class="btn success" style="flex:1;padding:10px;font-size:12px" onclick="approveReq('${r.requestId}','FSM',document.getElementById('fsm-note-${r.requestId}').value)">✓ Approve — Start job</button>
-          <button class="btn danger" style="flex:1;padding:10px;font-size:12px" onclick="rejectReq('${r.requestId}','FSM',document.getElementById('fsm-note-${r.requestId}').value)">✗ Reject</button>
-        </div>
-      </div>
-    </div>`).join('')}`:''}</div>
+    <div class="kpi g" onclick="toggleKPI('fsm-run')"><div class="kpi-lbl">Jobs running <span class="kpi-tap">tap ▸</span></div><div class="kpi-val g">${running.length}</div><div class="kpi-sub">${USER.department}</div></div>
     <div class="kpi b" onclick="toggleKPI('fsm-done')"><div class="kpi-lbl">Completed <span class="kpi-tap">tap ▸</span></div><div class="kpi-val b">${done.length}</div><div class="kpi-sub">this year</div></div>
     <div class="kpi a" onclick="toggleKPI('fsm-pending')" style="grid-column:1/-1"><div class="kpi-lbl">Pending FSM approval <span class="kpi-tap">tap ▸</span></div><div class="kpi-val a">${pendingFSM.length}</div><div class="kpi-sub">job requests waiting for you</div></div>
+  ${mkFaultKpi((crR.changeRequests||[]).filter(r=>r.amDecision==='Approved'&&(!r.fsmDecision||r.fsmDecision==='Pending')&&r.department===USER.department))}
+  ${mkExKpi((exR.exemptions||[]).filter(e=>(!e.fsmDecision||e.fsmDecision==='Pending')&&e.department===USER.department),'fsmDecision',true,'📋 Exemptions pending')}
+  ${mkExKpi((exR.exemptions||[]).filter(e=>e.department===USER.department),'fsmDecision',false,'📋 All exemptions')}
   </div>
-  ${pendingFSM.length>0?`
-  <div class="slbl" style="color:var(--amber)">⚡ Job requests — awaiting your approval</div>
-  ${pendingFSM.map(r=>`
-    <div class="card" style="margin-bottom:8px;border-color:var(--amber-b)">
-      <div class="crow nc" style="flex-direction:column;align-items:flex-start;gap:6px">
-        <div style="display:flex;align-items:center;justify-content:space-between;width:100%">
+  <div id="fsm-pending" style="display:none"><div class="expand">
+    <div class="exp-head"><span class="exp-title">Job requests — pending your approval</span><span class="exp-close" onclick="toggleKPI('fsm-pending')">close</span></div>
+    ${pendingFSM.length===0?'<div class="empty">No pending requests</div>':pendingFSM.map(r=>`
+      <div style="padding:12px 13px;border-bottom:1px solid var(--border)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
           <span style="font-size:13px;font-weight:600;color:var(--t1)">${r.requestId} — ${r.packageId}</span>
           <span class="bdg b">Pending FSM</span>
         </div>
-        <div style="font-size:11px;color:var(--t2)">${r.cellLeader} · ${r.wellNumber} / ${r.rigNumber} · Mob ${r.mobDate}</div>
-        <div style="font-size:10px;color:var(--green)">AM Approved ✓ ${r.amDate}</div>
-        <div style="font-size:10px;color:var(--t2)">Equipment: ${r.equipmentList.join(', ')}</div>
-        <div class="fg" style="width:100%;margin:4px 0 0"><textarea class="ftextarea" id="fsm-note-${r.requestId}" rows="1" placeholder="Notes (optional)..."></textarea></div>
-        <div class="btn-row">
-          <button class="btn success" style="padding:8px;font-size:12px" onclick="approveReq('${r.requestId}','FSM',document.getElementById('fsm-note-${r.requestId}').value)">✓ Approve — Start job</button>
-          <button class="btn danger" style="padding:8px;font-size:12px" onclick="rejectReq('${r.requestId}','FSM',document.getElementById('fsm-note-${r.requestId}').value)">✗ Reject</button>
+        <div style="font-size:11px;color:var(--t2);margin-bottom:4px">${r.cellLeader} · ${r.wellNumber} / ${r.rigNumber} · Mob ${r.mobDate}</div>
+        <div style="font-size:10px;color:var(--green);margin-bottom:8px">AM Approved ✓ ${r.amDate}</div>
+        <div style="font-size:10px;color:var(--t2);margin-bottom:6px">Equipment: ${(r.equipmentList||[]).join(', ')}</div>
+        <textarea class="ftextarea" id="fsm-note-${r.requestId}" rows="1" placeholder="Notes (optional)..." style="margin-bottom:8px"></textarea>
+        <div class="btn-row" style="margin-top:4px">
+          <button class="btn success" style="flex:1;padding:11px;font-size:13px;margin-bottom:0" onclick="approveReq('${r.requestId}','FSM',document.getElementById('fsm-note-${r.requestId}').value,this)">✓ Approve</button>
+          <button class="btn danger" style="flex:1;padding:11px;font-size:13px;margin-bottom:0" onclick="rejectReq('${r.requestId}','FSM',document.getElementById('fsm-note-${r.requestId}').value,this)">✗ Reject</button>
         </div>
-      </div>
-    </div>`).join('')}`:''}
+      </div>`).join('')}
+  </div></div>
   ${runningFSM.length>0?`
   <div class="slbl">Package utilization — ${USER.department}</div>
   <div class="card"><div class="card-body">
@@ -877,6 +1094,7 @@ async function renderFSM(c){
     ${done.length===0?'<div class="empty">No completed jobs</div>':''}
   </div></div>
   ${pm.length>0?`<div class="divider"></div><div class="slbl">PM alerts — ${USER.department}</div>${pm.map(a=>`<div class="alert ${a.status==='Overdue'?'r':'a'}"><span class="alert-icon">${a.status==='Overdue'?'🔴':'⚠️'}</span><div><strong>${a.equipmentId}</strong> ${a.pmType} — <strong>${a.dueDate}</strong> — ${a.status==='Overdue'?'OVERDUE':a.daysLeft+' days'}</div></div>`).join('')}`:''}
+  ${(function(){var cy=new Date().getFullYear().toString(),cm=new Date().toISOString().slice(0,7),d2=deptTickets.filter(function(t){return t.status==='Done'&&t.amount>0;}),ay=d2.filter(function(t){return t.ticketDoneDate&&t.ticketDoneDate.slice(0,4)===cy;}).reduce(function(s,t){return s+t.amount;},0),am=d2.filter(function(t){return t.ticketDoneDate&&t.ticketDoneDate.slice(0,7)===cm;}).reduce(function(s,t){return s+t.amount;},0);return d2.length>0?'<div class="divider"></div><div class="slbl">Revenue — '+USER.department+'</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px"><div style="background:var(--green-bg);border:1px solid var(--green-b);border-radius:var(--r);padding:12px"><div style="font-size:9px;color:var(--t3);margin-bottom:3px">THIS MONTH</div><div style="font-size:20px;font-weight:700;color:var(--green)">SAR '+am.toLocaleString()+'</div></div><div style="background:var(--teal-bg);border:1px solid var(--teal-b);border-radius:var(--r);padding:12px"><div style="font-size:9px;color:var(--t3);margin-bottom:3px">THIS YEAR</div><div style="font-size:20px;font-weight:700;color:var(--teal)">SAR '+ay.toLocaleString()+'</div></div></div>':'';})()}
   ${months.length>0?`
   <div class="divider"></div>
   <div class="slbl">Tickets — ${USER.department} per month</div>
@@ -907,112 +1125,92 @@ async function renderFSM(c){
 // OPERATION MANAGER
 // ═══════════════════════════════════════════
 async function renderOP(c){
-  const[dashR,tktR]=await Promise.all([get({action:'getDashboard',department:'All'}),get({action:'getTickets'})]);
-  const kpis=dashR.kpis||{},mntPerf=dashR.mntPerformance||[],pmAlerts=dashR.pmAlerts||[];
+  const[dashR,tktR,poolR,exRop]=await Promise.all([
+    get({action:'getDashboard',department:'All'}),
+    get({action:'getTickets'}),get({action:'getPool'}),get({action:'getExemptions'})
+  ]);
+  const kpis=dashR.kpis||{},mntPerf=dashR.mntPerformance||[];
   const runningJobs=dashR.runningJobs||[],tickets=tktR.tickets||[];
-  // Group by dept
-  const byDept={};
-  runningJobs.forEach(j=>{if(!byDept[j.department])byDept[j.department]={count:0,pkgs:[]};byDept[j.department].count++;byDept[j.department].pkgs.push(j);});
-  // Fleet numbers from mntPerf
+  const pool=poolR.pool||{};
+  const poolTotal=Object.values(pool).reduce((s,a)=>s+a.length,0);
   const TOTAL_PKGS=14;
   const pkgsOnJob=runningJobs.filter(j=>j.status==='Running').length;
   const pkgsExemption=runningJobs.filter(j=>j.status==='Exemption').length;
   const _totalEq=mntPerf.reduce((s,m)=>s+m.total,0)||1;
   const pkgsMNT=Math.round((mntPerf.reduce((s,m)=>s+m.underMnt,0)/_totalEq)*TOTAL_PKGS);
-  const totalFleet=TOTAL_PKGS;
-  const totalOnJob=pkgsOnJob;
-  const totalMNT=pkgsMNT;
   const totalPool=Math.max(0,TOTAL_PKGS-pkgsOnJob-pkgsExemption-pkgsMNT);
+  const curYear=new Date().getFullYear().toString(),curMonth=new Date().toISOString().slice(0,7);
+  const deptFY={},deptFM={};
+  tickets.filter(t=>t.status==='Done'&&t.amount>0).forEach(t=>{
+    const yr=t.ticketDoneDate?t.ticketDoneDate.slice(0,4):'';
+    const mo=t.ticketDoneDate?t.ticketDoneDate.slice(0,7):'';
+    const d=t.department||'Other';
+    if(yr===curYear){if(!deptFY[d])deptFY[d]=0;deptFY[d]+=t.amount;}
+    if(mo===curMonth){if(!deptFM[d])deptFM[d]=0;deptFM[d]+=t.amount;}
+  });
+  const totalYear=Object.values(deptFY).reduce((s,v)=>s+v,0);
+  const totalMonth=Object.values(deptFM).reduce((s,v)=>s+v,0);
+  const depts=['D&WO','UC','SAWCOD'];
+  const deptRows=depts.map(d=>{const dc=d==='D&WO'?'dwo':d==='UC'?'uc':'saw';return`<div style="padding:9px 13px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px"><span class="dp ${dc}">${d}</span><div style="flex:1"><div style="font-size:11px;font-weight:600;color:var(--t1)">SAR ${(deptFM[d]||0).toLocaleString()}<span style="font-size:9px;font-weight:400;color:var(--t3)"> month</span></div><div style="font-size:10px;color:var(--t3)">SAR ${(deptFY[d]||0).toLocaleString()} year</div></div></div>`;}).join('');
+  const poolHtml=Object.keys(pool).length===0?'<div class="empty">No pool equipment</div>':Object.entries(pool).map(([type,items])=>`<div style="padding:8px 13px;border-bottom:1px solid var(--border)"><div class="slbl" style="margin-bottom:5px">${type} (${items.length})</div><div style="display:flex;flex-wrap:wrap;gap:5px">${items.map(e=>`<span class="bdg gray" style="font-family:monospace">${e.id}</span>`).join('')}</div></div>`).join('');
+  const mntPH=mntPerf.map(m=>{const c2=m.alert?'var(--red)':m.pct>15?'var(--amber)':'var(--green)';return`<div class="prow"><div class="pname">${m.type}</div><div class="pbar"><div class="pfill" style="width:${m.pct}%;background:${c2}"></div></div><div class="ppct" style="color:${c2}">${m.pct}%${m.alert?' ⚠':''}</div></div>`;}).join('');
+  const utilH=runningJobs.length>0?'<div class="slbl">Package utilization</div><div class="card"><div class="card-body">'+runningJobs.map(j=>{const eq=j.equipment||[],t=eq.length||1,on=Math.round(eq.filter(e=>e.status==='Running'||e.status==='Exemption').length/t*100),mnt=Math.round(eq.filter(e=>e.status==='Under MNT').length/t*100),pl=Math.max(0,100-on-mnt),col=on>70?'var(--green)':on>50?'var(--amber)':'var(--red)';return`<div class="urow"><div class="upkg">${j.packageId}</div><div class="ubar"><div class="useg" style="width:${on}%;background:var(--green)"></div><div class="useg" style="width:${mnt}%;background:var(--red)"></div><div class="useg" style="width:${pl}%;background:var(--blue)"></div></div><div class="upct" style="color:${col}">${on}%</div></div>`;}).join('')+'</div></div>':'';
+  const runH=runningJobs.map(j=>{const dp=j.department==='D&WO'?'dwo':j.department==='UC'?'uc':'saw';return`<div class="pkrow" onclick="pushView('job-detail',${JSON.stringify(j).replace(/"/g,'&quot;')},'${j.jobId}')"><div class="pkid">${j.packageId}</div><div class="pkloc"><div class="pkloc-main">${j.wellNumber} / ${j.rigNumber}</div><div class="pkloc-sub"><span class="dp ${dp}">${j.department}</span> · ${j.cellLeader} · ${j.daysOnJob||'?'} days</div></div><span class="bdg ${j.status==='Exemption'?'a':'g'}">${j.status}</span></div>`;}).join('');
   c.innerHTML=`
   <div class="kpi-row">
-    <div class="kpi g" onclick="toggleKPI('op-run')"><div class="kpi-lbl">Packages running <span class="kpi-tap">tap ▸</span></div><div class="kpi-val g">${kpis.packagesRunning||0}<small>/${kpis.totalPackages||14}</small></div><div class="kpi-sub">active packages</div></div>
-    <div class="kpi b" onclick="toggleKPI('op-tkt')"><div class="kpi-lbl">Ticketing <span class="kpi-tap">tap ▸</span></div><div class="kpi-val b">${kpis.underTicketing||0}</div><div class="kpi-sub">${kpis.ticketsDone||0} done this year</div></div>
+    <div class="kpi g" onclick="toggleKPI('op-run')"><div class="kpi-lbl">Packages running <span class="kpi-tap">tap ▸</span></div><div class="kpi-val g">${kpis.packagesRunning||0}<small>/${TOTAL_PKGS}</small></div><div class="kpi-sub">active packages</div></div>
+    <div class="kpi t" onclick="toggleKPI('op-pool')"><div class="kpi-lbl">Pool available <span class="kpi-tap">tap ▸</span></div><div class="kpi-val t">${poolTotal}</div><div class="kpi-sub">ready to assign</div></div>
     <div class="kpi a" onclick="toggleKPI('op-ex')"><div class="kpi-lbl">Exemptions <span class="kpi-tap">tap ▸</span></div><div class="kpi-val a">${kpis.activeExemptions||0}</div><div class="kpi-sub">active now</div></div>
     <div class="kpi r" onclick="toggleKPI('op-mntperf')"><div class="kpi-lbl">MNT alerts <span class="kpi-tap">tap ▸</span></div><div class="kpi-val r">${mntPerf.filter(m=>m.alert).length}</div><div class="kpi-sub">over 25%</div></div>
+  <div id="op-run" style="display:none;grid-column:1/-1"><div class="expand">
+    <div class="exp-head"><span class="exp-title">Running packages</span><span class="exp-close" onclick="toggleKPI('op-run')">close</span></div>
+    ${runH||'<div class="empty">No running jobs</div>'}
+  </div></div>
+  <div id="op-pool" style="display:none;grid-column:1/-1"><div class="expand">
+    <div class="exp-head"><span class="exp-title">Pool — available equipment</span><span class="exp-close" onclick="toggleKPI('op-pool')">close</span></div>
+    ${poolHtml}
+  </div></div>
+  <div id="op-ex" style="display:none;grid-column:1/-1"><div class="expand">
+    <div class="exp-head"><span class="exp-title">Active exemptions</span><span class="exp-close" onclick="toggleKPI('op-ex')">close</span></div>
+    <div style="padding:10px 13px"><button class="btn ghost" onclick="navTo('alerts')">View all exemptions</button></div>
+  </div></div>
+  <div id="op-mntperf" style="display:none;grid-column:1/-1"><div class="expand">
+    <div class="exp-head"><span class="exp-title">MNT alerts</span><span class="exp-close" onclick="toggleKPI('op-mntperf')">close</span></div>
+    <div style="padding:10px 13px">${mntPerf.filter(m=>m.alert).map(m=>`<div class="alert r" style="margin-bottom:6px"><span class="alert-icon">🔴</span><div><strong>${m.type}</strong> — ${m.pct}% under MNT (${m.underMnt}/${m.total})</div></div>`).join('')||'<div class="empty">No alerts</div>'}</div>
+  </div></div>
+  ${mkExKpi(((exRop||{}).exemptions||[]).filter(e=>!e.opDecision||e.opDecision==='Pending'),'opDecision',true,'📋 Exemptions pending')}
+  ${mkExKpi((exRop||{}).exemptions||[],'opDecision',false,'📋 All exemptions')}
   </div>
-  <!-- Fleet donut -->
-  <div class="slbl">Fleet status — all equipment</div>
+  <div class="slbl">Revenue summary</div>
+  <div class="card" style="margin-bottom:10px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--border)">
+      <div style="padding:10px 13px;border-right:1px solid var(--border)"><div style="font-size:9px;color:var(--t3);margin-bottom:3px">THIS MONTH</div><div style="font-size:18px;font-weight:700;color:var(--green)">SAR ${totalMonth.toLocaleString()}</div></div>
+      <div style="padding:10px 13px"><div style="font-size:9px;color:var(--t3);margin-bottom:3px">THIS YEAR</div><div style="font-size:18px;font-weight:700;color:var(--teal)">SAR ${totalYear.toLocaleString()}</div></div>
+    </div>
+    ${deptRows}
+  </div>
+  <div class="slbl">Fleet status</div>
   <div class="card"><div class="card-body">
     <div class="donut-wrap">
       <svg width="110" height="110" viewBox="0 0 110 110" style="flex-shrink:0">
         <circle cx="55" cy="55" r="42" fill="none" stroke="var(--s3)" stroke-width="16"/>
-        ${donut([{val:pkgsOnJob,color:'var(--green)'},{val:pkgsExemption,color:'var(--amber)'},{val:pkgsMNT,color:'var(--red)'},{val:totalPool,color:'var(--blue)'}],totalFleet,55,55,42,16)}
-        <text x="55" y="51" text-anchor="middle" font-size="16" font-weight="700" fill="var(--t1)">${totalFleet}</text>
+        ${donut([{val:pkgsOnJob,color:'var(--green)'},{val:pkgsExemption,color:'var(--amber)'},{val:pkgsMNT,color:'var(--red)'},{val:totalPool,color:'var(--blue)'}],TOTAL_PKGS,55,55,42,16)}
+        <text x="55" y="51" text-anchor="middle" font-size="16" font-weight="700" fill="var(--t1)">${TOTAL_PKGS}</text>
         <text x="55" y="63" text-anchor="middle" font-size="9" fill="var(--t3)">packages</text>
       </svg>
       <div class="donut-legend">
-        <div class="leg"><div class="leg-dot" style="background:var(--green)"></div><div class="leg-lbl">Running</div><div class="leg-val">${pkgsOnJob}</div><div class="leg-pct">pkgs</div></div>
-        <div class="leg"><div class="leg-dot" style="background:var(--amber)"></div><div class="leg-lbl">Exemption</div><div class="leg-val">${pkgsExemption}</div><div class="leg-pct">pkgs</div></div>
-        <div class="leg"><div class="leg-dot" style="background:var(--red)"></div><div class="leg-lbl">MNT</div><div class="leg-val">${pkgsMNT}</div><div class="leg-pct">pkgs</div></div>
-        <div class="leg"><div class="leg-dot" style="background:var(--blue)"></div><div class="leg-lbl">Standby</div><div class="leg-val">${totalPool}</div><div class="leg-pct">pkgs</div></div>
+        <div class="leg"><div class="leg-dot" style="background:var(--green)"></div><div class="leg-lbl">Running</div><div class="leg-val">${pkgsOnJob}</div></div>
+        <div class="leg"><div class="leg-dot" style="background:var(--amber)"></div><div class="leg-lbl">Exemption</div><div class="leg-val">${pkgsExemption}</div></div>
+        <div class="leg"><div class="leg-dot" style="background:var(--red)"></div><div class="leg-lbl">MNT</div><div class="leg-val">${pkgsMNT}</div></div>
+        <div class="leg"><div class="leg-dot" style="background:var(--blue)"></div><div class="leg-lbl">Standby</div><div class="leg-val">${totalPool}</div></div>
       </div>
     </div>
   </div></div>
-  <!-- Dept packages -->
-  <div class="slbl">Departments — running packages</div>
-  <div class="card">
-    ${Object.entries(byDept).map(([dept,data])=>{const did='dp'+dept.replace(/[^a-z]/gi,'');return`
-      <div>
-        <div onclick="togDept('${did}')" style="cursor:pointer;padding:10px 13px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)">
-          <span class="dp ${dept==='D&WO'?'dwo':dept==='UC'?'uc':'saw'}">${dept}</span>
-          <div class="dinfo"><div class="dcnt">${data.count} pkg${data.count>1?'s':''} running</div><div class="dsub">${data.pkgs.map(j=>j.packageId).join(' · ')}</div></div>
-          <span id="${did}arr" style="font-size:12px;color:var(--t3);flex-shrink:0">▸</span>
-        </div>
-        <div id="${did}" style="display:none;background:var(--s3)">
-          ${data.pkgs.map(j=>`<div class="pkrow" onclick="pushView('job-detail',${JSON.stringify(j).replace(/"/g,'&quot;')},'${j.jobId}')"><div class="pkid">${j.packageId}</div><div class="pkloc"><div class="pkloc-main">${j.wellNumber} / ${j.rigNumber}</div><div class="pkloc-sub">${j.cellLeader} · ${j.daysOnJob||'?'} days</div></div><span class="bdg ${j.status==='Exemption'?'a':'g'}">${j.status}</span></div>`).join('')}
-        </div>
-      </div>`;}).join('')}
-    ${Object.keys(byDept).length===0?'<div class="empty" style="padding:14px">No running jobs</div>':''}
-  </div>
-  <!-- Package util bars -->
-  ${runningJobs.length>0?`
-  <div class="slbl">Package utilization breakdown</div>
-  <div class="card"><div class="card-head"><span class="card-title">Per package — all running</span><div class="leg-row"><div class="leg-h"><div class="leg-sq" style="background:var(--green)"></div>On Job</div><div class="leg-h"><div class="leg-sq" style="background:var(--red)"></div>MNT</div><div class="leg-h"><div class="leg-sq" style="background:var(--blue)"></div>Pool</div><div class="leg-h"><div class="leg-sq" style="background:var(--amber)"></div>Standby</div></div></div>
-  <div class="card-body">
-    ${runningJobs.map(j=>{const eq=j.equipment||[];const t=eq.length||1;const on=Math.round(eq.filter(e=>e.status==='Running'||e.status==='Exemption').length/t*100);const mnt=Math.round(eq.filter(e=>e.status==='Under MNT').length/t*100);const pool=Math.max(0,100-on-mnt);return`
-      <div class="urow">
-        <div class="upkg">${j.packageId}</div>
-        <div class="ubar">
-          <div class="useg" style="width:${on}%;background:var(--green)"></div>
-          <div class="useg" style="width:${mnt}%;background:var(--red)"></div>
-          <div class="useg" style="width:${pool}%;background:var(--blue)"></div>
-        </div>
-        <div class="upct" style="color:${on>70?'var(--green)':on>50?'var(--amber)':'var(--red)'}">${on}%</div>
-      </div>`;}).join('')}
-  </div></div>`:''}
-  <!-- MNT Performance bars -->
+  ${utilH}
   <div class="slbl">MNT performance — 25% threshold</div>
-  <div class="card"><div class="card-body">
-    ${mntPerf.map(m=>`<div class="prow"><div class="pname">${m.type}</div><div class="pbar"><div class="pfill" style="width:${m.pct}%;background:${m.alert?'var(--red)':m.pct>15?'var(--amber)':'var(--green)'}"></div></div><div class="ppct" style="color:${m.alert?'var(--red)':m.pct>15?'var(--amber)':'var(--green)'}">${m.pct}%${m.alert?' ⚠':''}</div></div>`).join('')}
-  </div></div>
-  <!-- Expandable details -->
-  <div id="op-run" style="display:none"><div class="expand">
-    <div class="exp-head"><span class="exp-title">Active packages — by department</span><span class="exp-close" onclick="toggleKPI('op-run')">close</span></div>
-    ${Object.entries(byDept).map(([dept,data])=>`<div style="padding:8px 13px;border-bottom:1px solid var(--border)">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span class="dp ${dept==='D&WO'?'dwo':dept==='UC'?'uc':'saw'}">${dept}</span><span style="font-size:11px;font-weight:600;color:var(--t1)">${data.count} running</span></div>
-      ${data.pkgs.map(j=>`<div class="pkrow" onclick="pushView('job-detail',${JSON.stringify(j).replace(/"/g,'&quot;')},'${j.jobId}')">
-        <div class="pkid">${j.packageId}</div>
-        <div class="pkloc"><div class="pkloc-main">${j.wellNumber} / ${j.rigNumber}</div><div class="pkloc-sub">${j.cellLeader} · ${j.daysOnJob||'?'} days</div></div>
-        <span class="bdg ${j.status==='Exemption'?'a':'g'}">${j.status}</span>
-      </div>`).join('')}
-    </div>`).join('')}
-  </div></div>
-  <div id="op-tkt" style="display:none"><div class="expand">
-    <div class="exp-head"><span class="exp-title">Recent tickets</span><span class="exp-close" onclick="toggleKPI('op-tkt')">close</span></div>
-    ${tickets.slice(0,5).map(t=>`<div class="crow nc"><div class="cb"><div class="ct2">${t.ticketId} · ${t.jobId}</div><div class="cs">${t.wellNumber} · ${t.packageId} · ${t.completionDate}</div></div><span class="bdg ${t.status==='Done'?'g':t.status==='Acknowledged'?'b':'r'}">${t.status}</span></div>`).join('')}
-    ${tickets.length===0?'<div class="empty">No tickets</div>':''}
-  </div></div>
-  <div id="op-ex" style="display:none"><div class="expand">
-    <div class="exp-head"><span class="exp-title">Active exemptions</span><span class="exp-close" onclick="toggleKPI('op-ex')">close</span></div>
-    <div style="padding:10px 13px"><button class="btn ghost" onclick="navTo('alerts')">View all exemptions ›</button></div>
-  </div></div>
-  <div id="op-mntperf" style="display:none"><div class="expand">
-    <div class="exp-head"><span class="exp-title">MNT alerts detail</span><span class="exp-close" onclick="toggleKPI('op-mntperf')">close</span></div>
-    <div style="padding:10px 13px">${mntPerf.filter(m=>m.alert).map(m=>`<div class="alert r" style="margin-bottom:6px"><span class="alert-icon">🔴</span><div><strong>${m.type}</strong> — ${m.pct}% under MNT (${m.underMnt}/${m.total} units)</div></div>`).join('')}${mntPerf.filter(m=>m.alert).length===0?'<div class="empty">No alerts</div>':''}</div>
-  </div></div>
+  <div class="card"><div class="card-body">${mntPH}</div></div>
 `;
 }
-
 // ═══════════════════════════════════════════
 // TICKETING
 // ═══════════════════════════════════════════
@@ -1028,11 +1226,11 @@ async function renderTK(c){
   tickets.forEach(t=>{
     if(!t.completionDate)return;
     const m=t.completionDate.slice(0,7);
-    if(!mStats[m])mStats[m]={total:0,done:0,byDept:{}};
-    mStats[m].total++;if(t.status==='Done')mStats[m].done++;
+    if(!mStats[m])mStats[m]={total:0,done:0,amount:0,byDept:{}};
+    mStats[m].total++;if(t.status==='Done'){mStats[m].done++;mStats[m].amount+=(t.amount||0);}
     const d=t.department||'Other';
-    if(!mStats[m].byDept[d])mStats[m].byDept[d]={total:0,done:0};
-    mStats[m].byDept[d].total++;if(t.status==='Done')mStats[m].byDept[d].done++;
+    if(!mStats[m].byDept[d])mStats[m].byDept[d]={total:0,done:0,amount:0};
+    mStats[m].byDept[d].total++;if(t.status==='Done'){mStats[m].byDept[d].done++;mStats[m].byDept[d].amount+=(t.amount||0);}
   });
   const months=Object.keys(mStats).sort().slice(-6);
   const maxT=Math.max(...months.map(m=>mStats[m].total),1);
@@ -1075,12 +1273,12 @@ async function renderTK(c){
       <div style="padding:10px 13px;border-bottom:1px solid var(--border)">
         <div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="font-size:13px;font-weight:600;color:var(--t1)">${t.ticketId}</span><span class="bdg b">In Progress</span></div>
         <div style="font-size:10px;color:var(--t2);margin-bottom:8px">${t.jobId} · ${t.wellNumber} · Ack ${t.acknowledgedDate}</div>
-        <button class="btn success" style="padding:8px;font-size:12px" onclick="doneTkt('${t.ticketId}')">Mark ticket done ✓</button>
+        <button class="btn success" style="padding:8px;font-size:12px" onclick="openDoneTicketModal('${t.ticketId}','${t.jobId}','${t.wellNumber}','${t.packageId}')">Mark ticket done ✓</button>
       </div>`).join('')}
   </div></div>
   <div id="tk-dn" style="display:none"><div class="expand">
     <div class="exp-head"><span class="exp-title">Completed tickets</span><span class="exp-close" onclick="toggleKPI('tk-dn')">close</span></div>
-    ${done.map(t=>`<div class="crow nc"><div class="cb"><div class="ct2">${t.ticketId} · ${t.jobId}</div><div class="cs">${t.wellNumber} · Done ${t.ticketDoneDate}</div></div><span class="bdg g">Done</span></div>`).join('')}
+    ${done.map(t=>`<div class="crow nc"><div class="cb"><div class="ct2">${t.ticketId} · ${t.jobId}</div><div class="cs">${t.wellNumber} · Done ${t.ticketDoneDate}</div></div><div class="cr"><span style="font-size:11px;font-weight:700;color:var(--green)">${t.amount?'SAR '+t.amount.toLocaleString():'-'}</span><span class="bdg g" style="margin-left:4px">Done</span></div></div>`).join('')}
     ${done.length===0?'<div class="empty">No completed tickets</div>':''}
   </div></div>
   <!-- Monthly chart -->
@@ -1111,13 +1309,9 @@ function showMonthDetail(m){
   const el=document.getElementById('mdetail'),s=window._mStats||{};
   if(!el||!s[m])return;
   el.style.display='block';
-  el.innerHTML=`<div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="font-size:12px;font-weight:600;color:var(--t1)">${m}</span><span style="font-size:11px;color:var(--t2)">${s[m].done}/${s[m].total} done</span></div>
-  ${Object.entries(s[m].byDept).map(([dept,ds])=>`
-    <div class="prow">
-      <div class="pname"><span class="dp ${dept==='D&WO'?'dwo':dept==='UC'?'uc':'saw'}">${dept}</span></div>
-      <div class="pbar"><div class="pfill" style="width:${ds.total>0?Math.round(ds.done/ds.total*100):0}%;background:${ds.done===ds.total&&ds.total>0?'var(--green)':'var(--amber)'}"></div></div>
-      <div class="ppct" style="color:var(--t2)">${ds.done}/${ds.total}</div>
-    </div>`).join('')}`;
+  var _mh='<div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="font-size:12px;font-weight:600;color:var(--t1)">'+m+'</span><span style="font-size:11px;color:var(--green)">SAR '+(s[m].amount||0).toLocaleString()+'</span></div><div style="font-size:10px;color:var(--t2);margin-bottom:8px">'+s[m].done+'/'+s[m].total+' done</div>';
+  Object.entries(s[m].byDept).forEach(function(e){var dept=e[0],ds=e[1],pct=ds.total>0?Math.round(ds.done/ds.total*100):0,bg=ds.done===ds.total&&ds.total>0?'var(--green)':'var(--amber)',dc=dept==='D&WO'?'dwo':dept==='UC'?'uc':'saw';_mh+='<div class="prow" style="margin-bottom:8px"><div class="pname"><span class="dp '+dc+'">'+dept+'</span></div><div class="pbar"><div class="pfill" style="width:'+pct+'%;background:'+bg+'"></div></div><div class="ppct" style="color:var(--t2)">'+ds.done+'/'+ds.total+'</div></div>'+(ds.amount>0?'<div style="font-size:10px;color:var(--green);margin-top:-4px;margin-bottom:6px;padding-left:4px">SAR '+ds.amount.toLocaleString()+'</div>':'');});
+  el.innerHTML=_mh;
 }
 
 // ─── COMMON VIEWS ──────────────────────────
@@ -1134,131 +1328,19 @@ async function renderJobs(c){
 }
 
 async function renderEq(c){
-  document.getElementById('tb-title').textContent = USER.role==='Asset Manager' ? 'Pool Management' : 'Equipment';
-
-  // For Asset Manager — show full pool management screen
-  if(USER.role === 'Asset Manager'){
-    c.innerHTML = '<div class="loading"><div class="spinner"></div><span>Loading equipment...</span></div>';
-    const res = await get({action:'getEquipment', department:'All'});
-    const eq = (res.equipment||[]);
-
-    // Group by type then by status
-    const byType = {};
-    eq.forEach(e=>{
-      if(!byType[e.type]) byType[e.type] = [];
-      byType[e.type].push(e);
-    });
-
-    // Status badge colors
-    const statusColor = {
-      'Active':'g', 'Reserved':'b', 'Under MNT':'a', 'Pool':'t'
-    };
-
-    const typeOrder = ['Control Cabin','Power Pack','Injector','Gooseneck','Stripper',
-                       'Work Reel','BOP','Fluid Pump','N2 Pump','Tool Box'];
-    const sortedTypes = Object.keys(byType).sort((a,b)=>{
-      const ai=typeOrder.indexOf(a), bi=typeOrder.indexOf(b);
-      return (ai<0?99:ai)-(bi<0?99:bi);
-    });
-
-    // Stats
-    const total = eq.length;
-    const inPool = eq.filter(e=>e.status==='Active').length;
-    const onJob  = eq.filter(e=>e.status==='Reserved'||e.status==='On Job').length;
-    const inMnt  = eq.filter(e=>e.status==='Under MNT').length;
-
-    c.innerHTML = `
-    <div class="kpi-row" style="grid-template-columns:repeat(3,1fr)">
-      <div class="kpi t"><div class="kpi-lbl">In Pool</div><div class="kpi-val t">${inPool}</div></div>
-      <div class="kpi g"><div class="kpi-lbl">On Job</div><div class="kpi-val g">${onJob}</div></div>
-      <div class="kpi a"><div class="kpi-lbl">Under MNT</div><div class="kpi-val a">${inMnt}</div></div>
-    </div>
-
-    <div class="slbl" style="margin-top:4px">Filter by type</div>
-    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">
-      <button class="bdg b" onclick="filterEqType('all')" id="ef-all" style="cursor:pointer;padding:5px 12px;font-size:11px">All</button>
-      ${sortedTypes.map(t=>`<button class="bdg gray" onclick="filterEqType('${t}')" id="ef-${t.replace(/[^a-z]/gi,'')}" style="cursor:pointer;padding:5px 10px;font-size:10px">${t}</button>`).join('')}
-    </div>
-
-    <div id="eq-list">
-      ${sortedTypes.map(type=>`
-        <div class="eq-type-group" data-type="${type}">
-          <div class="slbl">${type} <span style="color:var(--t3);font-weight:400">(${byType[type].length})</span></div>
-          ${byType[type].map(e=>`
-            <div class="crow" style="gap:0;padding:10px 13px" id="eqrow-${e.id}">
-              <div class="cb" style="flex:1">
-                <div class="ct2" style="font-family:'JetBrains Mono',monospace">${e.id}</div>
-                <div class="cs">${e.department} · ${e.serial||'—'}</div>
-              </div>
-              <div style="display:flex;align-items:center;gap:8px">
-                <span class="bdg ${statusColor[e.status]||'gray'}" id="eqbdg-${e.id}">${e.status}</span>
-                ${e.status==='Active'?
-                  `<button onclick="removeFromPool('${e.id}')" style="background:var(--red);color:#fff;border:none;border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;font-weight:600">Remove</button>`:
-                  e.status!=='Under MNT'?
-                  `<button onclick="addToPool('${e.id}')" style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;font-weight:600">+ Pool</button>`:''}
-              </div>
-            </div>`).join('')}
-        </div>`).join('')}
-    </div>`;
-
-    // Store for filter
-    window._eqByType = byType;
-    window._sortedTypes = sortedTypes;
-    return;
-  }
-
-  // For other roles — simple list
-  const res2 = await get({action:'getEquipment', department:USER.department==='All'?'All':USER.department});
-  const eq2 = res2.equipment||[], byType2={};
-  eq2.forEach(e=>{if(!byType2[e.type])byType2[e.type]=[];byType2[e.type].push(e);});
-  c.innerHTML = Object.entries(byType2).map(([type,items])=>`
-    <div class="slbl">${type}</div>
-    <div class="card" style="margin-bottom:10px">
-      ${items.map(e=>`
-      <div class="crow nc" style="padding:10px 13px">
-        <div class="cb"><div class="ct2" style="font-family:'JetBrains Mono',monospace">${e.id}</div><div class="cs">${e.department}</div></div>
+  document.getElementById('tb-title').textContent='Equipment';
+  const res=await get({action:'getEquipment',department:USER.department==='All'?'All':USER.department});
+  const eq=res.equipment||[],byType={};
+  eq.forEach(e=>{if(!byType[e.type])byType[e.type]=[];byType[e.type].push(e);});
+  c.innerHTML=Object.entries(byType).map(([type,items])=>`
+    <div class="slbl">${type} (${items.length})</div>
+    <div class="card">${items.map(e=>`
+      <div class="crow nc">
+        <div style="width:8px;height:8px;border-radius:50%;background:${e.status==='Active'?'var(--green)':e.status==='Under MNT'?'var(--amber)':'var(--blue)'};flex-shrink:0"></div>
+        <div class="cb"><div class="ct2">${e.id}</div><div class="cs">${e.location||e.department}</div></div>
         <span class="bdg ${e.status==='Active'?'g':e.status==='Under MNT'?'a':'b'}">${e.status}</span>
-      </div>`).join('')}
-    </div>`).join('');
+      </div>`).join('')}</div>`).join('');
 }
-
-function filterEqType(type){
-  // Reset all buttons
-  document.querySelectorAll('[id^="ef-"]').forEach(b=>{
-    b.className='bdg gray';b.style.cssText='cursor:pointer;padding:5px 10px;font-size:10px';
-  });
-  const btn = document.getElementById('ef-'+(type==='all'?'all':type.replace(/[^a-z]/gi,'')));
-  if(btn){btn.className='bdg b';btn.style.cssText='cursor:pointer;padding:5px 12px;font-size:11px';}
-
-  document.querySelectorAll('.eq-type-group').forEach(g=>{
-    g.style.display = (type==='all'||g.dataset.type===type) ? 'block':'none';
-  });
-}
-
-async function addToPool(eqId){
-  const btn = event.target;
-  btn.textContent='...'; btn.disabled=true;
-  const res = await post({action:'setEquipmentStatus', equipmentId:eqId, status:'Active'});
-  if(res.success){
-    document.getElementById('eqbdg-'+eqId).textContent='Active';
-    document.getElementById('eqbdg-'+eqId).className='bdg g';
-    btn.style.background='var(--red)'; btn.textContent='Remove'; btn.disabled=false;
-    btn.onclick=()=>removeFromPool(eqId);
-  } else { btn.textContent='+ Pool'; btn.disabled=false; }
-}
-
-async function removeFromPool(eqId){
-  const btn = event.target;
-  btn.textContent='...'; btn.disabled=true;
-  const res = await post({action:'setEquipmentStatus', equipmentId:eqId, status:'Standby'});
-  if(res.success){
-    document.getElementById('eqbdg-'+eqId).textContent='Standby';
-    document.getElementById('eqbdg-'+eqId).className='bdg gray';
-    btn.style.background='var(--green)'; btn.textContent='+ Pool'; btn.disabled=false;
-    btn.onclick=()=>addToPool(eqId);
-  } else { btn.textContent='Remove'; btn.disabled=false; }
-}
-
 
 async function renderAlerts(c){
   document.getElementById('tb-title').textContent='Alerts';
@@ -1279,13 +1361,20 @@ async function renderMNTList(c){
 }
 
 async function renderJobDetail(c,job){
+  window._currentJobEquipment=job.equipment||[];
   c.innerHTML=`
   <div class="slbl">Job info</div>
   <div class="card">${[['Job ID',job.jobId],['Well / Rig',`${job.wellNumber} / ${job.rigNumber}`],['Package',job.packageId],['Department',job.department],['Cell Leader',job.cellLeader],['Mob date',job.mobDate],['Days on job',job.daysOnJob||'Ongoing']].map(([k,v])=>`<div class="crow nc"><div style="font-size:10px;color:var(--t3);min-width:80px">${k}</div><div style="font-size:13px;font-weight:500;color:var(--t1)">${v}</div></div>`).join('')}
     <div class="crow nc"><div style="font-size:10px;color:var(--t3);min-width:80px">Status</div><span class="bdg ${job.status==='Exemption'?'a':job.status==='Completed'?'b':'g'}">${job.status}</span></div>
   </div>
   <div class="slbl" style="margin-top:10px">Equipment (${(job.equipment||[]).length} units)</div>
-  <div class="card">${(job.equipment||[]).map(eq=>`<div class="crow nc"><div style="width:8px;height:8px;border-radius:50%;background:${eq.status==='Running'?'var(--green)':eq.status==='Exemption'?'var(--amber)':'var(--blue)'};flex-shrink:0"></div><div class="cb"><div class="ct2">${eq.type}</div></div><span style="font-size:11px;font-weight:500;color:var(--t2);font-family:'JetBrains Mono',monospace">${eq.equipmentId}</span></div>`).join('')}</div>
+  <div class="card">${(job.equipment||[]).map(eq=>{
+    const typeMap={'CC':'Control Cabin','PP':'Power Pack','IJ':'Injector','GK':'Gooseneck','GN':'Gooseneck','SB':'Stripper','ST':'Stripper','WR':'Work Reel','BP':'BOP','PU':'Fluid Pump','FP':'Fluid Pump','N2':'N2 Pump','TB':'Tool Box','TL':'Tool Box'};
+    const prefix=(eq.equipmentId||'').slice(0,2).toUpperCase();
+    const displayType=eq.type||(typeMap[prefix]||eq.equipmentId);
+    const dot=eq.status==='Running'?'var(--green)':eq.status==='Exemption'?'var(--amber)':'var(--blue)';
+    return `<div class="crow nc"><div style="width:8px;height:8px;border-radius:50%;background:${dot};flex-shrink:0"></div><div class="cb"><div class="ct2">${displayType}</div></div><span style="font-size:11px;font-weight:500;color:var(--t2);font-family:'JetBrains Mono',monospace">${eq.equipmentId}</span></div>`;
+  }).join('')}</div>
   ${job.status!=='Completed'&&USER.role==='Cell Leader'?`
   <div class="divider"></div>
   <button class="btn danger" onclick="openFaultModal('${job.jobId}','${job.packageId}')">⚠ Report fault / swap equipment</button>
@@ -1302,7 +1391,7 @@ async function renderCreateJob(c){
   ]);
   const packages=pkgRes.packages||[];
   const pool=poolRes.pool||{};
-  const pkgIds=[...new Set(packages.map(p=>p.pkgId))].sort();
+  const pkgIds=[...new Set(packages.filter(p=>!p.busy).map(p=>p.pkgId))].sort();
   window._pkgData=packages;
   window._poolData=pool;
   c.innerHTML=`
@@ -1312,7 +1401,7 @@ async function renderCreateJob(c){
     <div class="fg"><label class="flbl">Rig Number</label><input type="text" class="finput" id="cj-r" placeholder="R-15"></div>
     <div class="fg" style="margin-bottom:0"><label class="flbl">Mobilization Date</label><input type="date" class="finput" id="cj-m"></div>
   </div>
-  <div class="slbl">Select package</div>
+  <div class="slbl">Select package <span style="font-size:9px;color:var(--green)">(available only)</span></div>
   <div class="card" style="margin-bottom:10px">
     <select class="finput" id="cj-p" onchange="loadPkgComps(this.value)" style="border:none;border-radius:0;padding:13px 14px;font-size:13px;cursor:pointer">
       <option value="">— Select a package —</option>
@@ -1332,7 +1421,7 @@ function loadPkgComps(pkgId){
   const pool=window._poolData||{};
   const pkg=(window._pkgData||[]).find(p=>p.pkgId===pkgId);
   if(!pkg){if(el)el.innerHTML='';if(btn)btn.style.display='none';return;}
-  const order=['Control Cabin','Power Pack','Injector','Gooseneck','Stripper','Work Reel','BOP','Fluid Pump','Nitrogen Pump','C-Pump','Batch Mixer','Frac Tank','Skid Tank','Acid Transporter','Trailer Mounted','N2 Pump','Tool Box'];
+  const order=['Control Cabin','Power Pack','Injector','Goose Neck','Gooseneck','Stripper','Work Reel','BOP','Fluid Pump','N2 Pump','Tool Box','Toolbox'];
   const sorted=[...pkg.equipment].sort((a,b)=>{
     return (order.indexOf(a.type)<0?99:order.indexOf(a.type))-(order.indexOf(b.type)<0?99:order.indexOf(b.type));
   });
@@ -1352,30 +1441,354 @@ function loadPkgComps(pkgId){
   window._currentPkgEquipment=sorted;
   window._currentPkg=pkg;
   if(btn)btn.style.display='flex';
+  if(window._editReq&&btn){btn.textContent='Resubmit for approval';btn.onclick=submitResubmit;}
 }
 
 async function renderHistory(c){
   document.getElementById('tb-title').textContent='History';
   const res=await get({action:'getTickets'});
   const done=(res.tickets||[]).filter(t=>t.status==='Done');
-  c.innerHTML=`<div class="card">${done.map(t=>`<div class="crow nc"><div class="cb"><div class="ct2">${t.ticketId} · ${t.jobId}</div><div class="cs">${t.wellNumber} · Done ${t.ticketDoneDate}</div></div><span class="bdg g">Done</span></div>`).join('')}${done.length===0?'<div class="empty">No completed tickets</div>':''}</div>`;
+  c.innerHTML=`<div class="card">${done.map(t=>`<div class="crow nc"><div class="cb"><div class="ct2">${t.ticketId} · ${t.jobId}</div><div class="cs">${t.wellNumber} · Done ${t.ticketDoneDate}</div></div><div class="cr"><span style="font-size:11px;font-weight:700;color:var(--green)">${t.amount?'SAR '+t.amount.toLocaleString():'-'}</span><span class="bdg g" style="margin-left:4px">Done</span></div></div>`).join('')}${done.length===0?'<div class="empty">No completed tickets</div>':''}</div>`;
+}
+
+// ═══════════════════════════════════════════
+// ADMIN ROLE
+// ═══════════════════════════════════════════
+async function renderAdmin(c){
+  document.getElementById('tb-title').textContent='Admin Panel';
+  const ROLES=[
+    {role:'Cell Leader',dept:'D&WO',username:'Mohamed.Baligh',label:'Cell Leader D&WO'},
+    {role:'Cell Leader',dept:'D&WO',username:'Mohamed.Hamdy',label:'Cell Leader D&WO (2)'},
+    {role:'Cell Leader',dept:'UC',username:'Mohamed.Amin',label:'Cell Leader UC'},
+    {role:'Cell Leader',dept:'SAWCOD',username:'Maged.abdelhalim',label:'Cell Leader SAWCOD'},
+    {role:'Asset Manager',dept:'All',username:'Shehab.Hussain',label:'Asset Manager'},
+    {role:'MNT Manager',dept:'All',username:'Tanveer.Hussain',label:'MNT Manager'},
+    {role:'QAQC Manager',dept:'All',username:'Mohamed.Sharkawy',label:'QAQC Manager'},
+    {role:'FSM',dept:'D&WO',username:'Mohamed.Hosny',label:'FSM D&WO'},
+    {role:'FSM',dept:'UC',username:'Moahmed.Abujarror',label:'FSM UC'},
+    {role:'FSM',dept:'SAWCOD',username:'Muath.Madkhali',label:'FSM SAWCOD'},
+    {role:'Operation Manager',dept:'All',username:'Yaman.Kademati',label:'Operation Manager'},
+    {role:'Ticketing',dept:'All',username:'Archi.FTY',label:'Ticketing'},
+  ];
+  const rm={'Cell Leader':'rc-cl','Asset Manager':'rc-am','MNT Manager':'rc-mnt','QAQC Manager':'rc-qa','FSM':'rc-fsm','Operation Manager':'rc-op','Ticketing':'rc-tk'};
+  const rows=ROLES.map(r=>`
+    <div class="crow" onclick="adminSwitch('${r.role}','${r.dept}','${r.username}','${r.label}')">
+      <div class="ci" style="background:var(--s3)">👤</div>
+      <div class="cb"><div class="ct2">${r.label}</div><div class="cs">${r.username}</div></div>
+      <div class="cr"><span class="role-chip ${rm[r.role]||'rc-tk'}">${r.role}</span><span class="chev">›</span></div>
+    </div>`).join('');
+  c.innerHTML=`
+  <div class="alert b" style="margin-bottom:14px"><span class="alert-icon">🔑</span><div style="font-size:11px">Admin mode — tap any role to switch dashboard</div></div>
+  <div class="slbl">Switch to role</div>
+  <div class="card">${rows}</div>
+  <div class="divider"></div>
+  <button class="btn ghost" onclick="navTo('jobs')">📋 View all jobs</button>
+  <button class="btn ghost" onclick="navTo('equipment')">⚙ View all equipment</button>`;
+}
+function adminSwitch(role,dept,username,label){
+  USER=Object.assign({},USER,{role,department:dept,username,fullName:label,_isAdmin:true});
+  const rm={'Cell Leader':'rc-cl','Asset Manager':'rc-am','MNT Manager':'rc-mnt','QAQC Manager':'rc-qa','FSM':'rc-fsm','Operation Manager':'rc-op','Ticketing':'rc-tk'};
+  const chip=document.getElementById('tb-chip');
+  chip.textContent=role;chip.className='role-chip '+(rm[role]||'rc-tk');
+  // Keep 🔑 avatar always visible for admin
+  const _av=document.getElementById('tb-av');
+  _av.textContent='🔑';
+  _av.style.fontSize='18px';
+  _av.onclick=function(){openAdminSwitcher();};
+  Object.keys(CACHE).forEach(k=>delete CACHE[k]);
+  document.getElementById('movl').classList.remove('open');
+  setupNav();navTo('home');
+}
+
+function openAdminSwitcher(){
+  const ROLES=[
+    {role:'Cell Leader',dept:'D&WO',username:'Mohamed.Baligh',label:'Cell Leader D&WO'},
+    {role:'Cell Leader',dept:'D&WO',username:'Mohamed.Hamdy',label:'Cell Leader D&WO (2)'},
+    {role:'Cell Leader',dept:'UC',username:'Mohamed.Amin',label:'Cell Leader UC'},
+    {role:'Cell Leader',dept:'SAWCOD',username:'Maged.abdelhalim',label:'Cell Leader SAWCOD'},
+    {role:'Asset Manager',dept:'All',username:'Shehab.Hussain',label:'Asset Manager'},
+    {role:'MNT Manager',dept:'All',username:'Tanveer.Hussain',label:'MNT Manager'},
+    {role:'QAQC Manager',dept:'All',username:'Mohamed.Sharkawy',label:'QAQC Manager'},
+    {role:'FSM',dept:'D&WO',username:'Mohamed.Hosny',label:'FSM D&WO'},
+    {role:'FSM',dept:'UC',username:'Moahmed.Abujarror',label:'FSM UC'},
+    {role:'FSM',dept:'SAWCOD',username:'Muath.Madkhali',label:'FSM SAWCOD'},
+    {role:'Operation Manager',dept:'All',username:'Yaman.Kademati',label:'Operation Manager'},
+    {role:'Ticketing',dept:'All',username:'Archi.FTY',label:'Ticketing'},
+  ];
+  const rm={'Cell Leader':'rc-cl','Asset Manager':'rc-am','MNT Manager':'rc-mnt','QAQC Manager':'rc-qa','FSM':'rc-fsm','Operation Manager':'rc-op','Ticketing':'rc-tk'};
+  const rows=ROLES.map(r=>`
+    <div class="crow" onclick="adminSwitch('${r.role}','${r.dept}','${r.username}','${r.label}')">
+      <div class="cb"><div class="ct2">${r.label}</div><div class="cs">${r.username} · ${r.dept}</div></div>
+      <div class="cr"><span class="role-chip ${rm[r.role]||'rc-tk'}">${r.role}</span><span class="chev">›</span></div>
+    </div>`).join('');
+  openMod(`<div class="modal-title">🔑 Switch role</div>
+    <div style="font-size:11px;color:var(--t3);margin-bottom:12px">Current: <strong style="color:var(--t1)">${USER.role==='Admin'?'Admin':USER.role+' — '+USER.fullName}</strong></div>
+    <div class="card" style="margin-bottom:8px">${rows}</div>
+    <button class="btn ghost" onclick="closeMod()">Close</button>`);
+}
+
+// ═══════════════════════════════════════════
+// TECHNICAL ENGINEER
+// ═══════════════════════════════════════════
+async function renderTE(c){
+  document.getElementById('tb-title').textContent='Dashboard';
+  let tktR={tickets:[]},jR={jobs:[]};
+  try{[tktR,jR]=await Promise.all([get({action:'getTickets'}),get({action:'getJobs',department:'All'})]);}
+  catch(e){console.error('TE fetch',e);}
+  const tickets=tktR.tickets||[],jobs=jR.jobs||[];
+  const running=jobs.filter(j=>j.status==='Running'||j.status==='Exemption');
+  const curYear=new Date().getFullYear().toString(),curMonth=new Date().toISOString().slice(0,7);
+  const depts=['D&WO','UC','SAWCOD'];
+  const ds={};
+  depts.forEach(d=>{
+    const dj=jobs.filter(j=>j.department===d);
+    const dt=tickets.filter(t=>t.department===d&&t.status==='Done');
+    ds[d]={
+      amtY:dt.filter(t=>t.ticketDoneDate&&t.ticketDoneDate.slice(0,4)===curYear).reduce((s,t)=>s+(t.amount||0),0),
+      amtM:dt.filter(t=>t.ticketDoneDate&&t.ticketDoneDate.slice(0,7)===curMonth).reduce((s,t)=>s+(t.amount||0),0),
+      jobsY:dj.filter(j=>j.mobDate&&j.mobDate.slice(0,4)===curYear).length,
+      jobsM:dj.filter(j=>j.mobDate&&j.mobDate.slice(0,7)===curMonth).length,
+      run:running.filter(j=>j.department===d).length
+    };
+  });
+  const totalAmtY=Object.values(ds).reduce((s,d)=>s+d.amtY,0);
+  const totalAmtM=Object.values(ds).reduce((s,d)=>s+d.amtM,0);
+  const deptHtml=depts.map(d=>{const dc=d==='D&WO'?'dwo':d==='UC'?'uc':'saw';return`
+    <div style="padding:10px 13px;border-bottom:1px solid var(--border)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <span class="dp ${dc}">${d}</span><span style="font-size:11px;font-weight:600;color:var(--green)">${ds[d].run} running</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+        <div style="background:var(--s3);border-radius:6px;padding:7px"><div style="font-size:9px;color:var(--t3);margin-bottom:2px">Jobs month</div><div style="font-size:14px;font-weight:700;color:var(--t1)">${ds[d].jobsM}</div></div>
+        <div style="background:var(--s3);border-radius:6px;padding:7px"><div style="font-size:9px;color:var(--t3);margin-bottom:2px">Jobs year</div><div style="font-size:14px;font-weight:700;color:var(--t1)">${ds[d].jobsY}</div></div>
+        <div style="background:var(--green-bg);border-radius:6px;padding:7px"><div style="font-size:9px;color:var(--t3);margin-bottom:2px">Revenue month</div><div style="font-size:13px;font-weight:700;color:var(--green)">SAR ${ds[d].amtM.toLocaleString()}</div></div>
+        <div style="background:var(--teal-bg);border-radius:6px;padding:7px"><div style="font-size:9px;color:var(--t3);margin-bottom:2px">Revenue year</div><div style="font-size:13px;font-weight:700;color:var(--teal)">SAR ${ds[d].amtY.toLocaleString()}</div></div>
+      </div>
+    </div>`;}).join('');
+  const doneTickets=tickets.filter(t=>t.status==='Done');
+  c.innerHTML=`
+  <div class="kpi-row">
+    <div class="kpi g" onclick="toggleKPI('te-run')"><div class="kpi-lbl">Running now <span class="kpi-tap">tap ▸</span></div><div class="kpi-val g">${running.length}</div><div class="kpi-sub">all depts</div></div>
+    <div class="kpi b" onclick="toggleKPI('te-tkts')"><div class="kpi-lbl">Tickets done <span class="kpi-tap">tap ▸</span></div><div class="kpi-val b">${doneTickets.length}</div><div class="kpi-sub">total</div></div>
+  </div>
+  <div class="slbl">Total revenue</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+    <div style="background:var(--green-bg);border:1px solid var(--green-b);border-radius:var(--r);padding:12px"><div style="font-size:9px;color:var(--t3);margin-bottom:3px">THIS MONTH</div><div style="font-size:18px;font-weight:700;color:var(--green)">SAR ${totalAmtM.toLocaleString()}</div></div>
+    <div style="background:var(--teal-bg);border:1px solid var(--teal-b);border-radius:var(--r);padding:12px"><div style="font-size:9px;color:var(--t3);margin-bottom:3px">THIS YEAR</div><div style="font-size:18px;font-weight:700;color:var(--teal)">SAR ${totalAmtY.toLocaleString()}</div></div>
+  </div>
+  <div class="slbl">Per department</div>
+  <div class="card" style="margin-bottom:10px">${deptHtml}</div>
+  <div id="te-run" style="display:none"><div class="expand">
+    <div class="exp-head"><span class="exp-title">Running jobs</span><span class="exp-close" onclick="toggleKPI('te-run')">close</span></div>
+    ${running.map(j=>`<div class="crow" onclick="pushView('job-detail',${JSON.stringify(j).replace(/"/g,'&quot;')},'${j.jobId}')"><div class="cb"><div class="ct2">${j.jobId} · ${j.wellNumber}</div><div class="cs"><span class="dp ${j.department==='D&WO'?'dwo':j.department==='UC'?'uc':'saw'}">${j.department}</span> · ${j.packageId} · ${j.daysOnJob||'?'} days</div></div><span class="bdg ${j.status==='Exemption'?'a':'g'}">${j.status}</span></div>`).join('')||'<div class="empty">No running jobs</div>'}
+  </div></div>
+  <div id="te-tkts" style="display:none"><div class="expand">
+    <div class="exp-head"><span class="exp-title">Completed tickets</span><span class="exp-close" onclick="toggleKPI('te-tkts')">close</span></div>
+    ${doneTickets.map(t=>`<div class="crow nc"><div class="cb"><div class="ct2">${t.ticketId} · ${t.jobId}</div><div class="cs"><span class="dp ${t.department==='D&WO'?'dwo':t.department==='UC'?'uc':'saw'}">${t.department}</span> · ${t.wellNumber} · ${t.ticketDoneDate}</div></div><span style="font-size:11px;font-weight:700;color:var(--green)">${t.amount?'SAR '+t.amount.toLocaleString():'-'}</span></div>`).join('')||'<div class="empty">No completed tickets</div>'}
+  </div></div>`;
+}
+
+// ═══════════════════════════════════════════
+// CELL LEADER — EDIT REJECTED REQUEST
+// ═══════════════════════════════════════════
+async function renderEditRequest(c,req){
+  document.getElementById('tb-title').textContent='Edit Request';
+  c.innerHTML='<div class="loading"><div class="spinner"></div><span>Loading...</span></div>';
+  const[pkgRes,poolRes]=await Promise.all([get({action:'getPackages',department:USER.department}),get({action:'getPool'})]);
+  const packages=pkgRes.packages||[],pool=poolRes.pool||{};
+  window._pkgData=packages;window._poolData=pool;window._editReq=req;
+  // Original equipment from request
+  const origEqList=req.equipmentList||[];
+  const pkgOpts=[...new Set(packages.filter(p=>!p.busy||p.pkgId===req.packageId).map(p=>p.pkgId))].sort().map(id=>`<option value="${id}"${id===req.packageId?' selected':''}>${id}${id===req.packageId?' (current)':''}</option>`).join('');
+  c.innerHTML=`
+  <div class="alert r" style="margin-bottom:12px"><span class="alert-icon">❌</span><div><strong>Rejected:</strong> ${req.amNotes||req.fsmNotes||'No reason provided'}</div></div>
+  <div class="slbl">Original equipment (${origEqList.length} units)</div>
+  <div class="card" style="margin-bottom:10px;padding:10px 13px">
+    <div style="display:flex;flex-wrap:wrap;gap:5px">${origEqList.map(e=>`<span style="font-size:11px;font-family:monospace;background:var(--s3);color:var(--t2);padding:3px 8px;border-radius:4px;border:1px solid var(--border2)">${e}</span>`).join('')}</div>
+  </div>
+  <div class="slbl">Update job details</div>
+  <div class="card" style="padding:14px;margin-bottom:10px">
+    <div class="fg"><label class="flbl">Well Number</label><input type="text" class="finput" id="cj-w" value="${req.wellNumber}"></div>
+    <div class="fg"><label class="flbl">Rig Number</label><input type="text" class="finput" id="cj-r" value="${req.rigNumber}"></div>
+    <div class="fg" style="margin-bottom:0"><label class="flbl">Mobilization Date</label><input type="date" class="finput" id="cj-m" value="${req.mobDate}"></div>
+  </div>
+  <div class="slbl">Select package <span style="font-size:9px;color:var(--t3)">(change or keep same)</span></div>
+  <div class="card" style="margin-bottom:10px">
+    <select class="finput" id="cj-p" onchange="loadPkgCompsEdit(this.value)" style="border:none;border-radius:0;padding:13px 14px;font-size:13px;cursor:pointer">
+      <option value="">— Select a package —</option>${pkgOpts}
+    </select>
+  </div>
+  <div id="pkg-comps"></div>
+  <button class="btn warning" id="cj-submit" style="display:none" onclick="submitResubmit()">↻ Resubmit for approval</button>
+  <button class="btn ghost" onclick="goBack()">Cancel</button>`;
+  if(req.packageId)setTimeout(()=>{
+    const s=document.getElementById('cj-p');
+    if(s){s.value=req.packageId;loadPkgCompsEdit(req.packageId,origEqList);}
+  },150);
+}
+
+// loadPkgComps variant that pre-selects original equipment from the request
+function loadPkgCompsEdit(pkgId, origEqList){
+  window._origEqList=origEqList||[];
+  loadPkgComps(pkgId);
+  // After loadPkgComps renders, pre-select original equipment
+  setTimeout(()=>{
+    const orig=window._origEqList||[];
+    if(!orig.length)return;
+    const sortedEq=window._currentPkgEquipment||[];
+    const typeIdx={};
+    sortedEq.forEach(eq=>{
+      typeIdx[eq.type]=(typeIdx[eq.type]||0)+1;
+      const selId='eq-sel-'+eq.type.replace(/[^a-zA-Z0-9]/g,'')+typeIdx[eq.type];
+      const sel=document.getElementById(selId);
+      if(!sel)return;
+      // Find matching original equipment for this slot
+      // Try to match by position in type group
+      const typeCount=typeIdx[eq.type];
+      const origForType=orig.filter(id=>{
+        // Check if this id was in the original list and matches type
+        const pkg=window._pkgData||[];
+        for(const p of pkg){
+          const found=p.equipment.find(e=>e.equipmentId===id&&e.type===eq.type);
+          if(found)return true;
+        }
+        // Fallback: just check pool
+        const pool=window._poolData||{};
+        const poolItems=pool[eq.type]||[];
+        return poolItems.some(p=>p.id===id);
+      });
+      const origVal=origForType[typeCount-1];
+      if(origVal){
+        // Check if option exists in select
+        const opts=Array.from(sel.options).map(o=>o.value);
+        if(opts.includes(origVal)){sel.value=origVal;}
+      }
+    });
+  },300);
+}
+async function deleteRequest(requestId,btnEl){
+  const btn=btnEl||event.target;
+  if(btn&&btn.disabled)return;
+  if(!confirm('Delete request '+requestId+'? This cannot be undone.'))return;
+  lockBtn(btn,'Deleting...');
+  try{
+    const res=await post({action:'deleteJobRequest',requestId});
+    if(res.success){alert('Request deleted.');Object.keys(CACHE).forEach(k=>delete CACHE[k]);loadView('home');}
+    else{unlockBtn(btn);alert('Error: '+(res.error||'Unknown'));}
+  }catch(e){unlockBtn(btn);alert('Connection error: '+e.message);}
+}
+
+async function submitResubmit(){
+  const req=window._editReq;
+  if(!req){alert('Error: request not found');return;}
+  const well=(document.getElementById('cj-w')||{value:''}).value.trim();
+  const rig=(document.getElementById('cj-r')||{value:''}).value.trim();
+  const pkgId=(document.getElementById('cj-p')||{value:''}).value;
+  const mob=(document.getElementById('cj-m')||{value:''}).value;
+  if(!well||!rig||!pkgId||!mob){alert('Please fill all required fields');return;}
+  // Collect selected equipment from dropdowns
+  let selectedEq=[];
+  const sortedEq=window._currentPkgEquipment||[];
+  if(sortedEq.length>0){
+    const typeIdx={};
+    selectedEq=sortedEq.map(eq=>{
+      typeIdx[eq.type]=(typeIdx[eq.type]||0)+1;
+      const selId='eq-sel-'+eq.type.replace(/[^a-zA-Z0-9]/g,'')+typeIdx[eq.type];
+      const sel=document.getElementById(selId);
+      const val=sel?sel.value:eq.equipmentId;
+      return val==='__EMPTY__'?null:val;
+    }).filter(Boolean);
+  }
+  // Fallback: use original equipment list if no dropdowns rendered
+  if(selectedEq.length===0){
+    selectedEq=req.equipmentList||[];
+  }
+  if(selectedEq.length===0){alert('No equipment selected');return;}
+  const btn=document.getElementById('cj-submit');
+  if(btn){btn.textContent='Submitting...';btn.disabled=true;}
+  try{
+    const res=await post({
+      action:'resubmitJobRequest',
+      requestId:req.requestId,
+      packageId:pkgId,
+      wellNumber:well,
+      rigNumber:rig,
+      mobDate:mob,
+      equipmentList:selectedEq
+    });
+    if(res.success){
+      alert('Request '+res.requestId+' resubmitted! Waiting for Asset Manager approval.');
+      Object.keys(CACHE).forEach(k=>delete CACHE[k]);
+      goBack();loadView('home');
+    }else{
+      alert('Error: '+(res.error||'Unknown error — check Apps Script logs'));
+      if(btn){btn.textContent='↻ Resubmit for approval';btn.disabled=false;}
+    }
+  }catch(e){
+    alert('Connection error: '+e.message);
+    if(btn){btn.textContent='↻ Resubmit for approval';btn.disabled=false;}
+  }
+}
+function openDoneTicketModal(ticketId,jobId,wellNum,pkgId){
+  openMod(`<div class="modal-title">Complete ticket</div>
+    <div style="background:var(--s3);border-radius:8px;padding:10px 12px;margin-bottom:14px">
+      <div style="font-size:11px;font-weight:600;color:var(--t1);margin-bottom:2px">${ticketId} · ${jobId}</div>
+      <div style="font-size:10px;color:var(--t2)">${wellNum} · ${pkgId}</div>
+    </div>
+    <div class="fg"><label class="flbl">Ticket amount (SAR)</label>
+      <input type="number" class="finput" id="tkt-amount" placeholder="0" min="0" step="0.01" style="font-size:16px;font-weight:600">
+    </div>
+    <button class="btn success" onclick="submitDoneTicket('${ticketId}')">✓ Mark ticket done</button>
+    <button class="btn ghost" onclick="closeMod()">Cancel</button>`);
+}
+async function submitDoneTicket(ticketId){
+  const amt=document.getElementById('tkt-amount').value;
+  if(!amt||Number(amt)<0){alert('Please enter a valid amount');return;}
+  await post({action:'doneTicket',ticketId,amount:Number(amt)});
+  document.getElementById('movl').classList.remove('open');
+  alert('Ticket done! Amount: SAR '+Number(amt).toLocaleString());
+  Object.keys(CACHE).forEach(k=>delete CACHE[k]);
+  loadView('home');
 }
 
 // ─── MODALS ────────────────────────────────
 function openMod(html){document.getElementById('mbody').innerHTML=`<div class="modal-handle"></div>${html}`;document.getElementById('movl').classList.add('open');}
 function closeMod(e){if(!e||e.target===document.getElementById('movl'))document.getElementById('movl').classList.remove('open');}
 
-function openFaultModal(jobId,pkgId){
+async function openFaultModal(jobId,pkgId){
+  const eq=window._currentJobEquipment||[];
+  const opts=eq.map(e=>`<option value="${e.equipmentId}">${e.equipmentId}</option>`).join('');
+  const poolR=await get({action:'getPool'}).catch(()=>({pool:{}}));
+  window._faultPool=poolR.pool||{};window._faultEq=eq;
   openMod(`<div class="modal-title">Report fault / swap equipment</div>
-    <div class="fg"><label class="flbl">Equipment with fault</label><input type="text" class="finput" id="fo" placeholder="e.g. PU-014"></div>
-    <div class="fg"><label class="flbl">Replacement equipment</label><input type="text" class="finput" id="fn" placeholder="e.g. PU-021"></div>
-    <div class="fg"><label class="flbl">Equipment type</label><input type="text" class="finput" id="ft" placeholder="e.g. Fluid Pump"></div>
-    <div class="fg"><label class="flbl">Reason</label><textarea class="ftextarea" id="fr" rows="3" placeholder="Describe the fault..."></textarea></div>
-    <button class="btn danger" onclick="submitFault('${jobId}','${pkgId}')">Submit fault report</button>`);
+    <div class="fg"><label class="flbl">Equipment with fault</label>
+      <select class="finput" id="fo" onchange="updateReplDD(this.value)" style="cursor:pointer">
+        <option value="">— Select equipment —</option>${opts}</select></div>
+    <div class="fg"><label class="flbl">Equipment type</label>
+      <input type="text" class="finput" id="ft" placeholder="Auto-filled" readonly style="opacity:0.7"></div>
+    <div class="fg"><label class="flbl">Replacement from pool</label>
+      <select class="finput" id="fn" style="cursor:pointer">
+        <option value="">— Select fault equipment first —</option></select></div>
+    <div class="fg"><label class="flbl">Reason</label>
+      <textarea class="ftextarea" id="fr" rows="3" placeholder="Describe the fault..."></textarea></div>
+    <button class="btn danger" id="sfBtn" onclick="submitFault('${jobId}','${pkgId}',this)">Submit fault report</button>`);
 }
-async function submitFault(jobId,pkgId){
+function updateReplDD(sel){
+  if(!sel)return;
+  const tm={'CC':'Control Cabin','PP':'Power Pack','IJ':'Injector','GK':'Gooseneck','GN':'Gooseneck','SB':'Stripper','ST':'Stripper','WR':'Work Reel','BP':'BOP','PU':'Fluid Pump','FP':'Fluid Pump','N2':'N2 Pump','TB':'Tool Box'};
+  const eq=(window._faultEq||[]).find(e=>e.equipmentId===sel);
+  const px=sel.slice(0,2).toUpperCase();
+  const tp=(eq&&eq.type)||tm[px]||'';
+  const ft=document.getElementById('ft');if(ft)ft.value=tp;
+  const pool=window._faultPool||{};let reps=[];
+  Object.entries(pool).forEach(([t,items])=>{if(t===tp||items.some(i=>i.id&&i.id.slice(0,2).toUpperCase()===px))reps=reps.concat(items);});
+  const fn=document.getElementById('fn');
+  if(fn)fn.innerHTML=reps.length?'<option value="">— Select replacement —</option>'+reps.map(i=>`<option value="${i.id}">${i.id}</option>`).join(''):'<option value="">None available</option>';
+}
+async function submitFault(jobId,pkgId,btnEl){
   const o=document.getElementById('fo').value.trim(),n=document.getElementById('fn').value.trim(),t=document.getElementById('ft').value.trim(),r=document.getElementById('fr').value.trim();
   if(!o||!r)return alert('Please fill required fields');
+  const sb=btnEl||document.getElementById('sfBtn');if(sb){sb.disabled=true;sb.style.display='none';}
   await post({action:'reportFault',jobId,packageId:pkgId,equipmentId:o,equipmentType:t,oldEquipment:o,newEquipment:n,department:USER.department,cellLeader:USER.fullName,reason:r,mntManager:'Tanveer.Hussain'});
   document.getElementById('movl').classList.remove('open');
   alert('Fault reported. Notifications sent.');loadView('home');
@@ -1394,14 +1807,20 @@ async function submitDemob(jobId,well,pkgId,mob){
 }
 
 function openExemptionModal(jobId,pkgId){
+  const eq=window._currentJobEquipment||[];
+  const opts=eq.map(e=>`<option value="${e.equipmentId}">${e.equipmentId}</option>`).join('');
   openMod(`<div class="modal-title">Request exemption</div>
-    <div class="fg"><label class="flbl">Equipment ID</label><input type="text" class="finput" id="ee" placeholder="e.g. CC-706"></div>
-    <div class="fg"><label class="flbl">Reason</label><textarea class="ftextarea" id="er" rows="3" placeholder="Why can't this be replaced?"></textarea></div>
-    <button class="btn warning" onclick="submitExemption('${jobId}','${pkgId}')">Submit exemption request</button>`);
+    <div class="fg"><label class="flbl">Equipment ID</label>
+      <select class="finput" id="ee" style="cursor:pointer">
+        <option value="">— Select equipment —</option>${opts}</select></div>
+    <div class="fg"><label class="flbl">Reason</label>
+      <textarea class="ftextarea" id="er" rows="3" placeholder="Why can't this be replaced?"></textarea></div>
+    <button class="btn warning" id="seBtn" onclick="submitExemption('${jobId}','${pkgId}',this)">Submit exemption request</button>`);
 }
-async function submitExemption(jobId,pkgId){
+async function submitExemption(jobId,pkgId,btnEl){
   const e=document.getElementById('ee').value.trim(),r=document.getElementById('er').value.trim();
   if(!e||!r)return alert('Please fill all fields');
+  const sb=btnEl||document.getElementById('seBtn');if(sb){sb.disabled=true;sb.style.display='none';}
   const res=await post({action:'requestExemption',jobId,packageId:pkgId,equipmentId:e,department:USER.department,reason:r});
   document.getElementById('movl').classList.remove('open');
   alert(`Exemption ${res.exemptionId} submitted to 4 approvers.`);loadView('home');
@@ -1427,7 +1846,8 @@ async function submitJobRequest(){
     return val === '__EMPTY__' ? null : val;
   }).filter(Boolean);
   const btn = document.getElementById('cj-submit');
-  if(btn){ btn.textContent='Submitting...'; btn.disabled=true; }
+  if(btn&&btn.disabled)return;
+  if(btn){lockBtn(btn,'Submitting...');}
   try {
     const res = await post({
       action:'submitJobRequest',
@@ -1449,32 +1869,38 @@ async function submitJobRequest(){
   }
 }
 
-async function approveReq(requestId, role, notes){
+async function approveReq(requestId, role, notes, btnEl){
+  const btn=btnEl||event.target;
+  if(btn&&btn.disabled)return;
+  lockBtn(btn,'Approving...');
   try {
     const res = await post({ action:'approveJobRequest', requestId, role, notes: notes||'' });
     if(res.success){
       alert(role==='FSM' ? 'Approved! Job is now Running.' : 'Approved! Sent to FSM for confirmation.');
       Object.keys(CACHE).forEach(k=>delete CACHE[k]);
       loadView('home');
-    } else { alert('Error: '+(res.error||'Unknown')); }
-  } catch(e){ alert('Connection error. Try again.'); }
+    } else { unlockBtn(btn); alert('Error: '+(res.error||'Unknown')); }
+  } catch(e){ unlockBtn(btn); alert('Connection error. Try again.'); }
 }
 
-async function rejectReq(requestId, role, notes){
+async function rejectReq(requestId, role, notes, btnEl){
+  const btn=btnEl||event.target;
+  if(btn&&btn.disabled)return;
   if(!notes){ alert('Please enter a reason for rejection'); return; }
+  lockBtn(btn,'Rejecting...');
   try {
     const res = await post({ action:'rejectJobRequest', requestId, role, notes });
     if(res.success){
       alert('Request rejected.');
       Object.keys(CACHE).forEach(k=>delete CACHE[k]);
       loadView('home');
-    } else { alert('Error: '+(res.error||'Unknown')); }
-  } catch(e){ alert('Connection error. Try again.'); }
+    } else { unlockBtn(btn); alert('Error: '+(res.error||'Unknown')); }
+  } catch(e){ unlockBtn(btn); alert('Connection error. Try again.'); }
 }
 
-async function markMNTDone(mntId,eqId){await post({action:'markMNTDone',mntId,equipmentId:eqId});alert(`${eqId} done → sent to QAQC.`);loadView('home');}
-async function qaqcDec(mntId,dec){const r=document.getElementById('qr-'+mntId)?.value||'';await post({action:'qaqcDecision',mntId,decision:dec,reason:r});alert(dec==='Approved'?'Approved → Pool':'Rejected → MNT');loadView('home');}
-async function ackTkt(id){await post({action:'acknowledgeTicket',ticketId:id});alert('Ticket acknowledged.');loadView('home');}
+async function markMNTDone(mntId,eqId){const btn=event.target;if(btn&&btn.disabled)return;lockBtn(btn,'Sending...');try{await post({action:'markMNTDone',mntId,equipmentId:eqId});alert(`${eqId} done → sent to QAQC.`);loadView('home');}catch(e){unlockBtn(btn);alert('Connection error.');}}
+async function qaqcDec(mntId,dec){const btn=event.target;if(btn&&btn.disabled)return;lockBtn(btn,dec==='Approved'?'Approving...':'Rejecting...');try{const r=document.getElementById('qr-'+mntId)?.value||'';await post({action:'qaqcDecision',mntId,decision:dec,reason:r});alert(dec==='Approved'?'Approved → Pool':'Rejected → MNT');loadView('home');}catch(e){unlockBtn(btn);alert('Connection error.');}}
+async function ackTkt(id){const btn=event.target;if(btn&&btn.disabled)return;lockBtn(btn,'Acknowledging...');try{await post({action:'acknowledgeTicket',ticketId:id});alert('Ticket acknowledged.');loadView('home');}catch(e){unlockBtn(btn);alert('Connection error.');}}
 
 function toggleDept(id){
   const el=document.getElementById(id);
@@ -1491,7 +1917,7 @@ function toggleDept(id){
   }
 }
 
-async function doneTkt(id){await post({action:'doneTicket',ticketId:id});alert('Ticket done!');loadView('home');}
+async function doneTkt(id){const btn=event.target;if(btn&&btn.disabled)return;lockBtn(btn,'Saving...');try{await post({action:'doneTicket',ticketId:id});alert('Ticket done!');loadView('home');}catch(e){unlockBtn(btn);alert('Connection error.');}}
 </script>
 </body>
 </html>
