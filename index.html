@@ -268,7 +268,7 @@ let USER=null,NAV=[],CACHE={},OKPI=null;
 function lockBtn(btn,msg){if(!btn)return;btn.disabled=true;btn._origText=btn.textContent;btn.textContent=msg||'Processing...';btn.style.opacity='0.6';}
 function unlockBtn(btn){if(!btn)return;btn.disabled=false;btn.textContent=btn._origText||btn.textContent;btn.style.opacity='';}
 
-// ─── API ───────────────────────────────────
+// --- API -----------------------------------
 async function get(p,force){
   const k=JSON.stringify(p),now=Date.now();
   if(!force&&CACHE[k]&&now-CACHE[k].t<60000)return CACHE[k].d;
@@ -292,7 +292,7 @@ async function preload(){
   ].filter(Boolean));
 }
 
-// ─── AUTH ──────────────────────────────────
+// --- AUTH ----------------------------------
 async function doLogin(){
   const btn=document.getElementById('lbtn'),err=document.getElementById('lerr');
   const u=document.getElementById('lu').value.trim(),p=document.getElementById('lp').value.trim();
@@ -306,7 +306,7 @@ async function doLogin(){
 }
 document.getElementById('lp').addEventListener('keypress',e=>{if(e.key==='Enter')doLogin();});
 
-// ─── APP ───────────────────────────────────
+// --- APP -----------------------------------
 async function showApp(){
   document.getElementById('login-screen').classList.remove('active');
   document.getElementById('app-screen').classList.add('active');
@@ -335,7 +335,7 @@ function setupNav(){
   nav.style.display='flex';
 }
 
-// ─── NAV ───────────────────────────────────
+// --- NAV -----------------------------------
 function navTo(v,p){
   NAV=[{v,p}];
   document.getElementById('tb-back').style.display='none';
@@ -404,7 +404,7 @@ function toggleKPI(id){
   OKPI=open?null:id;
 }
 
-// ─── HOME ROUTER ───────────────────────────
+// --- HOME ROUTER ---------------------------
 async function renderHome(c){
   document.getElementById('tb-title').textContent='Dashboard';
   const role=USER.role;
@@ -419,7 +419,98 @@ async function renderHome(c){
   else if(role==='Admin')await renderAdmin(c);
 }
 
-// ─── DONUT SVG HELPER ──────────────────────
+// --- DONUT SVG HELPER
+
+// ADMIN DASHBOARD
+async function renderAdmin(c){
+  let dashR={kpis:{},mntPerformance:[],runningJobs:[]}, jR={jobs:[]}, eqR={equipment:[]}, reqR={requests:[]};
+  try{
+    [dashR, jR, eqR, reqR] = await Promise.all([
+      get({action:'getDashboard', department:'All'}),
+      get({action:'getJobs', department:'All'}),
+      get({action:'getEquipment', department:'All'}),
+      get({action:'getJobRequests', department:'All', role:'Admin'})
+    ]);
+  }catch(e){ console.error('Admin fetch error', e); }
+
+  const jobs = jR.jobs||[];
+  const running = jobs.filter(j=>j.status==='Running'||j.status==='Exemption');
+  const completed = jobs.filter(j=>j.status==='Completed');
+  const eq = eqR.equipment||[];
+  const totalEq = eq.length;
+  const activeEq = eq.filter(e=>e.status==='Active').length;
+  const mntEq = eq.filter(e=>e.status==='Under MNT').length;
+  const reservedEq = eq.filter(e=>e.status==='Reserved').length;
+  const reqs = reqR.requests||[];
+  const pendingReqs = reqs.filter(r=>r.status==='Pending AM'||r.status==='Pending FSM');
+  const kpis = dashR.kpis||{};
+  const mntPerf = dashR.mntPerformance||[];
+
+  // By department
+  const byDept = {};
+  running.forEach(j=>{
+    if(!byDept[j.department]) byDept[j.department]={count:0,pkgs:[]};
+    if(!byDept[j.department].pkgs.find(p=>p.jobId===j.jobId)){
+      byDept[j.department].count++;
+      byDept[j.department].pkgs.push(j);
+    }
+  });
+
+  c.innerHTML=`
+  <div class="kpi-row">
+    <div class="kpi g" onclick="toggleKPI('adm-run')"><div class="kpi-lbl">Jobs running <span class="kpi-tap">tap ▸</span></div><div class="kpi-val g">${running.length}</div><div class="kpi-sub">all depts</div></div>
+    <div class="kpi b" onclick="toggleKPI('adm-done')"><div class="kpi-lbl">Completed <span class="kpi-tap">tap ▸</span></div><div class="kpi-val b">${completed.length}</div><div class="kpi-sub">all time</div></div>
+    <div class="kpi t" onclick="toggleKPI('adm-eq')"><div class="kpi-lbl">Equipment <span class="kpi-tap">tap ▸</span></div><div class="kpi-val t">${totalEq}</div><div class="kpi-sub">${activeEq} in pool</div></div>
+    <div class="kpi a" onclick="toggleKPI('adm-mnt')"><div class="kpi-lbl">Under MNT <span class="kpi-tap">tap ▸</span></div><div class="kpi-val a">${mntEq}</div><div class="kpi-sub">${reservedEq} reserved</div></div>
+  </div>
+
+  <div id="adm-run" style="display:none"><div class="expand">
+    <div class="exp-head"><span class="exp-title">Running jobs — all depts</span><span class="exp-close" onclick="toggleKPI('adm-run')">close</span></div>
+    ${running.map(j=>`<div class="crow nc"><div class="cb"><div class="ct2">${j.jobId} · ${j.wellNumber}</div><div class="cs">${j.packageId} · ${j.department} · ${j.cellLeader}</div></div><span class="bdg g">${j.status}</span></div>`).join('')}
+    ${running.length===0?'<div class="empty">No running jobs</div>':''}
+  </div></div>
+
+  <div id="adm-done" style="display:none"><div class="expand">
+    <div class="exp-head"><span class="exp-title">Completed jobs</span><span class="exp-close" onclick="toggleKPI('adm-done')">close</span></div>
+    ${completed.slice(0,10).map(j=>`<div class="crow nc"><div class="cb"><div class="ct2">${j.jobId} · ${j.wellNumber}</div><div class="cs">${j.packageId} · ${j.department}</div></div><span class="bdg b">Done</span></div>`).join('')}
+    ${completed.length===0?'<div class="empty">No completed jobs</div>':''}
+  </div></div>
+
+  <div id="adm-eq" style="display:none"><div class="expand">
+    <div class="exp-head"><span class="exp-title">Equipment summary</span><span class="exp-close" onclick="toggleKPI('adm-eq')">close</span></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px">
+      <div style="background:var(--s2);border-radius:8px;padding:10px;text-align:center"><div style="font-size:22px;font-weight:700;color:var(--green)">${activeEq}</div><div style="font-size:10px;color:var(--t2)">In Pool</div></div>
+      <div style="background:var(--s2);border-radius:8px;padding:10px;text-align:center"><div style="font-size:22px;font-weight:700;color:var(--amber)">${reservedEq}</div><div style="font-size:10px;color:var(--t2)">Reserved</div></div>
+      <div style="background:var(--s2);border-radius:8px;padding:10px;text-align:center"><div style="font-size:22px;font-weight:700;color:var(--red)">${mntEq}</div><div style="font-size:10px;color:var(--t2)">Under MNT</div></div>
+      <div style="background:var(--s2);border-radius:8px;padding:10px;text-align:center"><div style="font-size:22px;font-weight:700;color:var(--t1)">${totalEq}</div><div style="font-size:10px;color:var(--t2)">Total</div></div>
+    </div>
+  </div></div>
+
+  <div id="adm-mnt" style="display:none"><div class="expand">
+    <div class="exp-head"><span class="exp-title">MNT performance</span><span class="exp-close" onclick="toggleKPI('adm-mnt')">close</span></div>
+    ${mntPerf.filter(m=>m.underMnt>0).map(m=>`<div class="crow nc"><div class="cb"><div class="ct2">${m.type}</div><div class="cs">${m.underMnt} of ${m.total} units</div></div><span class="bdg ${m.alert?'r':'a'}">${m.pct}%</span></div>`).join('')}
+    ${mntPerf.filter(m=>m.underMnt>0).length===0?'<div class="empty">No equipment under MNT</div>':''}
+  </div></div>
+
+  ${pendingReqs.length>0?`
+  <div class="slbl" style="color:var(--amber);margin-top:4px">⚡ Pending job requests (${pendingReqs.length})</div>
+  ${pendingReqs.map(r=>`<div class="card" style="margin-bottom:8px"><div style="padding:10px 13px"><div style="display:flex;justify-content:space-between"><span style="font-size:12px;font-weight:700">${r.requestId}</span><span class="bdg a">${r.status}</span></div><div style="font-size:11px;color:var(--t2);margin-top:4px">${r.packageId} · ${r.department} · ${r.cellLeader}</div></div></div>`).join('')}`:''}
+
+  <div class="slbl" style="margin-top:4px">By department</div>
+  <div class="card">
+    ${Object.entries(byDept).map(([dept,data])=>`
+      <div class="crow nc" style="padding:10px 13px">
+        <span class="dp ${dept==='D&WO'?'dwo':dept==='UC'?'uc':'saw'}">${dept}</span>
+        <div class="cb" style="margin-left:8px"><div class="ct2">${data.count} packages running</div></div>
+      </div>`).join('')}
+    ${Object.keys(byDept).length===0?'<div class="empty">No running jobs</div>':''}
+  </div>
+
+  <div class="divider"></div>
+  <button class="btn ghost" onclick="navTo('equipment')">Manage equipment pool</button>
+  <button class="btn ghost" onclick="navTo('jobs')">View all jobs</button>`;
+}
+
 function donut(data,total,cx,cy,r,sw){
   // data = [{val,color}]
   const circ=2*Math.PI*r;
@@ -433,10 +524,8 @@ function donut(data,total,cx,cy,r,sw){
   return segs;
 }
 
-// ═══════════════════════════════════════════
 // CELL LEADER
-// ═══════════════════════════════════════════
-// ── In-app rejection modal ───────────────────────────────────
+// -- In-app rejection modal -----------------------------------
 function openRejModal(title,cb){
   openMod(`<div class="modal-title">${title}</div>
     <div class="fg"><label class="flbl">Rejection reason</label>
@@ -454,7 +543,7 @@ function doRej(){
   if(window._rejCb)window._rejCb(r);
 }
 
-// ── Fault approve/reject ─────────────────────────────────────
+// -- Fault approve/reject -------------------------------------
 async function approveFault(crId,btnEl){
   if(btnEl&&btnEl.disabled)return;
   if(btnEl){btnEl.disabled=true;btnEl.textContent='...';}
@@ -475,7 +564,7 @@ function rejectFault(crId,btnEl){
   });
 }
 
-// ── Exemption approve/reject ─────────────────────────────────
+// -- Exemption approve/reject ---------------------------------
 async function approveExemption(exemptionId,btnEl){
   if(btnEl&&btnEl.disabled)return;
   if(btnEl){btnEl.disabled=true;btnEl.textContent='...';}
@@ -496,7 +585,7 @@ function rejectExemption(exemptionId,btnEl){
   });
 }
 
-// ── KPI card: Fault reports (for AM/FSM) ─────────────────────
+// -- KPI card: Fault reports (for AM/FSM) ---------------------
 function mkFaultKpi(list){
   if(!list||!list.length)return '';
   const id='fk'+Date.now();
@@ -526,7 +615,7 @@ function mkFaultKpi(list){
   </div>`;
 }
 
-// ── KPI card: Exemptions (for AM/FSM/MNT/OP) ─────────────────
+// -- KPI card: Exemptions (for AM/FSM/MNT/OP) -----------------
 function mkExKpi(list,myField,pendingOnly,lbl){
   const filtered=pendingOnly?(list||[]).filter(e=>!e[myField]||e[myField]==='Pending'):(list||[]);
   if(!filtered.length)return '';
@@ -562,7 +651,7 @@ function mkExKpi(list,myField,pendingOnly,lbl){
   </div>`;
 }
 
-// ── KPI card: CL fault status ─────────────────────────────────
+// -- KPI card: CL fault status ---------------------------------
 function mkClFaultKpi(list){
   if(!list||!list.length)return '';
   const id='clf'+Date.now();
@@ -598,7 +687,7 @@ function mkClFaultKpi(list){
   </div>`;
 }
 
-// ── KPI card: CL exemption status ────────────────────────────
+// -- KPI card: CL exemption status ----------------------------
 function mkClExKpi(list){
   if(!list||!list.length)return '';
   const id='cle'+Date.now();
@@ -737,9 +826,7 @@ async function renderCL(c){
   <button class="btn ghost" onclick="navTo('jobs')">View all jobs</button>`;
 }
 
-// ═══════════════════════════════════════════
 // ASSET MANAGER
-// ═══════════════════════════════════════════
 async function renderAM(c){
   let poolR={pool:{}},mntR={records:[]},jR={jobs:[]},pmR={alerts:[]},reqR={requests:[]},crR={changeRequests:[]},exR={exemptions:[]};
   try{
@@ -868,9 +955,7 @@ async function renderAM(c){
   <button class="btn ghost" onclick="navTo('jobs')">View all jobs</button>`;
 }
 
-// ═══════════════════════════════════════════
 // MNT MANAGER
-// ═══════════════════════════════════════════
 async function renderMNT(c){
   let mntR={records:[]},pmR={alerts:[]},exR={exemptions:[]};
   try{ [mntR,pmR,exR]=await Promise.all([get({action:'getMNT'}),get({action:'getPMAlerts',department:'All'}),get({action:'getExemptions'})]); }
@@ -931,9 +1016,7 @@ async function renderMNT(c){
   </div></div>`;
 }
 
-// ═══════════════════════════════════════════
 // QAQC MANAGER
-// ═══════════════════════════════════════════
 async function renderQA(c){
   let mntR={records:[]};
   try{ mntR=await get({action:'getMNT'}); }catch(e){ console.error('QA fetch error',e); }
@@ -984,9 +1067,7 @@ async function renderQA(c){
   </div></div>`;
 }
 
-// ═══════════════════════════════════════════
 // FSM
-// ═══════════════════════════════════════════
 async function renderFSM(c){
   let jR={jobs:[]},pmR={alerts:[]},reqR={requests:[]},crR={changeRequests:[]},exR={exemptions:[]};
   try{
@@ -1121,9 +1202,7 @@ async function renderFSM(c){
   `;
 }
 
-// ═══════════════════════════════════════════
 // OPERATION MANAGER
-// ═══════════════════════════════════════════
 async function renderOP(c){
   const[dashR,tktR,poolR,exRop]=await Promise.all([
     get({action:'getDashboard',department:'All'}),
@@ -1211,9 +1290,7 @@ async function renderOP(c){
   <div class="card"><div class="card-body">${mntPH}</div></div>
 `;
 }
-// ═══════════════════════════════════════════
 // TICKETING
-// ═══════════════════════════════════════════
 async function renderTK(c){
   let res={tickets:[]};
   try{ res=await get({action:'getTickets'}); }catch(e){ console.error('TK fetch error',e); }
@@ -1314,7 +1391,7 @@ function showMonthDetail(m){
   el.innerHTML=_mh;
 }
 
-// ─── COMMON VIEWS ──────────────────────────
+// --- COMMON VIEWS --------------------------
 async function renderJobs(c){
   document.getElementById('tb-title').textContent='Jobs';
   const res=await get({action:'getJobs',department:USER.department==='All'?'All':USER.department});
@@ -1489,10 +1566,18 @@ async function renderCreateJob(c){
   </div>
   <div class="slbl">Select package <span style="font-size:9px;color:var(--green)">(available only)</span></div>
   <div class="card" style="margin-bottom:10px">
-    <select class="finput" id="cj-p" onchange="loadPkgComps(this.value)" style="border:none;border-radius:0;padding:13px 14px;font-size:13px;cursor:pointer">
-      <option value="">— Select a package —</option>
-      ${pkgIds.map(id=>'<option value="'+id+'">'+id+'</option>').join('')}
-    </select>
+    <input type="text" class="finput" id="cj-p"
+      placeholder="e.g. PKG-724"
+      oninput="this.value=this.value.toUpperCase()"
+      style="font-family:'JetBrains Mono',monospace;font-size:14px;letter-spacing:1px;margin-bottom:10px"
+      list="pkg-suggestions">
+    <datalist id="pkg-suggestions">
+      ${pkgIds.map(id=>'<option value="'+id+'"></option>').join('')}
+    </datalist>
+    <button onclick="loadPkgComps(document.getElementById('cj-p').value.trim())"
+      style="width:100%;background:var(--blue);color:#fff;border:none;border-radius:8px;padding:11px;font-size:13px;font-weight:600;cursor:pointer">
+      Load Package Equipment →
+    </button>
   </div>
   <div id="pkg-comps"></div>
   <button class="btn primary" id="cj-submit" style="display:none" onclick="submitJobRequest()">Submit for Asset Manager approval</button>
@@ -1507,7 +1592,11 @@ function loadPkgComps(pkgId){
   const pool=window._poolData||{};
   const pkgs=window._pkgData||[];
   const pkg=pkgs.find(p=>p.pkgId===pkgId);
-  if(!pkg){if(el)el.innerHTML='';if(btn)btn.style.display='none';return;}
+  if(!pkg){
+    if(el) el.innerHTML='<div style="padding:12px;color:var(--red);font-size:12px">⚠ Package "'+pkgId+'" not found. Please check the package number.</div>';
+    if(btn) btn.style.display='none';
+    return;
+  }
 
   // Sort CT Unit equipment — Gooseneck after Injector
   const order=['Control Cabin','Power Pack','Injector','Gooseneck','Stripper',
