@@ -1328,19 +1328,105 @@ async function renderJobs(c){
 }
 
 async function renderEq(c){
-  document.getElementById('tb-title').textContent='Equipment';
-  const res=await get({action:'getEquipment',department:USER.department==='All'?'All':USER.department});
-  const eq=res.equipment||[],byType={};
-  eq.forEach(e=>{if(!byType[e.type])byType[e.type]=[];byType[e.type].push(e);});
-  c.innerHTML=Object.entries(byType).map(([type,items])=>`
-    <div class="slbl">${type} (${items.length})</div>
-    <div class="card">${items.map(e=>`
-      <div class="crow nc">
-        <div style="width:8px;height:8px;border-radius:50%;background:${e.status==='Active'?'var(--green)':e.status==='Under MNT'?'var(--amber)':'var(--blue)'};flex-shrink:0"></div>
-        <div class="cb"><div class="ct2">${e.id}</div><div class="cs">${e.location||e.department}</div></div>
+  document.getElementById('tb-title').textContent = USER.role==='Asset Manager' ? 'Pool Management' : 'Equipment';
+
+  if(USER.role === 'Asset Manager'){
+    c.innerHTML = '<div class="loading"><div class="spinner"></div><span>Loading equipment...</span></div>';
+    const res = await get({action:'getEquipment', department:'All'});
+    const eq = (res.equipment||[]);
+    const byType = {};
+    eq.forEach(e=>{
+      if(!byType[e.type]) byType[e.type] = [];
+      byType[e.type].push(e);
+    });
+    const statusColor = {'Active':'g','Reserved':'b','Under MNT':'a','Standby':'gray'};
+    const typeOrder = ['Control Cabin','Power Pack','Injector','Gooseneck','Stripper','Work Reel','BOP','Fluid Pump','Nitrogen Pump','C-Pump','Batch Mixer','Frac Tank','Skid Tank','Acid Transporter','Trailer Mounted','N2 Pump','Tool Box'];
+    const sortedTypes = Object.keys(byType).sort((a,b)=>{
+      const ai=typeOrder.indexOf(a),bi=typeOrder.indexOf(b);
+      return (ai<0?99:ai)-(bi<0?99:bi);
+    });
+    const total=eq.length;
+    const inPool=eq.filter(e=>e.status==='Active').length;
+    const onJob=eq.filter(e=>e.status==='Reserved'||e.status==='On Job').length;
+    const inMnt=eq.filter(e=>e.status==='Under MNT').length;
+
+    c.innerHTML=`
+    <div class="kpi-row" style="grid-template-columns:repeat(3,1fr)">
+      <div class="kpi t"><div class="kpi-lbl">In Pool</div><div class="kpi-val t">${inPool}</div></div>
+      <div class="kpi g"><div class="kpi-lbl">On Job</div><div class="kpi-val g">${onJob}</div></div>
+      <div class="kpi a"><div class="kpi-lbl">Under MNT</div><div class="kpi-val a">${inMnt}</div></div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">
+      <button class="bdg b" onclick="filterEqType('all')" style="cursor:pointer;padding:5px 12px;font-size:11px">All (${total})</button>
+      ${sortedTypes.map(t=>`<button class="bdg gray" onclick="filterEqType('${t}')" style="cursor:pointer;padding:5px 10px;font-size:10px">${t} (${byType[t].length})</button>`).join('')}
+    </div>
+    <div id="eq-list">
+      ${sortedTypes.map(type=>`
+        <div class="eq-type-group" data-type="${type}">
+          <div class="slbl">${type}</div>
+          ${byType[type].map(e=>`
+            <div class="crow" style="padding:10px 13px" id="eqrow-${e.id}">
+              <div class="cb" style="flex:1">
+                <div class="ct2" style="font-family:'JetBrains Mono',monospace">${e.id}</div>
+                <div class="cs">${e.serial||'—'}</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <span class="bdg ${statusColor[e.status]||'gray'}" id="eqbdg-${e.id}">${e.status}</span>
+                ${e.status==='Active'?
+                  `<button onclick="removeFromPool('${e.id}',this)" style="background:var(--red);color:#fff;border:none;border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;font-weight:600">Remove</button>`:
+                  e.status!=='Under MNT'?
+                  `<button onclick="addToPool('${e.id}',this)" style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;font-weight:600">+ Pool</button>`:''}
+              </div>
+            </div>`).join('')}
+        </div>`).join('')}
+    </div>`;
+    return;
+  }
+
+  // Other roles — simple list
+  const res2 = await get({action:'getEquipment', department:USER.department==='All'?'All':USER.department});
+  const eq2 = res2.equipment||[], byType2={};
+  eq2.forEach(e=>{if(!byType2[e.type])byType2[e.type]=[];byType2[e.type].push(e);});
+  c.innerHTML = Object.entries(byType2).map(([type,items])=>`
+    <div class="slbl">${type}</div>
+    <div class="card" style="margin-bottom:10px">
+      ${items.map(e=>`
+      <div class="crow nc" style="padding:10px 13px">
+        <div class="cb"><div class="ct2" style="font-family:'JetBrains Mono',monospace">${e.id}</div><div class="cs">${e.department||'All'}</div></div>
         <span class="bdg ${e.status==='Active'?'g':e.status==='Under MNT'?'a':'b'}">${e.status}</span>
-      </div>`).join('')}</div>`).join('');
+      </div>`).join('')}
+    </div>`).join('');
 }
+
+function filterEqType(type){
+  document.querySelectorAll('[id^="ef-"]').forEach(b=>{b.className='bdg gray';});
+  document.querySelectorAll('.eq-type-group').forEach(g=>{
+    g.style.display=(type==='all'||g.dataset.type===type)?'block':'none';
+  });
+}
+
+async function addToPool(eqId, btn){
+  btn.textContent='...'; btn.disabled=true;
+  const res = await post({action:'setEquipmentStatus', equipmentId:eqId, status:'Active'});
+  if(res.success){
+    document.getElementById('eqbdg-'+eqId).textContent='Active';
+    document.getElementById('eqbdg-'+eqId).className='bdg g';
+    btn.style.background='var(--red)'; btn.textContent='Remove'; btn.disabled=false;
+    btn.setAttribute('onclick', `removeFromPool('${eqId}',this)`);
+  } else { btn.textContent='+ Pool'; btn.disabled=false; alert('Error: '+(res.error||'Unknown')); }
+}
+
+async function removeFromPool(eqId, btn){
+  btn.textContent='...'; btn.disabled=true;
+  const res = await post({action:'setEquipmentStatus', equipmentId:eqId, status:'Standby'});
+  if(res.success){
+    document.getElementById('eqbdg-'+eqId).textContent='Standby';
+    document.getElementById('eqbdg-'+eqId).className='bdg gray';
+    btn.style.background='var(--green)'; btn.textContent='+ Pool'; btn.disabled=false;
+    btn.setAttribute('onclick', `addToPool('${eqId}',this)`);
+  } else { btn.textContent='Remove'; btn.disabled=false; alert('Error: '+(res.error||'Unknown')); }
+}
+
 
 async function renderAlerts(c){
   document.getElementById('tb-title').textContent='Alerts';
@@ -1421,7 +1507,7 @@ function loadPkgComps(pkgId){
   const pool=window._poolData||{};
   const pkg=(window._pkgData||[]).find(p=>p.pkgId===pkgId);
   if(!pkg){if(el)el.innerHTML='';if(btn)btn.style.display='none';return;}
-  const order=['Control Cabin','Power Pack','Injector','Goose Neck','Gooseneck','Stripper','Work Reel','BOP','Fluid Pump','N2 Pump','Tool Box','Toolbox'];
+  const order=['Control Cabin','Power Pack','Injector','Gooseneck','Gooseneck','Stripper','Work Reel','BOP','Fluid Pump','N2 Pump','Tool Box','Toolbox'];
   const sorted=[...pkg.equipment].sort((a,b)=>{
     return (order.indexOf(a.type)<0?99:order.indexOf(a.type))-(order.indexOf(b.type)<0?99:order.indexOf(b.type));
   });
