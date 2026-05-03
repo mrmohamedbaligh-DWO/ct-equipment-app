@@ -731,7 +731,7 @@ async function renderCL(c){
         <div class="upct" style="color:${op>70?'var(--green)':op>50?'var(--amber)':'var(--red)'}">${op}%</div>
       </div>`;}).join('')}
   </div></div>`:''}
-  ${pm.length>0?`<div class="slbl" style="margin-top:4px">PM alerts — contact Asset Manager</div>${pm.map(a=>`<div class="alert ${a.status==='Overdue'?'r':'a'}"><span class="alert-icon">${a.status==='Overdue'?'🔴':'⚠️'}</span><div><strong>${a.equipmentId}</strong> ${a.pmType} — Due ${a.dueDate} — ${a.status==='Overdue'?'OVERDUE':a.daysLeft+' days left'}</div></div>`).join('')}`:''}
+  
   <div class="divider"></div>
   <button class="btn primary" onclick="pushView('create-job',null,'New Job Assignment')">+ New Job Assignment</button>
   <button class="btn ghost" onclick="navTo('jobs')">View all jobs</button>`;
@@ -1465,16 +1465,24 @@ async function renderJobDetail(c,job){
 
 async function renderCreateJob(c){
   document.getElementById('tb-title').textContent='New Job Assignment';
-  c.innerHTML='<div class="loading"><div class="spinner"></div><span>Loading...</span></div>';
-  const [pkgRes,poolRes]=await Promise.all([
-    get({action:'getPackages',department:USER.department}),
-    get({action:'getPool'})
-  ]);
-  const packages=pkgRes.packages||[];
-  const pool=poolRes.pool||{};
-  const pkgIds=[...new Set(packages.filter(p=>!p.busy).map(p=>p.pkgId))].sort();
-  window._pkgData=packages;
-  window._poolData=pool;
+  c.innerHTML='<div class="loading"><div class="spinner"></div><span>Loading pool data...</span></div>';
+
+  const poolRes = await get({action:'getPool'});
+  window._poolData = poolRes.pool||{};
+
+  // CTU to PKG mapping
+  const CTU_PKG = {
+    'CTU-706':'PKG-706','CTU-707':'PKG-707','CTU-709':'PKG-709',
+    'CTU-716':'PKG-716','CTU-718':'PKG-718','CTU-719':'PKG-719',
+    'CTU-720':'PKG-720','CTU-721':'PKG-721','CTU-722':'PKG-722',
+    'CTU-723':'PKG-723','CTU-724':'PKG-724','CTU-725':'PKG-725',
+    'CTU-726':'PKG-726'
+  };
+  const CTU_LIST = ['CTU-706','CTU-707','CTU-709','CTU-716','CTU-718',
+                    'CTU-719','CTU-720','CTU-721','CTU-722','CTU-723',
+                    'CTU-724','CTU-725','CTU-726'];
+  window._CTU_PKG = CTU_PKG;
+
   c.innerHTML=`
   <div class="slbl">Job details</div>
   <div class="card" style="padding:14px;margin-bottom:10px">
@@ -1482,19 +1490,48 @@ async function renderCreateJob(c){
     <div class="fg"><label class="flbl">Rig Number</label><input type="text" class="finput" id="cj-r" placeholder="R-15"></div>
     <div class="fg" style="margin-bottom:0"><label class="flbl">Mobilization Date</label><input type="date" class="finput" id="cj-m"></div>
   </div>
-  <div class="slbl">Select package <span style="font-size:9px;color:var(--green)">(available only)</span></div>
+
+  <div class="slbl">Select package <span style="color:var(--green);font-weight:400">(available only)</span></div>
   <div class="card" style="margin-bottom:10px">
-    <select class="finput" id="cj-p" onchange="loadPkgComps(this.value)" style="border:none;border-radius:0;padding:13px 14px;font-size:13px;cursor:pointer">
+    <select class="finput" id="cj-p" onchange="onCTUSelect(this.value)" style="border:none;border-radius:0;padding:13px 14px;font-size:14px;cursor:pointer;font-family:'JetBrains Mono',monospace">
       <option value="">— Select a package —</option>
-      ${pkgIds.map(id=>'<option value="'+id+'">'+id+'</option>').join('')}
+      ${CTU_LIST.map(ctu=>`<option value="${ctu}">${ctu}</option>`).join('')}
     </select>
   </div>
+
   <div id="pkg-comps"></div>
   <div id="pkg-n2"></div>
-  <button class="btn primary" id="cj-submit" style="display:none" onclick="submitJobRequest()">Submit for Asset Manager approval</button>
+
+  <button class="btn primary" id="cj-submit" style="display:none" onclick="submitJobRequest()">
+    Submit for Asset Manager approval →
+  </button>
   <button class="btn ghost" onclick="goBack()">Cancel</button>`;
-  document.getElementById('cj-m').value=new Date().toISOString().split('T')[0];
+
+  document.getElementById('cj-m').value = new Date().toISOString().split('T')[0];
 }
+
+async function onCTUSelect(ctuId){
+  if(!ctuId) return;
+  const pkgId = (window._CTU_PKG||{})[ctuId];
+  if(!pkgId){ alert('Package not found for '+ctuId); return; }
+
+  // Load package details
+  const el = document.getElementById('pkg-comps');
+  if(el) el.innerHTML='<div class="loading" style="padding:20px"><div class="spinner"></div><span>Loading equipment...</span></div>';
+
+  const pkgRes = await get({action:'getPackages', department:'All'});
+  window._pkgData = pkgRes.packages||[];
+
+  // Find package by pkgId
+  const pkg = (window._pkgData||[]).find(p=>p.pkgId===pkgId);
+  if(!pkg){
+    if(el) el.innerHTML='<div style="padding:12px;color:var(--red);font-size:12px">⚠ Package '+pkgId+' not found.</div>';
+    return;
+  }
+  window._currentPkg = pkg;
+  loadPkgComps(pkgId);
+}
+
 
 function loadPkgComps(pkgId){
   const el=document.getElementById('pkg-comps');
