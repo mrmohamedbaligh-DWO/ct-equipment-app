@@ -1093,7 +1093,7 @@ async function renderFSM(c){
     ${done.map(j=>`<div class="crow nc"><div class="cb"><div class="ct2">${j.jobId} · ${j.wellNumber}</div><div class="cs">${j.mobDate} → ${j.demobDate}</div></div><span class="bdg b">Done</span></div>`).join('')}
     ${done.length===0?'<div class="empty">No completed jobs</div>':''}
   </div></div>
-  ${pm.length>0?`<div class="divider"></div><div class="slbl">PM alerts — ${USER.department}</div>${pm.map(a=>`<div class="alert ${a.status==='Overdue'?'r':'a'}"><span class="alert-icon">${a.status==='Overdue'?'🔴':'⚠️'}</span><div><strong>${a.equipmentId}</strong> ${a.pmType} — <strong>${a.dueDate}</strong> — ${a.status==='Overdue'?'OVERDUE':a.daysLeft+' days'}</div></div>`).join('')}`:''}
+  
   ${(function(){var cy=new Date().getFullYear().toString(),cm=new Date().toISOString().slice(0,7),d2=deptTickets.filter(function(t){return t.status==='Done'&&t.amount>0;}),ay=d2.filter(function(t){return t.ticketDoneDate&&t.ticketDoneDate.slice(0,4)===cy;}).reduce(function(s,t){return s+t.amount;},0),am=d2.filter(function(t){return t.ticketDoneDate&&t.ticketDoneDate.slice(0,7)===cm;}).reduce(function(s,t){return s+t.amount;},0);return d2.length>0?'<div class="divider"></div><div class="slbl">Revenue — '+USER.department+'</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px"><div style="background:var(--green-bg);border:1px solid var(--green-b);border-radius:var(--r);padding:12px"><div style="font-size:9px;color:var(--t3);margin-bottom:3px">THIS MONTH</div><div style="font-size:20px;font-weight:700;color:var(--green)">SAR '+am.toLocaleString()+'</div></div><div style="background:var(--teal-bg);border:1px solid var(--teal-b);border-radius:var(--r);padding:12px"><div style="font-size:9px;color:var(--t3);margin-bottom:3px">THIS YEAR</div><div style="font-size:20px;font-weight:700;color:var(--teal)">SAR '+ay.toLocaleString()+'</div></div></div>':'';})()}
   ${months.length>0?`
   <div class="divider"></div>
@@ -1332,26 +1332,96 @@ async function renderEq(c){
 
   if(USER.role === 'Asset Manager' || USER.role === 'Admin'){
     c.innerHTML = '<div class="loading"><div class="spinner"></div><span>Loading equipment...</span></div>';
-    const res = await get({action:'getEquipment', department:'All'});
-    const eq = (res.equipment||[]);
+
+    // Fetch equipment + running jobs + MNT records together
+    let eqRes={equipment:[]}, jRes={jobs:[]}, mntRes={records:[]};
+    try{
+      [eqRes, jRes, mntRes] = await Promise.all([
+        get({action:'getEquipment', department:'All'}),
+        get({action:'getJobs', department:'All'}),
+        get({action:'getMNT'})
+      ]);
+    }catch(e){ console.error('AM eq fetch error',e); }
+
+    const eq = (eqRes.equipment||[]);
+    const jobs = (jRes.jobs||[]);
+    const mntRecs = (mntRes.records||[]);
+
+    // Build sets for real-time status
+    const onJobIds = new Set();
+    jobs.filter(j=>j.status==='Running'||j.status==='Exemption')
+        .forEach(j=>(j.equipmentList||[]).forEach(id=>onJobIds.add(id)));
+    const mntIds = new Set();
+    mntRecs.filter(m=>m.status==='Under MNT').forEach(m=>mntIds.add(m.equipmentId));
+
+    // Real status for each equipment
+    const getStatus = e => {
+      if(mntIds.has(e.id)) return 'Under MNT';
+      if(onJobIds.has(e.id)) return 'On Job';
+      return e.status==='Active'?'Active':'Standby';
+    };
+
+    const inPool = eq.filter(e=>getStatus(e)==='Active').length;
+    const onJobCount = eq.filter(e=>getStatus(e)==='On Job').length;
+    const inMnt = eq.filter(e=>getStatus(e)==='Under MNT').length;
+    const standby = eq.filter(e=>getStatus(e)==='Standby').length;
+
+    // Equipment lists per status
+    const poolList = eq.filter(e=>getStatus(e)==='Active');
+    const jobList = eq.filter(e=>getStatus(e)==='On Job');
+    const mntList = eq.filter(e=>getStatus(e)==='Under MNT');
+
     const byType = {};
     eq.forEach(e=>{ if(!byType[e.type]) byType[e.type]=[]; byType[e.type].push(e); });
-    const statusColor = {'Active':'g','Reserved':'b','Under MNT':'a','Standby':'gray'};
     const typeOrder = ['Control Cabin','Power Pack','Injector','Gooseneck','Stripper','Work Reel','BOP','Fluid Pump','Nitrogen Pump','C-Pump','Batch Mixer','Frac Tank','Skid Tank','Acid Transporter','Trailer Mounted','N2 Pump','Tool Box'];
     const sortedTypes = Object.keys(byType).sort((a,b)=>{
       const ai=typeOrder.indexOf(a),bi=typeOrder.indexOf(b);
       return (ai<0?99:ai)-(bi<0?99:bi);
     });
-    const inPool=eq.filter(e=>e.status==='Active').length;
-    const onJob=eq.filter(e=>e.status==='Reserved'||e.status==='On Job').length;
-    const inMnt=eq.filter(e=>e.status==='Under MNT').length;
+
+    const statusColor = (e) => {
+      const s = getStatus(e);
+      return s==='Active'?'g': s==='On Job'?'b': s==='Under MNT'?'a':'gray';
+    };
 
     c.innerHTML=`
     <div class="kpi-row" style="grid-template-columns:repeat(3,1fr)">
-      <div class="kpi t"><div class="kpi-lbl">In Pool</div><div class="kpi-val t">${inPool}</div></div>
-      <div class="kpi g"><div class="kpi-lbl">On Job</div><div class="kpi-val g">${onJob}</div></div>
-      <div class="kpi a"><div class="kpi-lbl">Under MNT</div><div class="kpi-val a">${inMnt}</div></div>
+      <div class="kpi g" onclick="toggleKPI('am-pool-list')" style="cursor:pointer">
+        <div class="kpi-lbl">In Pool <span class="kpi-tap">tap ▸</span></div>
+        <div class="kpi-val g">${inPool}</div>
+        <div class="kpi-sub">available</div>
+      </div>
+      <div class="kpi b" onclick="toggleKPI('am-job-list')" style="cursor:pointer">
+        <div class="kpi-lbl">On Job <span class="kpi-tap">tap ▸</span></div>
+        <div class="kpi-val b">${onJobCount}</div>
+        <div class="kpi-sub">running jobs</div>
+      </div>
+      <div class="kpi a" onclick="toggleKPI('am-mnt-list')" style="cursor:pointer">
+        <div class="kpi-lbl">Under MNT <span class="kpi-tap">tap ▸</span></div>
+        <div class="kpi-val a">${inMnt}</div>
+        <div class="kpi-sub">maintenance</div>
+      </div>
     </div>
+
+    <div id="am-pool-list" style="display:none"><div class="expand">
+      <div class="exp-head"><span class="exp-title">In Pool — ${inPool} units</span><span class="exp-close" onclick="toggleKPI('am-pool-list')">close</span></div>
+      ${poolList.map(e=>`<div class="crow nc" style="padding:9px 13px"><div class="cb"><div class="ct2" style="font-family:'JetBrains Mono',monospace">${e.id}</div><div class="cs">${e.type}</div></div><span class="bdg g">Active</span></div>`).join('')}
+      ${poolList.length===0?'<div class="empty">No equipment in pool</div>':''}
+    </div></div>
+
+    <div id="am-job-list" style="display:none"><div class="expand">
+      <div class="exp-head"><span class="exp-title">On Job — ${onJobCount} units</span><span class="exp-close" onclick="toggleKPI('am-job-list')">close</span></div>
+      ${jobList.map(e=>`<div class="crow nc" style="padding:9px 13px"><div class="cb"><div class="ct2" style="font-family:'JetBrains Mono',monospace">${e.id}</div><div class="cs">${e.type}</div></div><span class="bdg b">On Job</span></div>`).join('')}
+      ${jobList.length===0?'<div class="empty">No equipment on job</div>':''}
+    </div></div>
+
+    <div id="am-mnt-list" style="display:none"><div class="expand">
+      <div class="exp-head"><span class="exp-title">Under MNT — ${inMnt} units</span><span class="exp-close" onclick="toggleKPI('am-mnt-list')">close</span></div>
+      ${mntList.map(e=>`<div class="crow nc" style="padding:9px 13px"><div class="cb"><div class="ct2" style="font-family:'JetBrains Mono',monospace">${e.id}</div><div class="cs">${e.type}</div></div><span class="bdg a">Under MNT</span></div>`).join('')}
+      ${mntList.length===0?'<div class="empty">No equipment under MNT</div>':''}
+    </div></div>
+
+    <div class="divider"></div>
     <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">
       <button class="bdg b" onclick="filterEqType('all')" style="cursor:pointer;padding:5px 12px;font-size:11px">All (${eq.length})</button>
       ${sortedTypes.map(t=>`<button class="bdg gray" onclick="filterEqType('${t}')" style="cursor:pointer;padding:5px 10px;font-size:10px">${t} (${byType[t].length})</button>`).join('')}
@@ -1360,20 +1430,23 @@ async function renderEq(c){
       ${sortedTypes.map(type=>`
         <div class="eq-type-group" data-type="${type}">
           <div class="slbl">${type}</div>
-          ${byType[type].map(e=>`
-            <div class="crow" style="padding:10px 13px" id="eqrow-${e.id}">
+          ${byType[type].map(e=>{
+            const st=getStatus(e);
+            const sc=st==='Active'?'g':st==='On Job'?'b':st==='Under MNT'?'a':'gray';
+            return `<div class="crow" style="padding:10px 13px" id="eqrow-${e.id}">
               <div class="cb" style="flex:1">
                 <div class="ct2" style="font-family:'JetBrains Mono',monospace">${e.id}</div>
-                <div class="cs">${e.serial||'--'}</div>
+                <div class="cs">${e.type} · ${e.serial||'—'}</div>
               </div>
               <div style="display:flex;align-items:center;gap:8px">
-                <span class="bdg ${statusColor[e.status]||'gray'}" id="eqbdg-${e.id}">${e.status}</span>
-                ${e.status==='Active'?
+                <span class="bdg ${sc}" id="eqbdg-${e.id}">${st}</span>
+                ${st==='Active'?
                   `<button onclick="removeFromPool('${e.id}',this)" style="background:var(--red);color:#fff;border:none;border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;font-weight:600">Remove</button>`:
-                  e.status!=='Under MNT'?
+                  st==='Standby'?
                   `<button onclick="addToPool('${e.id}',this)" style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;font-weight:600">+ Pool</button>`:''}
               </div>
-            </div>`).join('')}
+            </div>`;
+          }).join('')}
         </div>`).join('')}
     </div>`;
     return;
@@ -1544,19 +1617,76 @@ function loadPkgComps(pkgId){
   const sorted=[...pkg.equipment].sort((a,b)=>{
     return (order.indexOf(a.type)<0?99:order.indexOf(a.type))-(order.indexOf(b.type)<0?99:order.indexOf(b.type));
   });
-  const typeCnt={};sorted.forEach(e=>{typeCnt[e.type]=(typeCnt[e.type]||0)+1;});
-  const typeIdx={};
-  let rows='';
+  // Types that use quantity selector (not fixed default)
+  const QTY_TYPES = ['BOP','Work Reel','Fluid Pump'];
+  // Types that are pool-only dropdowns (no default)
+  const POOL_ONLY = ['Gooseneck'];
+  // Types that keep default equipment
+  const DEFAULT_TYPES = ['Control Cabin','Power Pack','Injector','Stripper','N2 Pump','Tool Box'];
+
+  // Group equipment by type for qty selectors
+  const typeGroups = {};
   sorted.forEach(eq=>{
-    typeIdx[eq.type]=(typeIdx[eq.type]||0)+1;
-    const idx=typeIdx[eq.type];
-    const cnt=typeCnt[eq.type];
-    const selId='eq-sel-'+eq.type.replace(/[^a-zA-Z0-9]/g,'')+idx;
-    const poolItems=(pool[eq.type]||[]).filter(p=>p.id!==eq.equipmentId);
-    const label=eq.type+(cnt>1?' '+idx:'');
-    rows+='<div style="padding:9px 13px;border-bottom:1px solid var(--border)"><div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="font-size:11px;font-weight:600;color:var(--t1)">'+label+'</span><span style="font-size:10px;color:var(--t2);font-family:monospace">'+eq.equipmentId+'</span></div><select class="finput" id="'+selId+'" style="font-size:12px;padding:8px 10px;cursor:pointer"><option value="'+eq.equipmentId+'">'+eq.equipmentId+' (default)</option>'+poolItems.map(p=>'<option value="'+p.id+'">'+p.id+' (pool)</option>').join('')+'<option value="__EMPTY__">— Leave empty —</option></select></div>';
+    if(!typeGroups[eq.type]) typeGroups[eq.type]=[];
+    typeGroups[eq.type].push(eq);
+  });
+
+  // Build rows — one section per type
+  const seenTypes = new Set();
+  let rows = '';
+  sorted.forEach(eq=>{
+    if(seenTypes.has(eq.type)) return; // handled below
+    seenTypes.add(eq.type);
+    const poolItems = pool[eq.type]||[];
+    const pkgEqs = typeGroups[eq.type]||[];
+
+    if(QTY_TYPES.includes(eq.type)){
+      // Quantity selector → dynamically show dropdowns
+      const maxQty = pkgEqs.length;
+      rows += '<div style="padding:10px 13px;border-bottom:1px solid var(--border)">'
+        +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
+        +'<span style="font-size:12px;font-weight:600;color:var(--t1)">'+eq.type+'</span>'
+        +'<div style="display:flex;align-items:center;gap:8px"><span style="font-size:11px;color:var(--t2)">How many?</span>'
+        +'<select class="finput" id="qty-'+key+'" onchange="updateQtySlots(this.dataset.type)" data-type="'+eq.type+'" style="width:70px;padding:6px 8px;font-size:13px;cursor:pointer">'
+        +[0,...Array.from({length:maxQty},(_,i)=>i+1)].map(n=>'<option value="'+n+'"'+(n===maxQty?' selected':'')+'>'+n+'</option>').join('')
+        +'</select></div></div>'
+        +'<div id="qty-slots-'+eq.type.replace(/[^a-zA-Z0-9]/g,'')+'"></div></div>';
+    } else if(POOL_ONLY.includes(eq.type)){
+      // Pool-only dropdown — no default, pick from pool
+      const allPool = poolItems.filter(p=>true);
+      rows += '<div style="padding:10px 13px;border-bottom:1px solid var(--border)">'
+        +'<div style="display:flex;justify-content:space-between;margin-bottom:5px">'
+        +'<span style="font-size:11px;font-weight:600;color:var(--t1)">'+eq.type+'</span>'
+        +'<span style="font-size:10px;color:var(--t2);font-family:monospace">from pool</span></div>'
+        +'<select class="finput" id="pool-sel-'+eq.type.replace(/[^a-zA-Z0-9]/g,'')+'" style="font-size:12px;padding:8px 10px;cursor:pointer">'
+        +'<option value="">— Select '+eq.type+' —</option>'
+        +allPool.map(p=>'<option value="'+p.id+'">'+p.id+'</option>').join('')
+        +'<option value="__EMPTY__">— Not needed —</option>'
+        +'</select></div>';
+    } else {
+      // Default equipment with pool swap option
+      pkgEqs.forEach((deq,i)=>{
+        const dPoolItems = poolItems.filter(p=>p.id!==deq.equipmentId);
+        const label = eq.type + (pkgEqs.length>1?' '+(i+1):'');
+        const selId = 'eq-sel-'+deq.type.replace(/[^a-zA-Z0-9]/g,'')+(i+1);
+        rows += '<div style="padding:9px 13px;border-bottom:1px solid var(--border)">'
+          +'<div style="display:flex;justify-content:space-between;margin-bottom:5px">'
+          +'<span style="font-size:11px;font-weight:600;color:var(--t1)">'+label+'</span>'
+          +'<span style="font-size:10px;color:var(--t2);font-family:monospace">'+deq.equipmentId+'</span></div>'
+          +'<select class="finput" id="'+selId+'" style="font-size:12px;padding:8px 10px;cursor:pointer">'
+          +'<option value="'+deq.equipmentId+'">'+deq.equipmentId+' (default)</option>'
+          +dPoolItems.map(p=>'<option value="'+p.id+'">'+p.id+' (pool)</option>').join('')
+          +'<option value="__EMPTY__">— Leave empty —</option>'
+          +'</select></div>';
+      });
+    }
   });
   el.innerHTML='<div class="slbl" style="margin-bottom:8px">Package equipment</div><div class="card" style="margin-bottom:10px">'+rows+'</div>';
+  window._currentPkgEquipment=sorted;
+  window._currentPkg=pkg;
+  window._typeGroups=typeGroups;
+  // Initialize qty slots for QTY_TYPES
+  ['BOP','Work Reel','Fluid Pump'].forEach(t=>updateQtySlots(t));
   window._currentPkgEquipment=sorted;
   window._currentPkg=pkg;
 
@@ -1605,6 +1735,25 @@ function loadPkgComps(pkgId){
 
   if(btn)btn.style.display='flex';
   if(window._editReq&&btn){btn.textContent='Resubmit for approval';btn.onclick=submitResubmit;}
+}
+
+function updateQtySlots(typeOrEl){
+  const type = typeof typeOrEl==='string'?typeOrEl:(typeOrEl&&typeOrEl.dataset?typeOrEl.dataset.type:typeOrEl);
+  const key = type.replace(/[^a-zA-Z0-9]/g,'');
+  const qty = parseInt((document.getElementById('qty-'+key)||{value:'0'}).value)||0;
+  const pool = window._poolData||{};
+  const poolItems = pool[type]||[];
+  const container = document.getElementById('qty-slots-'+key);
+  if(!container) return;
+  let html = '';
+  for(let i=1;i<=qty;i++){
+    html += '<div style="margin-bottom:6px">'
+      +'<select class="finput" id="qty-sel-'+key+'-'+i+'" style="font-size:12px;padding:8px 10px;cursor:pointer">'
+      +'<option value="">— Select '+type+' —</option>'
+      +poolItems.map(p=>'<option value="'+p.id+'">'+p.id+'</option>').join('')
+      +'</select></div>';
+  }
+  container.innerHTML = html;
 }
 
 function updateN2Slots(){
@@ -2050,6 +2199,17 @@ async function submitJobRequest(){
     return val === '__EMPTY__' ? null : val;
   }).filter(Boolean);
 
+  // Collect BOP / Work Reel / Fluid Pump from qty selectors
+  ['BOP','WorkReel','FluidPump'].forEach(key=>{
+    const qty=parseInt((document.getElementById('qty-'+key)||{value:'0'}).value)||0;
+    for(let i=1;i<=qty;i++){
+      const sel=document.getElementById('qty-sel-'+key+'-'+i);
+      if(sel&&sel.value) selectedEq.push(sel.value);
+    }
+  });
+  // Collect Gooseneck from pool-only selector
+  const gkSel=document.getElementById('pool-sel-Gooseneck');
+  if(gkSel&&gkSel.value&&gkSel.value!=='__EMPTY__') selectedEq.push(gkSel.value);
   // Collect Nitrogen Units
   const n2Qty=parseInt((document.getElementById('n2-qty')||{value:'0'}).value)||0;
   for(let i=1;i<=n2Qty;i++){
