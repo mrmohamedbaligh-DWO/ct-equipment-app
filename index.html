@@ -1333,38 +1333,25 @@ async function renderEq(c){
   if(USER.role === 'Asset Manager' || USER.role === 'Admin'){
     c.innerHTML = '<div class="loading"><div class="spinner"></div><span>Loading equipment...</span></div>';
 
-    // Fetch equipment + running jobs + MNT records together
-    let eqRes={equipment:[]}, jRes={jobs:[]}, mntRes={records:[]};
+    // Fetch equipment directly — status in Equipment_Master is always up-to-date
+    let eqRes={equipment:[]};
     try{
-      [eqRes, jRes, mntRes] = await Promise.all([
-        get({action:'getEquipment', department:'All'}),
-        get({action:'getJobs', department:'All'}),
-        get({action:'getMNT'})
-      ]);
+      eqRes = await get({action:'getEquipment', department:'All'}, true); // force refresh
     }catch(e){ console.error('AM eq fetch error',e); }
 
     const eq = (eqRes.equipment||[]);
-    const jobs = (jRes.jobs||[]);
-    const mntRecs = (mntRes.records||[]);
 
-    // Build sets for real-time status
-    const onJobIds = new Set();
-    jobs.filter(j=>j.status==='Running'||j.status==='Exemption')
-        .forEach(j=>(j.equipmentList||[]).forEach(id=>onJobIds.add(id)));
-    const mntIds = new Set();
-    mntRecs.filter(m=>m.status==='Under MNT').forEach(m=>mntIds.add(m.equipmentId));
-
-    // Real status for each equipment
+    // Status comes directly from Equipment_Master — always accurate
     const getStatus = e => {
-      if(mntIds.has(e.id)) return 'Under MNT';
-      if(onJobIds.has(e.id)) return 'On Job';
-      return e.status==='Active'?'Active':'Standby';
+      if(e.status==='Under MNT') return 'Under MNT';
+      if(e.status==='On Job'||e.status==='Reserved') return 'On Job';
+      if(e.status==='Active') return 'Active';
+      return 'Standby';
     };
 
     const inPool = eq.filter(e=>getStatus(e)==='Active').length;
     const onJobCount = eq.filter(e=>getStatus(e)==='On Job').length;
     const inMnt = eq.filter(e=>getStatus(e)==='Under MNT').length;
-    const standby = eq.filter(e=>getStatus(e)==='Standby').length;
 
     // Equipment lists per status
     const poolList = eq.filter(e=>getStatus(e)==='Active');
@@ -1592,13 +1579,24 @@ async function onCTUSelect(ctuId){
   const el = document.getElementById('pkg-comps');
   if(el) el.innerHTML='<div class="loading" style="padding:20px"><div class="spinner"></div><span>Loading equipment...</span></div>';
 
-  const pkgRes = await get({action:'getPackages', department:'All'});
+  // Fetch pool and packages in parallel
+  const [pkgRes, poolRes] = await Promise.all([
+    get({action:'getPackages', department:'All'}),
+    get({action:'getPool'})
+  ]);
   window._pkgData = pkgRes.packages||[];
+  window._poolData = poolRes.pool||{};
 
-  // Find package by pkgId
-  const pkg = (window._pkgData||[]).find(p=>p.pkgId===pkgId);
+  // Find package — try pkgId directly then try matching CTU number
+  let pkg = (window._pkgData||[]).find(p=>p.pkgId===pkgId);
   if(!pkg){
-    if(el) el.innerHTML='<div style="padding:12px;color:var(--red);font-size:12px">⚠ Package '+pkgId+' not found.</div>';
+    // Try matching by CTU number (e.g. ctuId=CTU-719, pkgId=PKG-719)
+    pkg = (window._pkgData||[]).find(p=>p.ctuNumber===ctuId||p.pkgId===pkgId);
+  }
+  if(!pkg){
+    // Build minimal package from CTU if not in Package_Details
+    if(el) el.innerHTML='<div style="padding:12px;color:var(--amber);font-size:12px">⚠ Package '+pkgId+' not found in Package_Details sheet. Please check Google Sheet.</div>';
+    console.log('Available packages:', (window._pkgData||[]).map(p=>p.pkgId));
     return;
   }
   window._currentPkg = pkg;
