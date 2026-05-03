@@ -1333,18 +1333,53 @@ async function renderEq(c){
   if(USER.role === 'Asset Manager' || USER.role === 'Admin'){
     c.innerHTML = '<div class="loading"><div class="spinner"></div><span>Loading equipment...</span></div>';
 
-    // Fetch equipment directly — status in Equipment_Master is always up-to-date
-    let eqRes={equipment:[]};
+    // Fetch all data in parallel
+    let eqRes={equipment:[]}, jRes={jobs:[]}, mntRes={records:[]}, pkgRes={packages:[]};
     try{
-      eqRes = await get({action:'getEquipment', department:'All'}, true); // force refresh
+      [eqRes, jRes, mntRes, pkgRes] = await Promise.all([
+        get({action:'getEquipment', department:'All'}, true),
+        get({action:'getJobs', department:'All'}, true),
+        get({action:'getMNT'}, true),
+        get({action:'getPackages', department:'All'}, true)
+      ]);
     }catch(e){ console.error('AM eq fetch error',e); }
 
     const eq = (eqRes.equipment||[]);
+    const runningJobs = (jRes.jobs||[]).filter(j=>j.status==='Running'||j.status==='Exemption');
+    const mntRecs = (mntRes.records||[]);
+    const pkgs = (pkgRes.packages||[]);
 
-    // Status comes directly from Equipment_Master — always accurate
+    // Build package → equipment map
+    const pkgEqMap = {};
+    pkgs.forEach(p=>{
+      (p.equipment||[]).forEach(e=>{ pkgEqMap[e.equipmentId]=true; });
+    });
+
+    // Equipment on running jobs — from Package_Details cross-reference
+    const onJobEqIds = new Set();
+    runningJobs.forEach(j=>{
+      // equipmentList from job record
+      if(j.equipmentList && j.equipmentList.length){
+        j.equipmentList.forEach(id=>onJobEqIds.add(id));
+      } else {
+        // Fallback: find package and add its equipment
+        const pkgId = j.packageId ? j.packageId.replace('CTU-','PKG-') : '';
+        const pkg = pkgs.find(p=>p.pkgId===pkgId||p.ctuNumber===j.packageId);
+        if(pkg) (pkg.equipment||[]).forEach(e=>onJobEqIds.add(e.equipmentId));
+      }
+    });
+
+    // MNT equipment
+    const mntEqIds = new Set(
+      mntRecs.filter(m=>m.status==='Under MNT').map(m=>m.equipmentId)
+    );
+
+    // Real status — priority: MNT > On Job > Sheet status
     const getStatus = e => {
-      if(e.status==='Under MNT') return 'Under MNT';
-      if(e.status==='On Job'||e.status==='Reserved') return 'On Job';
+      if(mntEqIds.has(e.id)) return 'Under MNT';
+      if(onJobEqIds.has(e.id)) return 'On Job';
+      if(e.status==='Reserved') return 'On Job';
+      if(e.status==='On Job') return 'On Job';
       if(e.status==='Active') return 'Active';
       return 'Standby';
     };
@@ -1353,7 +1388,6 @@ async function renderEq(c){
     const onJobCount = eq.filter(e=>getStatus(e)==='On Job').length;
     const inMnt = eq.filter(e=>getStatus(e)==='Under MNT').length;
 
-    // Equipment lists per status
     const poolList = eq.filter(e=>getStatus(e)==='Active');
     const jobList = eq.filter(e=>getStatus(e)==='On Job');
     const mntList = eq.filter(e=>getStatus(e)==='Under MNT');
@@ -1587,16 +1621,19 @@ async function onCTUSelect(ctuId){
   window._pkgData = pkgRes.packages||[];
   window._poolData = poolRes.pool||{};
 
-  // Find package — try pkgId directly then try matching CTU number
-  let pkg = (window._pkgData||[]).find(p=>p.pkgId===pkgId);
+  // Find package — try multiple matches
+  let pkg = (window._pkgData||[]).find(p=>
+    p.pkgId===pkgId ||           // PKG-706 = PKG-706
+    p.ctuNumber===ctuId ||       // ctuNumber = CTU-706
+    p.pkgId===ctuId ||           // pkgId = CTU-706 (if stored as CTU)
+    p.ctuNumber===pkgId          // ctuNumber = PKG-706
+  );
   if(!pkg){
-    // Try matching by CTU number (e.g. ctuId=CTU-719, pkgId=PKG-719)
-    pkg = (window._pkgData||[]).find(p=>p.ctuNumber===ctuId||p.pkgId===pkgId);
-  }
-  if(!pkg){
-    // Build minimal package from CTU if not in Package_Details
-    if(el) el.innerHTML='<div style="padding:12px;color:var(--amber);font-size:12px">⚠ Package '+pkgId+' not found in Package_Details sheet. Please check Google Sheet.</div>';
-    console.log('Available packages:', (window._pkgData||[]).map(p=>p.pkgId));
+    if(el) el.innerHTML=`<div style="padding:12px;color:var(--amber);font-size:12px">
+      ⚠ Package ${pkgId} not found.<br>
+      <small style="color:var(--t3)">Available: ${(window._pkgData||[]).map(p=>p.pkgId+' ('+p.ctuNumber+')').join(', ')}</small>
+    </div>`;
+    console.log('CTU:',ctuId,'PKG:',pkgId,'Available:',(window._pkgData||[]).map(p=>({pkgId:p.pkgId,ctu:p.ctuNumber})));
     return;
   }
   window._currentPkg = pkg;
