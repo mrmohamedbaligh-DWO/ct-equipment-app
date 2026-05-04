@@ -1606,171 +1606,143 @@ async function renderCreateJob(c){
 
 async function onCTUSelect(ctuId){
   if(!ctuId) return;
-  const pkgId = (window._CTU_PKG||{})[ctuId];
-  if(!pkgId){ alert('Package not found for '+ctuId); return; }
-
-  // Load package details
   const el = document.getElementById('pkg-comps');
-  if(el) el.innerHTML='<div class="loading" style="padding:20px"><div class="spinner"></div><span>Loading equipment...</span></div>';
+  const n2el = document.getElementById('pkg-n2');
+  const btn = document.getElementById('cj-submit');
+  if(el) el.innerHTML='<div class="loading" style="padding:20px"><div class="spinner"></div><span>Loading pool equipment...</span></div>';
+  if(n2el) n2el.innerHTML='';
+  if(btn) btn.style.display='none';
 
-  // Fetch pool and packages in parallel
-  const [pkgRes, poolRes] = await Promise.all([
-    get({action:'getPackages', department:'All'}),
-    get({action:'getPool'})
-  ]);
-  window._pkgData = pkgRes.packages||[];
+  // Get pool data fresh — no Package_Details needed!
+  const poolRes = await get({action:'getPool'}, true);
   window._poolData = poolRes.pool||{};
+  window._selectedCTU = ctuId;
 
-  // Find package — try multiple matches
-  let pkg = (window._pkgData||[]).find(p=>
-    p.pkgId===pkgId ||           // PKG-706 = PKG-706
-    p.ctuNumber===ctuId ||       // ctuNumber = CTU-706
-    p.pkgId===ctuId ||           // pkgId = CTU-706 (if stored as CTU)
-    p.ctuNumber===pkgId          // ctuNumber = PKG-706
-  );
-  if(!pkg){
-    if(el) el.innerHTML=`<div style="padding:12px;color:var(--amber);font-size:12px">
-      ⚠ Package ${pkgId} not found.<br>
-      <small style="color:var(--t3)">Available: ${(window._pkgData||[]).map(p=>p.pkgId+' ('+p.ctuNumber+')').join(', ')}</small>
-    </div>`;
-    console.log('CTU:',ctuId,'PKG:',pkgId,'Available:',(window._pkgData||[]).map(p=>({pkgId:p.pkgId,ctu:p.ctuNumber})));
-    return;
-  }
-  window._currentPkg = pkg;
-  loadPkgComps(pkgId);
+  buildJobForm(ctuId, window._poolData);
 }
 
+function buildJobForm(ctuId, pool){
+  const el = document.getElementById('pkg-comps');
+  const n2el = document.getElementById('pkg-n2');
+  const btn = document.getElementById('cj-submit');
+  if(!el) return;
 
-function loadPkgComps(pkgId){
-  const el=document.getElementById('pkg-comps');
-  const btn=document.getElementById('cj-submit');
-  if(!pkgId){if(el)el.innerHTML='';if(btn)btn.style.display='none';return;}
-  const pool=window._poolData||{};
-  const pkg=(window._pkgData||[]).find(p=>p.pkgId===pkgId);
-  if(!pkg){if(el)el.innerHTML='';if(btn)btn.style.display='none';return;}
-  const order=['Control Cabin','Power Pack','Injector','Gooseneck','Gooseneck','Stripper','Work Reel','BOP','Fluid Pump','N2 Pump','Tool Box','Toolbox'];
-  const sorted=[...pkg.equipment].sort((a,b)=>{
-    return (order.indexOf(a.type)<0?99:order.indexOf(a.type))-(order.indexOf(b.type)<0?99:order.indexOf(b.type));
+  // Equipment types in order
+  const SINGLE_TYPES = ['Control Cabin','Power Pack','Injector','Gooseneck','Stripper'];
+  const QTY_TYPES = ['Work Reel','BOP','Fluid Pump'];
+
+  // Build single-select rows (1 dropdown per type)
+  let singleRows = '';
+  SINGLE_TYPES.forEach(type=>{
+    const items = pool[type]||[];
+    const key = type.replace(/[^a-zA-Z0-9]/g,'');
+    singleRows += `
+    <div style="padding:10px 13px;border-bottom:1px solid var(--border)">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+        <span style="font-size:12px;font-weight:600;color:var(--t1)">${type}</span>
+        <span style="font-size:10px;color:var(--t2)">${items.length} available</span>
+      </div>
+      <select class="finput" id="single-sel-${key}" style="font-size:12px;padding:8px 10px;cursor:pointer">
+        <option value="">— Select ${type} —</option>
+        ${items.map(p=>`<option value="${p.id}">${p.id}</option>`).join('')}
+      </select>
+    </div>`;
   });
-  // Types that use quantity selector (not fixed default)
-  const QTY_TYPES = ['BOP','Work Reel','Fluid Pump'];
-  // Types that are pool-only dropdowns (no default)
-  const POOL_ONLY = ['Gooseneck'];
-  // Types that keep default equipment
-  const DEFAULT_TYPES = ['Control Cabin','Power Pack','Injector','Stripper','N2 Pump','Tool Box'];
 
-  // Group equipment by type for qty selectors
-  const typeGroups = {};
-  sorted.forEach(eq=>{
-    if(!typeGroups[eq.type]) typeGroups[eq.type]=[];
-    typeGroups[eq.type].push(eq);
+  // Build qty-selector rows (BOP / Work Reel / Fluid Pump)
+  let qtyRows = '';
+  QTY_TYPES.forEach(type=>{
+    const items = pool[type]||[];
+    const key = type.replace(/[^a-zA-Z0-9]/g,'');
+    const maxQty = Math.min(items.length, type==='BOP'?3:type==='Work Reel'?2:3);
+    qtyRows += `
+    <div style="padding:10px 13px;border-bottom:1px solid var(--border)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <span style="font-size:12px;font-weight:600;color:var(--t1)">${type}</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:11px;color:var(--t2)">How many?</span>
+          <select class="finput" id="qty-${key}" data-type="${type}"
+            onchange="updateQtySlots(this.dataset.type)"
+            style="width:70px;padding:6px 8px;font-size:13px;cursor:pointer">
+            ${Array.from({length:maxQty+1},(_,i)=>
+              `<option value="${i}"${i===maxQty?' selected':''}>${i}</option>`
+            ).join('')}
+          </select>
+        </div>
+      </div>
+      <div id="qty-slots-${key}"></div>
+    </div>`;
   });
 
-  // Build rows — one section per type
-  const seenTypes = new Set();
-  let rows = '';
-  sorted.forEach(eq=>{
-    if(seenTypes.has(eq.type)) return; // handled below
-    seenTypes.add(eq.type);
-    const poolItems = pool[eq.type]||[];
-    const pkgEqs = typeGroups[eq.type]||[];
+  el.innerHTML = `
+  <div class="slbl" style="margin-bottom:8px">CTU equipment — ${ctuId}</div>
+  <div class="card" style="margin-bottom:10px">
+    ${singleRows}
+    ${qtyRows}
+  </div>`;
 
-    if(QTY_TYPES.includes(eq.type)){
-      // Quantity selector → dynamically show dropdowns
-      const maxQty = pkgEqs.length;
-      rows += '<div style="padding:10px 13px;border-bottom:1px solid var(--border)">'
-        +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
-        +'<span style="font-size:12px;font-weight:600;color:var(--t1)">'+eq.type+'</span>'
-        +'<div style="display:flex;align-items:center;gap:8px"><span style="font-size:11px;color:var(--t2)">How many?</span>'
-        +'<select class="finput" id="qty-'+key+'" onchange="updateQtySlots(this.dataset.type)" data-type="'+eq.type+'" style="width:70px;padding:6px 8px;font-size:13px;cursor:pointer">'
-        +[0,...Array.from({length:maxQty},(_,i)=>i+1)].map(n=>'<option value="'+n+'"'+(n===maxQty?' selected':'')+'>'+n+'</option>').join('')
-        +'</select></div></div>'
-        +'<div id="qty-slots-'+eq.type.replace(/[^a-zA-Z0-9]/g,'')+'"></div></div>';
-    } else if(POOL_ONLY.includes(eq.type)){
-      // Pool-only dropdown — no default, pick from pool
-      const allPool = poolItems.filter(p=>true);
-      rows += '<div style="padding:10px 13px;border-bottom:1px solid var(--border)">'
-        +'<div style="display:flex;justify-content:space-between;margin-bottom:5px">'
-        +'<span style="font-size:11px;font-weight:600;color:var(--t1)">'+eq.type+'</span>'
-        +'<span style="font-size:10px;color:var(--t2);font-family:monospace">from pool</span></div>'
-        +'<select class="finput" id="pool-sel-'+eq.type.replace(/[^a-zA-Z0-9]/g,'')+'" style="font-size:12px;padding:8px 10px;cursor:pointer">'
-        +'<option value="">— Select '+eq.type+' —</option>'
-        +allPool.map(p=>'<option value="'+p.id+'">'+p.id+'</option>').join('')
-        +'<option value="__EMPTY__">— Not needed —</option>'
-        +'</select></div>';
-    } else {
-      // Default equipment with pool swap option
-      pkgEqs.forEach((deq,i)=>{
-        const dPoolItems = poolItems.filter(p=>p.id!==deq.equipmentId);
-        const label = eq.type + (pkgEqs.length>1?' '+(i+1):'');
-        const selId = 'eq-sel-'+deq.type.replace(/[^a-zA-Z0-9]/g,'')+(i+1);
-        rows += '<div style="padding:9px 13px;border-bottom:1px solid var(--border)">'
-          +'<div style="display:flex;justify-content:space-between;margin-bottom:5px">'
-          +'<span style="font-size:11px;font-weight:600;color:var(--t1)">'+label+'</span>'
-          +'<span style="font-size:10px;color:var(--t2);font-family:monospace">'+deq.equipmentId+'</span></div>'
-          +'<select class="finput" id="'+selId+'" style="font-size:12px;padding:8px 10px;cursor:pointer">'
-          +'<option value="'+deq.equipmentId+'">'+deq.equipmentId+' (default)</option>'
-          +dPoolItems.map(p=>'<option value="'+p.id+'">'+p.id+' (pool)</option>').join('')
-          +'<option value="__EMPTY__">— Leave empty —</option>'
-          +'</select></div>';
-      });
-    }
-  });
-  el.innerHTML='<div class="slbl" style="margin-bottom:8px">Package equipment</div><div class="card" style="margin-bottom:10px">'+rows+'</div>';
-  window._currentPkgEquipment=sorted;
-  window._currentPkg=pkg;
-  window._typeGroups=typeGroups;
-  // Initialize qty slots for QTY_TYPES
-  ['BOP','Work Reel','Fluid Pump'].forEach(t=>updateQtySlots(t));
-  window._currentPkgEquipment=sorted;
-  window._currentPkg=pkg;
+  // Initialize qty slots with default quantities
+  QTY_TYPES.forEach(t=>updateQtySlots(t));
 
-  // Nitrogen Unit section
-  const n2Div=document.getElementById('pkg-n2');
-  if(n2Div){
-    const n2Pool=pool['Nitrogen Pump']||[];
-    n2Div.innerHTML=`
-    <div class="slbl" style="margin-top:4px">Nitrogen Unit</div>
+  // Nitrogen + Aux section
+  const n2Pool = pool['Nitrogen Pump']||[];
+  if(n2el){
+    n2el.innerHTML = `
+    <div class="slbl" style="margin-bottom:8px">Nitrogen Unit</div>
     <div class="card" style="margin-bottom:12px;padding:12px 13px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
         <span style="font-size:12px;font-weight:600;color:var(--t1)">How many Nitrogen Units?</span>
-        <select class="finput" id="n2-qty" onchange="updateN2Slots()" style="width:80px;padding:6px 8px;font-size:13px;cursor:pointer">
-          <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option>
+        <select class="finput" id="n2-qty" onchange="updateN2Slots()"
+          style="width:80px;padding:6px 8px;font-size:13px;cursor:pointer">
+          <option value="0">0</option><option value="1">1</option>
+          <option value="2">2</option><option value="3">3</option>
         </select>
       </div>
       <div id="n2-slots"></div>
     </div>
-    <div class="slbl">Auxiliary Equipment</div>
+
+    <div class="slbl" style="margin-bottom:8px">Auxiliary Equipment</div>
     <div class="card" style="margin-bottom:12px;padding:12px 13px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
         <span style="font-size:13px;font-weight:600;color:var(--t1)">Include Aux Equipment?</span>
         <div style="display:flex;gap:8px">
-          <button id="aux-yes" onclick="toggleAux(true)" style="padding:7px 18px;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;background:var(--s3);color:var(--t2)">YES</button>
-          <button id="aux-no" onclick="toggleAux(false)" style="padding:7px 18px;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;background:var(--blue);color:#fff">NO</button>
+          <button id="aux-yes" onclick="toggleAux(true)"
+            style="padding:7px 18px;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;background:var(--s3);color:var(--t2)">YES</button>
+          <button id="aux-no" onclick="toggleAux(false)"
+            style="padding:7px 18px;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;background:var(--blue);color:#fff">NO</button>
         </div>
       </div>
       <div id="aux-list" style="display:none">
-        ${['C-Pump','Batch Mixer','Frac Tank','Skid Tank','Acid Transporter','Trailer Mounted'].map(t=>`
-          <div style="border-top:1px solid var(--border);padding:10px 0">
+        ${['C-Pump','Batch Mixer','Frac Tank','Skid Tank','Acid Transporter','Trailer Mounted'].map(t=>{
+          const k=t.replace(/[^a-zA-Z0-9]/g,'');
+          const avail=(pool[t]||[]).length;
+          return `<div style="border-top:1px solid var(--border);padding:10px 0">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-              <span style="font-size:12px;font-weight:600;color:var(--t1)">${t}</span>
+              <span style="font-size:12px;font-weight:600;color:var(--t1)">${t} <span style="color:var(--t3);font-weight:400">(${avail} avail)</span></span>
               <div style="display:flex;align-items:center;gap:8px">
                 <span style="font-size:11px;color:var(--t2)">Qty:</span>
-                <select class="finput" id="aux-qty-${t.replace(/[^a-zA-Z0-9]/g,'')}" onchange="updateAuxSlots('${t}')"
+                <select class="finput" id="aux-qty-${k}" onchange="updateAuxSlots('${t}')"
                   style="width:70px;padding:6px 8px;font-size:13px;cursor:pointer">
-                  <option value="0">0</option>${[1,2,3,4,5,6,7,8].map(n=>`<option value="${n}">${n}</option>`).join('')}
+                  ${Array.from({length:Math.min(avail,8)+1},(_,i)=>`<option value="${i}">${i}</option>`).join('')}
                 </select>
               </div>
             </div>
-            <div id="aux-slots-${t.replace(/[^a-zA-Z0-9]/g,'')}"></div>
-          </div>`).join('')}
+            <div id="aux-slots-${k}"></div>
+          </div>`;
+        }).join('')}
       </div>
     </div>`;
   }
 
-  if(btn)btn.style.display='flex';
-  if(window._editReq&&btn){btn.textContent='Resubmit for approval';btn.onclick=submitResubmit;}
+  if(btn) btn.style.display='flex';
+  window._currentCTU = ctuId;
 }
+
+function loadPkgComps(pkgId){
+  // Legacy — now we use buildJobForm directly
+  buildJobForm(window._selectedCTU||pkgId, window._poolData||{});
+}
+
 
 function updateQtySlots(typeOrEl){
   const type = typeof typeOrEl==='string'?typeOrEl:(typeOrEl&&typeOrEl.dataset?typeOrEl.dataset.type:typeOrEl);
@@ -2222,29 +2194,23 @@ async function submitJobRequest(){
   const pkgId = (document.getElementById('cj-p')||{value:''}).value;
   const mob   = (document.getElementById('cj-m')||{value:''}).value;
   if(!well||!rig||!pkgId||!mob){ alert('Please fill all required fields'); return; }
-  const pkg = window._currentPkg || (window._pkgData||[]).find(p=>p.pkgId===pkgId);
-  if(!pkg){ alert('Please select a package first'); return; }
-  const sortedEq = window._currentPkgEquipment || pkg.equipment || [];
-  const typeIdx = {};
-  const selectedEq = sortedEq.map(eq=>{
-    typeIdx[eq.type] = (typeIdx[eq.type]||0)+1;
-    const selId = 'eq-sel-' + eq.type.replace(/[^a-zA-Z0-9]/g,'') + typeIdx[eq.type];
-    const sel = document.getElementById(selId);
-    const val = sel ? sel.value : eq.equipmentId;
-    return val === '__EMPTY__' ? null : val;
-  }).filter(Boolean);
+  const ctuId = window._selectedCTU;
+  if(!ctuId){ alert('Please select a CTU package first'); return; }
+  // Collect single-select equipment (Control Cabin, Power Pack, Injector, Gooseneck, Stripper)
+  const selectedEq = [];
+  ['ControlCabin','PowerPack','Injector','Gooseneck','Stripper'].forEach(key=>{
+    const sel = document.getElementById('single-sel-'+key);
+    if(sel && sel.value) selectedEq.push(sel.value);
+  });
 
   // Collect BOP / Work Reel / Fluid Pump from qty selectors
-  ['BOP','WorkReel','FluidPump'].forEach(key=>{
+  ['WorkReel','BOP','FluidPump'].forEach(key=>{
     const qty=parseInt((document.getElementById('qty-'+key)||{value:'0'}).value)||0;
     for(let i=1;i<=qty;i++){
       const sel=document.getElementById('qty-sel-'+key+'-'+i);
       if(sel&&sel.value) selectedEq.push(sel.value);
     }
   });
-  // Collect Gooseneck from pool-only selector
-  const gkSel=document.getElementById('pool-sel-Gooseneck');
-  if(gkSel&&gkSel.value&&gkSel.value!=='__EMPTY__') selectedEq.push(gkSel.value);
   // Collect Nitrogen Units
   const n2Qty=parseInt((document.getElementById('n2-qty')||{value:'0'}).value)||0;
   for(let i=1;i<=n2Qty;i++){
@@ -2268,7 +2234,7 @@ async function submitJobRequest(){
   try {
     const res = await post({
       action:'submitJobRequest',
-      packageId:pkgId, ctuNumber:pkg.ctuNumber||'',
+      packageId:pkgId, ctuNumber:pkgId,
       department:USER.department, cellLeader:USER.username,
       wellNumber:well, rigNumber:rig, mobDate:mob,
       equipmentList:selectedEq
