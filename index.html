@@ -1401,7 +1401,7 @@ async function renderEq(c){
 
     const statusColor = (e) => {
       const s = getStatus(e);
-      return s==='Active'?'g': s==='On Job'?'b': s==='Under MNT'?'a':'gray';
+      return s==='Active'?'g': s==='On Job'?'b': s==='Under MNT'?'a': s==='Transferred'?'t':'gray';
     };
 
     c.innerHTML=`
@@ -1465,7 +1465,9 @@ async function renderEq(c){
                   <button onclick="openTransfer('${e.id}')" style="background:var(--teal);color:#fff;border:none;border-radius:6px;padding:5px 8px;font-size:10px;cursor:pointer;font-weight:600">Transfer</button>`:
                   st==='Standby'?`
                   <button onclick="addToPool('${e.id}',this)" style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:5px 8px;font-size:10px;cursor:pointer;font-weight:600">+ Pool</button>
-                  <button onclick="openTransfer('${e.id}')" style="background:var(--teal);color:#fff;border:none;border-radius:6px;padding:5px 8px;font-size:10px;cursor:pointer;font-weight:600">Transfer</button>`:''}
+                  <button onclick="openTransfer('${e.id}')" style="background:var(--teal);color:#fff;border:none;border-radius:6px;padding:5px 8px;font-size:10px;cursor:pointer;font-weight:600">Transfer</button>`:
+                  st==='Transferred'?`
+                  <button onclick="returnToPool('${e.id}',this)" style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:5px 8px;font-size:10px;cursor:pointer;font-weight:600">↩ Return to Pool</button>`:''}
               </div>
             </div>`;
           }).join('')}
@@ -1571,6 +1573,38 @@ function openTransfer(eqId){
       </div>
     </div>`;
   document.body.appendChild(modal);
+}
+
+async function returnToPool(eqId, btn){
+  if(!confirm('Return '+eqId+' to Pool?')) return;
+  btn.textContent='...'; btn.disabled=true;
+  const res = await post({
+    action:'setEquipmentStatus', 
+    equipmentId:eqId, 
+    status:'Active',
+    returnFromTransfer: true,
+    returnedBy: USER.username
+  });
+  if(res.success){
+    document.getElementById('eqbdg-'+eqId).textContent='Active';
+    document.getElementById('eqbdg-'+eqId).className='bdg g';
+    btn.style.background='var(--red)'; 
+    btn.textContent='Remove'; 
+    btn.disabled=false;
+    btn.setAttribute('onclick',`removeFromPool('${eqId}',this)`);
+    // Add Transfer button back
+    const row = document.getElementById('eqrow-'+eqId);
+    if(row){
+      const btnDiv = row.querySelector('div[style*="display:flex"]');
+      if(btnDiv){
+        const trBtn = document.createElement('button');
+        trBtn.textContent='Transfer';
+        trBtn.style.cssText='background:var(--teal);color:#fff;border:none;border-radius:6px;padding:5px 8px;font-size:10px;cursor:pointer;font-weight:600';
+        trBtn.onclick=()=>openTransfer(eqId);
+        btnDiv.appendChild(trBtn);
+      }
+    }
+  } else { btn.textContent='↩ Return to Pool'; btn.disabled=false; }
 }
 
 async function confirmTransfer(eqId){
