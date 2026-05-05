@@ -1458,12 +1458,14 @@ async function renderEq(c){
                 <div class="ct2" style="font-family:'JetBrains Mono',monospace">${e.id}</div>
                 <div class="cs">${e.type} · ${e.serial||'—'}</div>
               </div>
-              <div style="display:flex;align-items:center;gap:8px">
+              <div style="display:flex;align-items:center;gap:6px">
                 <span class="bdg ${sc}" id="eqbdg-${e.id}">${st}</span>
-                ${st==='Active'?
-                  `<button onclick="removeFromPool('${e.id}',this)" style="background:var(--red);color:#fff;border:none;border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;font-weight:600">Remove</button>`:
-                  st==='Standby'?
-                  `<button onclick="addToPool('${e.id}',this)" style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;font-weight:600">+ Pool</button>`:''}
+                ${st==='Active'?`
+                  <button onclick="removeFromPool('${e.id}',this)" style="background:var(--red);color:#fff;border:none;border-radius:6px;padding:5px 8px;font-size:10px;cursor:pointer;font-weight:600">Remove</button>
+                  <button onclick="openTransfer('${e.id}')" style="background:var(--teal);color:#fff;border:none;border-radius:6px;padding:5px 8px;font-size:10px;cursor:pointer;font-weight:600">Transfer</button>`:
+                  st==='Standby'?`
+                  <button onclick="addToPool('${e.id}',this)" style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:5px 8px;font-size:10px;cursor:pointer;font-weight:600">+ Pool</button>
+                  <button onclick="openTransfer('${e.id}')" style="background:var(--teal);color:#fff;border:none;border-radius:6px;padding:5px 8px;font-size:10px;cursor:pointer;font-weight:600">Transfer</button>`:''}
               </div>
             </div>`;
           }).join('')}
@@ -1472,25 +1474,121 @@ async function renderEq(c){
     return;
   }
 
-  // Other roles
-  const res2 = await get({action:'getEquipment', department:USER.department==='All'?'All':USER.department});
-  const eq2 = res2.equipment||[], byType2={};
-  eq2.forEach(e=>{if(!byType2[e.type])byType2[e.type]=[];byType2[e.type].push(e);});
-  c.innerHTML = Object.entries(byType2).map(([type,items])=>`
-    <div class="slbl">${type}</div>
-    <div class="card" style="margin-bottom:10px">
-      ${items.map(e=>`
-      <div class="crow nc" style="padding:10px 13px">
-        <div class="cb"><div class="ct2" style="font-family:'JetBrains Mono',monospace">${e.id}</div><div class="cs">${e.department||'All'}</div></div>
-        <span class="bdg ${e.status==='Active'?'g':e.status==='Under MNT'?'a':'b'}">${e.status}</span>
+  // Other roles — View Only Pool Management (same data, no action buttons)
+  let eqRes2={equipment:[]}, jRes2={jobs:[]}, mntRes2={records:[]};
+  try{
+    [eqRes2, jRes2, mntRes2] = await Promise.all([
+      get({action:'getEquipment', department:'All'}, true),
+      get({action:'getJobs', department:'All'}, true),
+      get({action:'getMNT'}, true)
+    ]);
+  }catch(e){ console.error('Eq view fetch error',e); }
+
+  const eq2 = (eqRes2.equipment||[]);
+  const runningJobs2 = (jRes2.jobs||[]).filter(j=>j.status==='Running'||j.status==='Exemption');
+  const mntRecs2 = (mntRes2.records||[]);
+
+  const onJobIds2 = new Set();
+  runningJobs2.forEach(j=>(j.equipmentList||[]).forEach(id=>onJobIds2.add(id)));
+  const mntIds2 = new Set(mntRecs2.filter(m=>m.status==='Under MNT').map(m=>m.equipmentId));
+
+  const getStatus2 = e => {
+    if(mntIds2.has(e.id)) return 'Under MNT';
+    if(onJobIds2.has(e.id)||e.status==='Reserved'||e.status==='On Job') return 'On Job';
+    return e.status==='Active'?'Active':'Standby';
+  };
+
+  const inPool2 = eq2.filter(e=>getStatus2(e)==='Active').length;
+  const onJob2 = eq2.filter(e=>getStatus2(e)==='On Job').length;
+  const inMnt2 = eq2.filter(e=>getStatus2(e)==='Under MNT').length;
+
+  const typeOrder2 = ['Control Cabin','Power Pack','Injector','Gooseneck','Stripper','Work Reel','BOP','Fluid Pump','Nitrogen Pump','C-Pump','Batch Mixer','Frac Tank','Skid Tank','Acid Transporter','Trailer Mounted','N2 Pump','Tool Box'];
+  const byType2 = {};
+  eq2.forEach(e=>{ if(!byType2[e.type]) byType2[e.type]=[]; byType2[e.type].push(e); });
+  const sortedTypes2 = Object.keys(byType2).sort((a,b)=>{
+    const ai=typeOrder2.indexOf(a), bi=typeOrder2.indexOf(b);
+    return (ai<0?99:ai)-(bi<0?99:bi);
+  });
+
+  c.innerHTML=`
+  <div class="kpi-row" style="grid-template-columns:repeat(3,1fr)">
+    <div class="kpi g"><div class="kpi-lbl">In Pool</div><div class="kpi-val g">${inPool2}</div><div class="kpi-sub">available</div></div>
+    <div class="kpi b"><div class="kpi-lbl">On Job</div><div class="kpi-val b">${onJob2}</div><div class="kpi-sub">running</div></div>
+    <div class="kpi a"><div class="kpi-lbl">Under MNT</div><div class="kpi-val a">${inMnt2}</div><div class="kpi-sub">maintenance</div></div>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">
+    <button class="bdg b" onclick="filterEqType('all')" style="cursor:pointer;padding:5px 12px;font-size:11px">All (${eq2.length})</button>
+    ${sortedTypes2.map(t=>`<button class="bdg gray" onclick="filterEqType('${t}')" style="cursor:pointer;padding:5px 10px;font-size:10px">${t} (${byType2[t].length})</button>`).join('')}
+  </div>
+  <div id="eq-list">
+    ${sortedTypes2.map(type=>`
+      <div class="eq-type-group" data-type="${type}">
+        <div class="slbl">${type}</div>
+        ${byType2[type].map(e=>{
+          const st2=getStatus2(e);
+          const sc2=st2==='Active'?'g':st2==='On Job'?'b':st2==='Under MNT'?'a':'gray';
+          return `<div class="crow nc" style="padding:10px 13px">
+            <div class="cb" style="flex:1">
+              <div class="ct2" style="font-family:'JetBrains Mono',monospace">${e.id}</div>
+              <div class="cs">${e.type} · ${e.serial||'—'}</div>
+            </div>
+            <span class="bdg ${sc2}">${st2}</span>
+          </div>`;
+        }).join('')}
       </div>`).join('')}
-    </div>`).join('');
+  </div>`;
 }
 
 function filterEqType(type){
   document.querySelectorAll('.eq-type-group').forEach(g=>{
     g.style.display=(type==='all'||g.dataset.type===type)?'block':'none';
   });
+}
+
+function openTransfer(eqId){
+  // Build transfer modal
+  const today = new Date().toISOString().split('T')[0];
+  const modal = document.createElement('div');
+  modal.id = 'transfer-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:999;display:flex;align-items:center;justify-content:center;padding:20px';
+  modal.innerHTML = `
+    <div style="background:var(--s1);border-radius:14px;padding:20px;width:100%;max-width:400px;border:1px solid var(--border2)">
+      <div style="font-size:15px;font-weight:700;color:var(--t1);margin-bottom:4px">Transfer Equipment</div>
+      <div style="font-size:12px;color:var(--t2);margin-bottom:16px;font-family:'JetBrains Mono',monospace">${eqId}</div>
+      <label class="flbl">Transfer Date</label>
+      <input type="date" class="finput" id="tr-date" value="${today}" style="margin-bottom:12px">
+      <label class="flbl">Transfer Notes / Destination</label>
+      <textarea class="finput" id="tr-note" rows="3" placeholder="e.g. Transferred to UC segment — Rig 5..." style="margin-bottom:16px;resize:none"></textarea>
+      <div style="display:flex;gap:10px">
+        <button onclick="confirmTransfer('${eqId}')"
+          style="flex:1;background:var(--teal);color:#fff;border:none;border-radius:8px;padding:12px;font-size:13px;font-weight:700;cursor:pointer">
+          Confirm Transfer
+        </button>
+        <button onclick="document.getElementById('transfer-modal').remove()"
+          style="flex:1;background:var(--s3);color:var(--t2);border:none;border-radius:8px;padding:12px;font-size:13px;font-weight:600;cursor:pointer">
+          Cancel
+        </button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+async function confirmTransfer(eqId){
+  const date = document.getElementById('tr-date').value;
+  const note = document.getElementById('tr-note').value.trim();
+  if(!note){ alert('Please add transfer notes'); return; }
+  const btn = document.querySelector('#transfer-modal button');
+  btn.textContent = 'Transferring...'; btn.disabled = true;
+  const res = await post({action:'transferEquipment', equipmentId:eqId, transferDate:date, notes:note, transferredBy:USER.username});
+  document.getElementById('transfer-modal').remove();
+  if(res.success){
+    // Update badge
+    const bdg = document.getElementById('eqbdg-'+eqId);
+    if(bdg){ bdg.textContent='Transferred'; bdg.className='bdg gray'; }
+    alert('✓ Equipment '+eqId+' transfer recorded.');
+  } else {
+    alert('Error: '+(res.error||'Transfer failed'));
+  }
 }
 
 async function addToPool(eqId, btn){
