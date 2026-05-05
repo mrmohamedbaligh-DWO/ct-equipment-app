@@ -2319,7 +2319,6 @@ async function renderAdmin(c){
 
 // ─── Report export functions ───────────────────
 async function exportReport(type){
-  const API = 'https://script.google.com/macros/s/AKfycbxzUp3TylmC-rMZX4FqC3jcgBtENCkedeyVAfzMbnQZW_SCVTnGEphm9I9zg-ELCOj6/exec';
   let action, filename;
   if(type==='jobs'){ action='getJobs'; filename='Jobs_Report.csv'; }
   else if(type==='mnt'){ action='getMNT'; filename='MNT_Report.csv'; }
