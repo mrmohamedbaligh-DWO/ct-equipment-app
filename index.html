@@ -327,11 +327,50 @@ async function showApp(){
 
 function setupNav(){
   const nav=document.getElementById('bnav'),role=USER.role;
-  if(role==='Ticketing'){nav.innerHTML=`<div class="ni active" id="n1" onclick="navTo('home')"><div class="ni-icon">🎫</div>Tickets</div><div class="ni" id="n2" onclick="navTo('history')"><div class="ni-icon">📋</div>History</div>`;}
-  else if(role==='MNT Manager'){nav.innerHTML=`<div class="ni active" id="n1" onclick="navTo('home')"><div class="ni-icon">⊞</div>Home</div><div class="ni" id="n2" onclick="navTo('mntlist')"><div class="ni-icon">🔧</div>MNT</div><div class="ni" id="n3" onclick="navTo('alerts')"><div class="ni-icon">🔔</div>Alerts</div>`;}
-  else if(role==='QAQC Manager'){nav.innerHTML=`<div class="ni active" id="n1" onclick="navTo('home')"><div class="ni-icon">⊞</div>Home</div><div class="ni" id="n2" onclick="navTo('equipment')"><div class="ni-icon">⚙</div>Equipment</div>`;}
-  else if(role==='Admin'){nav.innerHTML=`<div class="ni active" id="n1" onclick="navTo('home')"><div class="ni-icon">🔑</div>Admin</div><div class="ni" id="n2" onclick="navTo('jobs')"><div class="ni-icon">📋</div>Jobs</div><div class="ni" id="n3" onclick="navTo('equipment')"><div class="ni-icon">⚙</div>Equip</div>`;}
-  else if(role==='Technical Engineer'){nav.innerHTML=`<div class="ni active" id="n1" onclick="navTo('home')"><div class="ni-icon">⊞</div>Home</div><div class="ni" id="n2" onclick="navTo('jobs')"><div class="ni-icon">📋</div>Jobs</div>`;}
+
+  // Standard 4-button nav (Home, Jobs, Equipment, Alerts)
+  const std4 = `
+    <div class="ni active" id="n1" onclick="navTo('home')"><div class="ni-icon">⊞</div>Home</div>
+    <div class="ni" id="n2" onclick="navTo('jobs')"><div class="ni-icon">📋</div>Jobs</div>
+    <div class="ni" id="n3" onclick="navTo('equipment')"><div class="ni-icon">⚙</div>Equip</div>
+    <div class="ni" id="n4" onclick="navTo('alerts')"><div class="ni-icon">🔔</div>Alerts</div>`;
+
+  if(role==='Cell Leader'){
+    nav.innerHTML=std4;
+  } else if(role==='Asset Manager'){
+    nav.innerHTML=std4;
+  } else if(role==='FSM'){
+    nav.innerHTML=std4;
+  } else if(role==='Operation Manager'){
+    nav.innerHTML=std4;
+  } else if(role==='MNT Manager'){
+    nav.innerHTML=`
+    <div class="ni active" id="n1" onclick="navTo('home')"><div class="ni-icon">⊞</div>Home</div>
+    <div class="ni" id="n2" onclick="navTo('mntlist')"><div class="ni-icon">🔧</div>MNT</div>
+    <div class="ni" id="n3" onclick="navTo('equipment')"><div class="ni-icon">⚙</div>Equip</div>
+    <div class="ni" id="n4" onclick="navTo('alerts')"><div class="ni-icon">🔔</div>Alerts</div>`;
+  } else if(role==='QAQC Manager'){
+    nav.innerHTML=`
+    <div class="ni active" id="n1" onclick="navTo('home')"><div class="ni-icon">⊞</div>Home</div>
+    <div class="ni" id="n2" onclick="navTo('jobs')"><div class="ni-icon">📋</div>Jobs</div>
+    <div class="ni" id="n3" onclick="navTo('equipment')"><div class="ni-icon">⚙</div>Equip</div>`;
+  } else if(role==='Admin'){
+    nav.innerHTML=`
+    <div class="ni active" id="n1" onclick="navTo('home')"><div class="ni-icon">🔑</div>Admin</div>
+    <div class="ni" id="n2" onclick="navTo('jobs')"><div class="ni-icon">📋</div>Jobs</div>
+    <div class="ni" id="n3" onclick="navTo('equipment')"><div class="ni-icon">⚙</div>Equip</div>
+    <div class="ni" id="n4" onclick="navTo('alerts')"><div class="ni-icon">🔔</div>Alerts</div>`;
+  } else if(role==='Ticketing'){
+    nav.innerHTML=`
+    <div class="ni active" id="n1" onclick="navTo('home')"><div class="ni-icon">🎫</div>Tickets</div>
+    <div class="ni" id="n2" onclick="navTo('history')"><div class="ni-icon">📋</div>History</div>`;
+  } else if(role==='Technical Engineer'){
+    nav.innerHTML=`
+    <div class="ni active" id="n1" onclick="navTo('home')"><div class="ni-icon">⊞</div>Home</div>
+    <div class="ni" id="n2" onclick="navTo('jobs')"><div class="ni-icon">📋</div>Jobs</div>`;
+  } else {
+    nav.innerHTML=std4;
+  }
   nav.style.display='flex';
 }
 
