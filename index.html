@@ -436,7 +436,8 @@ function togDept(id){
   el.style.display=open?'none':'block';
   if(arr)arr.textContent=open?'▸':'▾';
 }
-function toggleKPI(id){
+function toggleKPI(idOrEl){
+  var id = (typeof idOrEl==='string') ? idOrEl : (idOrEl&&idOrEl.dataset?idOrEl.dataset.kpi:idOrEl);
   const el=document.getElementById(id);if(!el)return;
   if(OKPI&&OKPI!==id){const prev=document.getElementById(OKPI);if(prev)prev.style.display='none';}
   const open=el.style.display!=='none';el.style.display=open?'none':'block';
@@ -2210,7 +2211,7 @@ async function renderAdmin(c){
       +'<div style="width:32px;height:32px;border-radius:50%;background:'+rb+';display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:'+rc+';flex-shrink:0">'+userInitials(u.username)+'</div>'
       +'<div class="cb" style="margin-left:10px;flex:1"><div class="ct2">'+u.username+'</div><div class="cs">'+(u.dept||'All')+'</div></div>'
       +'<span style="font-size:9px;padding:2px 7px;border-radius:10px;font-weight:600;background:'+rb+';color:'+rc+'">'+u.role+'</span>'
-      +'<button onclick="adminEditUser(''+u.username+'')" style="margin-left:8px;background:var(--s3);color:var(--t2);border:none;border-radius:6px;padding:4px 8px;font-size:10px;cursor:pointer">Edit</button>'
+      +'<button onclick="adminEditUser(this)" data-username="'+u.username+'" style="margin-left:8px;background:var(--s3);color:var(--t2);border:none;border-radius:6px;padding:4px 8px;font-size:10px;cursor:pointer">Edit</button>'
       +'</div>';
   }).join('') : '<div style="padding:12px 13px;font-size:11px;color:var(--t3)">Loading users...</div>';
 
@@ -2226,26 +2227,26 @@ async function renderAdmin(c){
     +'🔑 Admin mode — tap any role below to switch dashboard</div>'
     +'<div class="slbl">System overview</div>'
     +'<div class="kpi-row">'
-    +'<div class="kpi g" onclick="toggleKPI('adm-jobs')"><div class="kpi-lbl">Jobs running <span class="kpi-tap">tap ▸</span></div><div class="kpi-val g">'+running.length+'</div><div class="kpi-sub">all depts</div></div>'
-    +'<div class="kpi b" onclick="toggleKPI('adm-eq')"><div class="kpi-lbl">Equipment <span class="kpi-tap">tap ▸</span></div><div class="kpi-val b">'+eq.length+'</div><div class="kpi-sub">'+inPool+' in pool</div></div>'
-    +'<div class="kpi a" onclick="toggleKPI('adm-mnt')"><div class="kpi-lbl">Under MNT <span class="kpi-tap">tap ▸</span></div><div class="kpi-val a">'+inMnt+'</div><div class="kpi-sub">'+onJob+' on job</div></div>'
-    +'<div class="kpi r" onclick="toggleKPI('adm-pm')"><div class="kpi-lbl">PM overdue <span class="kpi-tap">tap ▸</span></div><div class="kpi-val r">'+pmOverdue+'</div><div class="kpi-sub">need action</div></div>'
+    +'<div class="kpi g" onclick="toggleKPI(this.dataset.kpi)" data-kpi="adm-jobs"><div class="kpi-lbl">Jobs running <span class="kpi-tap">tap ▸</span></div><div class="kpi-val g">'+running.length+'</div><div class="kpi-sub">all depts</div></div>'
+    +'<div class="kpi b" onclick="toggleKPI(this.dataset.kpi)" data-kpi="adm-eq"><div class="kpi-lbl">Equipment <span class="kpi-tap">tap ▸</span></div><div class="kpi-val b">'+eq.length+'</div><div class="kpi-sub">'+inPool+' in pool</div></div>'
+    +'<div class="kpi a" onclick="toggleKPI(this.dataset.kpi)" data-kpi="adm-mnt"><div class="kpi-lbl">Under MNT <span class="kpi-tap">tap ▸</span></div><div class="kpi-val a">'+inMnt+'</div><div class="kpi-sub">'+onJob+' on job</div></div>'
+    +'<div class="kpi r" onclick="toggleKPI(this.dataset.kpi)" data-kpi="adm-pm"><div class="kpi-lbl">PM overdue <span class="kpi-tap">tap ▸</span></div><div class="kpi-val r">'+pmOverdue+'</div><div class="kpi-sub">need action</div></div>'
     +'</div>'
-    +'<div id="adm-jobs" style="display:none"><div class="expand"><div class="exp-head"><span class="exp-title">Running jobs</span><span class="exp-close" onclick="toggleKPI('adm-jobs')">close</span></div>'
+    +'<div id="adm-jobs" style="display:none"><div class="expand"><div class="exp-head"><span class="exp-title">Running jobs</span><span class="exp-close" onclick="toggleKPI(this.dataset.kpi)" data-kpi="adm-jobs">close</span></div>'
     +(running.map(function(j){return '<div class="crow nc"><div class="cb"><div class="ct2">'+j.jobId+' · '+j.wellNumber+'</div><div class="cs">'+j.packageId+' · '+j.department+'</div></div><span class="bdg g">Running</span></div>';}).join('')||'<div class="empty">No running jobs</div>')
     +'</div></div>'
-    +'<div id="adm-mnt" style="display:none"><div class="expand"><div class="exp-head"><span class="exp-title">Under MNT</span><span class="exp-close" onclick="toggleKPI('adm-mnt')">close</span></div>'
+    +'<div id="adm-mnt" style="display:none"><div class="expand"><div class="exp-head"><span class="exp-title">Under MNT</span><span class="exp-close" onclick="toggleKPI(this.dataset.kpi)" data-kpi="adm-mnt">close</span></div>'
     +(eq.filter(function(e){return e.status==='Under MNT';}).map(function(e){return '<div class="crow nc"><div class="cb"><div class="ct2">'+e.id+'</div><div class="cs">'+e.type+'</div></div><span class="bdg a">MNT</span></div>';}).join('')||'<div class="empty">No equipment under MNT</div>')
     +'</div></div>'
-    +'<div id="adm-pm" style="display:none"><div class="expand"><div class="exp-head"><span class="exp-title">PM overdue</span><span class="exp-close" onclick="toggleKPI('adm-pm')">close</span></div>'
+    +'<div id="adm-pm" style="display:none"><div class="expand"><div class="exp-head"><span class="exp-title">PM overdue</span><span class="exp-close" onclick="toggleKPI(this.dataset.kpi)" data-kpi="adm-pm">close</span></div>'
     +((pmR.alerts||[]).filter(function(a){return a.status==='Overdue';}).slice(0,10).map(function(a){return '<div class="crow nc"><div class="cb"><div class="ct2">'+a.equipmentId+'</div><div class="cs">'+a.pmType+' · Due '+a.dueDate+'</div></div><span class="bdg r">OVERDUE</span></div>';}).join('')||'<div class="empty">No overdue PM</div>')
     +'</div></div>'
     +'<div class="slbl" style="margin-top:4px">Reports</div>'
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">'
-    +'<button onclick="adminExportReport('jobs')" style="padding:12px;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--t1);cursor:pointer;text-align:left"><div style="font-size:18px;margin-bottom:4px">📊</div><div style="font-size:12px;font-weight:600">All Jobs</div><div style="font-size:10px;color:var(--t3)">Export CSV</div></button>'
-    +'<button onclick="adminExportReport('utilization')" style="padding:12px;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--t1);cursor:pointer;text-align:left"><div style="font-size:18px;margin-bottom:4px">⚙</div><div style="font-size:12px;font-weight:600">Utilization</div><div style="font-size:10px;color:var(--t3)">Per equipment</div></button>'
-    +'<button onclick="adminExportReport('mnt')" style="padding:12px;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--t1);cursor:pointer;text-align:left"><div style="font-size:18px;margin-bottom:4px">🔧</div><div style="font-size:12px;font-weight:600">MNT History</div><div style="font-size:10px;color:var(--t3)">Export CSV</div></button>'
-    +'<button onclick="adminExportReport('transfer')" style="padding:12px;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--t1);cursor:pointer;text-align:left"><div style="font-size:18px;margin-bottom:4px">↔</div><div style="font-size:12px;font-weight:600">Transfer Log</div><div style="font-size:10px;color:var(--t3)">Export CSV</div></button>'
+    +'<button onclick="adminExportReport(this.dataset.rtype)" data-rtype="jobs" style="padding:12px;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--t1);cursor:pointer;text-align:left"><div style="font-size:18px;margin-bottom:4px">📊</div><div style="font-size:12px;font-weight:600">All Jobs</div><div style="font-size:10px;color:var(--t3)">Export CSV</div></button>'
+    +'<button onclick="adminExportReport(this.dataset.rtype)" data-rtype="utilization" style="padding:12px;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--t1);cursor:pointer;text-align:left"><div style="font-size:18px;margin-bottom:4px">⚙</div><div style="font-size:12px;font-weight:600">Utilization</div><div style="font-size:10px;color:var(--t3)">Per equipment</div></button>'
+    +'<button onclick="adminExportReport(this.dataset.rtype)" data-rtype="mnt" style="padding:12px;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--t1);cursor:pointer;text-align:left"><div style="font-size:18px;margin-bottom:4px">🔧</div><div style="font-size:12px;font-weight:600">MNT History</div><div style="font-size:10px;color:var(--t3)">Export CSV</div></button>'
+    +'<button onclick="adminExportReport(this.dataset.rtype)" data-rtype="transfer" style="padding:12px;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--t1);cursor:pointer;text-align:left"><div style="font-size:18px;margin-bottom:4px">↔</div><div style="font-size:12px;font-weight:600">Transfer Log</div><div style="font-size:10px;color:var(--t3)">Export CSV</div></button>'
     +'</div>'
     +'<div class="slbl" style="display:flex;align-items:center;justify-content:space-between;margin-top:4px"><span>Users ('+users.length+')</span><button onclick="adminAddUser()" style="background:var(--blue);color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer">+ Add user</button></div>'
     +'<div class="card" style="margin-bottom:10px">'+usersHTML+'</div>'
@@ -2262,7 +2263,8 @@ function adminSwitchFromEl(el){
   adminSwitch(r);
 }
 
-async function adminExportReport(type){
+async function adminExportReport(typeOrEl){
+  var type = (typeof typeOrEl==='string') ? typeOrEl : (typeOrEl&&typeOrEl.dataset?typeOrEl.dataset.rtype:typeOrEl);
   var action, filename;
   if(type==='jobs'){ action='getJobs'; filename='Jobs_Report.csv'; }
   else if(type==='mnt'){ action='getMNT'; filename='MNT_Report.csv'; }
@@ -2279,8 +2281,7 @@ async function adminExportReport(type){
     var keys = Object.keys(data[0]);
     var csv = [keys.join(',')].concat(data.map(function(row){
       return keys.map(function(k){ return JSON.stringify(row[k]!=null?row[k]:''); }).join(',');
-    })).join('
-');
+    })).join('\n');
     var blob = new Blob([csv], {type:'text/csv'});
     var url = URL.createObjectURL(blob);
     var a = document.createElement('a');
@@ -2316,7 +2317,8 @@ async function adminSaveNewUser(){
   else{alert('Error: '+(res.error||'Failed'));}
 }
 
-function adminEditUser(username){
+function adminEditUser(btnEl){
+  var username = btnEl.dataset ? btnEl.dataset.username : btnEl;
   var users=window._adminUsers||[];
   var u=users.find(function(x){return x.username===username;})||{username:username};
   var ROLES_LIST=['Cell Leader','Asset Manager','MNT Manager','QAQC Manager','FSM','Operation Manager','Ticketing','Admin'];
@@ -2331,13 +2333,15 @@ function adminEditUser(username){
     +'<div class="fg"><label class="flbl">Role</label><select class="finput" id="eu-role">'+rolesOpts+'</select></div>'
     +'<div class="fg"><label class="flbl">Department</label><select class="finput" id="eu-dept">'+deptsOpts+'</select></div>'
     +'<div class="fg"><label class="flbl">Active</label><select class="finput" id="eu-active">'+activeOpts+'</select></div>'
+    +'<input type="hidden" id="edit-username" value="'+username+'">'
     +'<div style="display:flex;gap:8px">'
-    +'<button class="btn primary" style="flex:1" onclick="adminSaveEdit(''+username+'')">Save</button>'
-    +'<button class="btn danger" style="flex:0 0 auto" onclick="adminDeleteUser(''+username+'')">Delete</button>'
+    +'<button class="btn primary" style="flex:1" onclick="adminSaveEdit()">Save</button>'
+    +'<button class="btn danger" style="flex:0 0 auto" onclick="adminDeleteUser()">Delete</button>'
     +'</div>');
 }
 
-async function adminSaveEdit(username){
+async function adminSaveEdit(){
+  var username=document.getElementById('edit-username')&&document.getElementById('edit-username').value||'';
   var password=document.getElementById('eu-pass').value.trim();
   var fullName=document.getElementById('eu-name').value.trim();
   var role=document.getElementById('eu-role').value;
@@ -2348,9 +2352,13 @@ async function adminSaveEdit(username){
   else{alert('Error: '+(res.error||'Update failed'));}
 }
 
-async function adminDeleteUser(username){
+async function adminDeleteUser(){
+  var username=document.getElementById('edit-username')&&document.getElementById('edit-username').value||'';
   if(!confirm('Delete user '+username+'?'))return;
   var res=await post({action:'deleteUser',username:username});
   if(res.success){closeMod();alert('User deleted');loadView('home');}
   else{alert('Error: '+(res.error||'Delete failed'));}
 }
+</script>
+</body>
+</html>
