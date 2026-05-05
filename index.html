@@ -1453,7 +1453,7 @@ async function renderEq(c){
           ${byType[type].map(e=>{
             const st=getStatus(e);
             const sc=st==='Active'?'g':st==='On Job'?'b':st==='Under MNT'?'a':'gray';
-            return `<div class="crow" style="padding:10px 13px" id="eqrow-${e.id}">
+            return `<div class="crow" style="padding:10px 13px;cursor:pointer" id="eqrow-${e.id}" onclick="openEqDetails('${e.id}','${e.type}','${e.serial||''}')">
               <div class="cb" style="flex:1">
                 <div class="ct2" style="font-family:'JetBrains Mono',monospace">${e.id}</div>
                 <div class="cs">${e.type} · ${e.serial||'—'}</div>
@@ -1529,7 +1529,7 @@ async function renderEq(c){
         ${byType2[type].map(e=>{
           const st2=getStatus2(e);
           const sc2=st2==='Active'?'g':st2==='On Job'?'b':st2==='Under MNT'?'a':'gray';
-          return `<div class="crow nc" style="padding:10px 13px">
+          return `<div class="crow nc" style="padding:10px 13px;cursor:pointer" onclick="openEqDetails('${e.id}','${e.type}','${e.serial||''}')">
             <div class="cb" style="flex:1">
               <div class="ct2" style="font-family:'JetBrains Mono',monospace">${e.id}</div>
               <div class="cs">${e.type} · ${e.serial||'—'}</div>
@@ -1545,6 +1545,149 @@ function filterEqType(type){
   document.querySelectorAll('.eq-type-group').forEach(g=>{
     g.style.display=(type==='all'||g.dataset.type===type)?'block':'none';
   });
+}
+
+async function openEqDetails(eqId, eqType, serial){
+  // Build modal immediately with loading state
+  const existing = document.getElementById('eq-details-modal');
+  if(existing) existing.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'eq-details-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:999;display:flex;align-items:flex-end;justify-content:center;padding:0';
+  modal.innerHTML = `
+    <div style="background:var(--s1);border-radius:16px 16px 0 0;width:100%;max-width:600px;max-height:85vh;overflow-y:auto;border:1px solid var(--border2);border-bottom:none">
+      <div style="position:sticky;top:0;background:var(--s1);padding:16px 16px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;z-index:1">
+        <div>
+          <div style="font-size:16px;font-weight:700;color:var(--t1);font-family:'JetBrains Mono',monospace">${eqId}</div>
+          <div style="font-size:11px;color:var(--t2);margin-top:2px">${eqType}${serial?' · S/N: '+serial:''}</div>
+        </div>
+        <button onclick="document.getElementById('eq-details-modal').remove()"
+          style="background:var(--s3);border:none;color:var(--t2);border-radius:8px;padding:6px 12px;font-size:12px;cursor:pointer">✕ Close</button>
+      </div>
+      <div id="eq-details-body" style="padding:16px">
+        <div class="loading"><div class="spinner"></div><span>Loading history...</span></div>
+      </div>
+    </div>`;
+  modal.onclick = e => { if(e.target===modal) modal.remove(); };
+  document.body.appendChild(modal);
+
+  // Fetch history
+  try{
+    const [histRes, jobsRes] = await Promise.all([
+      get({action:'getEquipmentHistory', equipmentId:eqId}, true),
+      get({action:'getJobs', department:'All'}, true)
+    ]);
+
+    const history = (histRes.history||[]).sort((a,b)=>new Date(b.date)-new Date(a.date));
+    const jobs = (jobsRes.jobs||[]).filter(j=>(j.equipmentList||[]).includes(eqId));
+
+    // Current status
+    const currentStatus = history.length>0 ? history[0].status : 'Unknown';
+    const statusColor = currentStatus==='On Job'?'b':currentStatus==='Pool'?'g':currentStatus==='Under MNT'?'a':currentStatus==='Transferred'?'t':'gray';
+
+    // Calculate utilization
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfYear  = new Date(now.getFullYear(), 0, 1);
+
+    let daysOnJobMonth = 0, daysOnJobYear = 0, daysOnJobTotal = 0;
+    let daysPoolMonth = 0, daysPoolYear = 0;
+    let daysMntMonth = 0, daysMntYear = 0;
+
+    // Calculate from history pairs (start → end)
+    for(let i = history.length-1; i >= 0; i--){
+      const rec = history[i];
+      const recDate = new Date(rec.date);
+      const nextDate = i>0 ? new Date(history[i-1].date) : now;
+      const days = Math.max(0, Math.round((nextDate - recDate)/(1000*60*60*24)));
+
+      const inMonth = recDate < now && nextDate > startOfMonth;
+      const inYear  = recDate < now && nextDate > startOfYear;
+
+      if(rec.status === 'On Job'){
+        daysOnJobTotal += days;
+        if(inYear)  daysOnJobYear  += Math.min(days, Math.round((Math.min(nextDate,now)-Math.max(recDate,startOfYear))/(1000*60*60*24)));
+        if(inMonth) daysOnJobMonth += Math.min(days, Math.round((Math.min(nextDate,now)-Math.max(recDate,startOfMonth))/(1000*60*60*24)));
+      } else if(rec.status === 'Pool'){
+        if(inYear)  daysPoolYear  += Math.min(days, Math.round((Math.min(nextDate,now)-Math.max(recDate,startOfYear))/(1000*60*60*24)));
+        if(inMonth) daysPoolMonth += Math.min(days, Math.round((Math.min(nextDate,now)-Math.max(recDate,startOfMonth))/(1000*60*60*24)));
+      } else if(rec.status === 'Under MNT'){
+        if(inYear)  daysMntYear  += Math.min(days, Math.round((Math.min(nextDate,now)-Math.max(recDate,startOfYear))/(1000*60*60*24)));
+        if(inMonth) daysMntMonth += Math.min(days, Math.round((Math.min(nextDate,now)-Math.max(recDate,startOfMonth))/(1000*60*60*24)));
+      }
+    }
+
+    const daysInMonth = now.getDate();
+    const daysInYear  = Math.round((now - startOfYear)/(1000*60*60*24));
+    const utilMonth = daysInMonth>0 ? Math.round(daysOnJobMonth/daysInMonth*100) : 0;
+    const utilYear  = daysInYear>0  ? Math.round(daysOnJobYear/daysInYear*100)   : 0;
+
+    const monthName = now.toLocaleString('en',{month:'long'});
+    const year = now.getFullYear();
+
+    document.getElementById('eq-details-body').innerHTML = `
+    <!-- Current Status -->
+    <div style="margin-bottom:16px">
+      <div class="slbl" style="margin-bottom:8px">Current Status</div>
+      <div style="display:flex;align-items:center;gap:10px;padding:12px;background:var(--s2);border-radius:10px">
+        <span class="bdg ${statusColor}" style="font-size:13px;padding:6px 14px">${currentStatus}</span>
+        <div style="font-size:11px;color:var(--t2)">
+          Since ${history.length>0?history[0].date:'—'}
+          ${history.length>0&&history[0].jobId?'· '+history[0].jobId:''}
+        </div>
+      </div>
+    </div>
+
+    <!-- Utilization -->
+    <div style="margin-bottom:16px">
+      <div class="slbl" style="margin-bottom:8px">Utilization</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+        <div style="background:var(--s2);border-radius:10px;padding:12px;text-align:center">
+          <div style="font-size:11px;color:var(--t2);margin-bottom:4px">${monthName} — On Job</div>
+          <div style="font-size:24px;font-weight:700;color:var(--green)">${daysOnJobMonth}</div>
+          <div style="font-size:10px;color:var(--t3)">days · ${utilMonth}%</div>
+        </div>
+        <div style="background:var(--s2);border-radius:10px;padding:12px;text-align:center">
+          <div style="font-size:11px;color:var(--t2);margin-bottom:4px">${year} — On Job</div>
+          <div style="font-size:24px;font-weight:700;color:var(--blue)">${daysOnJobYear}</div>
+          <div style="font-size:10px;color:var(--t3)">days · ${utilYear}%</div>
+        </div>
+        <div style="background:var(--s2);border-radius:10px;padding:12px;text-align:center">
+          <div style="font-size:11px;color:var(--t2);margin-bottom:4px">${monthName} — Pool</div>
+          <div style="font-size:24px;font-weight:700;color:var(--t1)">${daysPoolMonth}</div>
+          <div style="font-size:10px;color:var(--t3)">days available</div>
+        </div>
+        <div style="background:var(--s2);border-radius:10px;padding:12px;text-align:center">
+          <div style="font-size:11px;color:var(--t2);margin-bottom:4px">${monthName} — MNT</div>
+          <div style="font-size:24px;font-weight:700;color:var(--amber)">${daysMntMonth}</div>
+          <div style="font-size:10px;color:var(--t3)">days maintenance</div>
+        </div>
+      </div>
+      <div style="background:var(--s2);border-radius:10px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:11px;color:var(--t2)">Total days on job (all time)</span>
+        <span style="font-size:16px;font-weight:700;color:var(--green)">${daysOnJobTotal} days</span>
+      </div>
+    </div>
+
+    <!-- History -->
+    <div class="slbl" style="margin-bottom:8px">Status History</div>
+    ${history.length===0?'<div class="empty">No history recorded yet</div>':
+      history.map(h=>{
+        const sc=h.status==='On Job'?'b':h.status==='Pool'?'g':h.status==='Under MNT'?'a':h.status==='Transferred'?'t':'gray';
+        return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)">
+          <span class="bdg ${sc}" style="min-width:80px;text-align:center;font-size:10px">${h.status}</span>
+          <div style="flex:1">
+            <div style="font-size:11px;color:var(--t1)">${h.date}</div>
+            ${h.jobId?`<div style="font-size:10px;color:var(--t2)">${h.jobId}</div>`:''}
+            ${h.notes?`<div style="font-size:10px;color:var(--t3)">${h.notes}</div>`:''}
+          </div>
+        </div>`;
+      }).join('')}
+    `;
+  } catch(e){
+    document.getElementById('eq-details-body').innerHTML = '<div style="color:var(--red);padding:12px">Error loading history: '+e.message+'</div>';
+  }
 }
 
 function openTransfer(eqId){
