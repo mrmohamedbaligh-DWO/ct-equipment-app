@@ -2456,15 +2456,107 @@ async function submitFault(jobId,pkgId,btnEl){
 }
 
 function openDemobModal(jobId,well,pkgId,mob){
-  openMod(`<div class="modal-title">Enter demob date</div>
-    <div class="fg"><label class="flbl">Demob date</label><input type="date" class="finput" id="dd" value="${new Date().toISOString().split('T')[0]}"></div>
-    <button class="btn primary" onclick="submitDemob('${jobId}','${well}','${pkgId}','${mob}')">Confirm demob — close job</button>`);
+  const eq = window._currentJobEquipment||[];
+  const today = new Date().toISOString().split('T')[0];
+
+  // Build equipment checklist
+  const eqRows = eq.map(e=>`
+    <div style="padding:10px 0;border-bottom:1px solid var(--border)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div>
+          <span style="font-size:12px;font-weight:600;color:var(--t1);font-family:'JetBrains Mono',monospace">${e.equipmentId}</span>
+          <span style="font-size:10px;color:var(--t2);margin-left:6px">${e.type||''}</span>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button onclick="setEqStatus('${e.equipmentId}','ready',this)"
+            style="padding:5px 12px;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;background:var(--green);color:#fff">
+            ✓ Ready
+          </button>
+          <button onclick="setEqStatus('${e.equipmentId}','mnt',this)"
+            style="padding:5px 12px;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;background:var(--s3);color:var(--t2)">
+            🔧 Need MNT
+          </button>
+        </div>
+      </div>
+      <div id="mnt-comment-${e.equipmentId}" style="display:none">
+        <input type="text" class="finput" id="mnt-note-${e.equipmentId}"
+          placeholder="MNT reason / fault description..."
+          style="font-size:11px;padding:8px 10px;margin-top:4px">
+      </div>
+    </div>`).join('');
+
+  openMod(`
+    <div class="modal-title">Demob — ${pkgId}</div>
+    <div style="font-size:12px;color:var(--t2);margin-bottom:12px">Review each equipment condition before closing the job</div>
+    <div class="fg"><label class="flbl">Demob date</label>
+      <input type="date" class="finput" id="dd" value="${today}">
+    </div>
+    <div style="margin:12px 0">${eqRows}</div>
+    <button class="btn primary" onclick="submitDemob('${jobId}','${well}','${pkgId}','${mob}')">
+      ✓ Confirm demob — close job
+    </button>`);
+
+  // Default all to Ready
+  eq.forEach(e => { window._eqStatus = window._eqStatus||{}; window._eqStatus[e.equipmentId]='ready'; });
+}
+
+function setEqStatus(eqId, status, btn){
+  window._eqStatus = window._eqStatus||{};
+  window._eqStatus[eqId] = status;
+  const row = btn.parentElement;
+  const btns = row.querySelectorAll('button');
+  // Reset both buttons
+  btns[0].style.background = status==='ready' ? 'var(--green)' : 'var(--s3)';
+  btns[0].style.color = status==='ready' ? '#fff' : 'var(--t2)';
+  btns[1].style.background = status==='mnt' ? 'var(--red)' : 'var(--s3)';
+  btns[1].style.color = status==='mnt' ? '#fff' : 'var(--t2)';
+  // Show/hide comment field
+  const commentDiv = document.getElementById('mnt-comment-'+eqId);
+  if(commentDiv) commentDiv.style.display = status==='mnt' ? 'block' : 'none';
 }
 async function submitDemob(jobId,well,pkgId,mob){
   const d=document.getElementById('dd').value;if(!d)return;
-  const res=await post({action:'demoJob',jobId,wellNumber:well,packageId:pkgId,department:USER.department,mobDate:mob,demobDate:d});
+
+  // Collect equipment status
+  const eqStatusMap = window._eqStatus||{};
+  const eq = window._currentJobEquipment||[];
+  const mntItems = [];
+
+  eq.forEach(e=>{
+    const status = eqStatusMap[e.equipmentId]||'ready';
+    if(status==='mnt'){
+      const noteEl = document.getElementById('mnt-note-'+e.equipmentId);
+      const note = noteEl ? noteEl.value.trim() : '';
+      if(!note){ alert('Please add MNT reason for: '+e.equipmentId); return; }
+      mntItems.push({ equipmentId:e.equipmentId, equipmentType:e.type||'', reason:note });
+    }
+  });
+
+  // Check all MNT items have notes
+  for(let m of mntItems){
+    if(!m.reason){ alert('Please add MNT reason for: '+m.equipmentId); return; }
+  }
+
+  // Submit demob
+  const res = await post({action:'demobJob', jobId, wellNumber:well, packageId:pkgId,
+    department:USER.department, mobDate:mob, demobDate:d});
+
+  // Report MNT for equipment that need it
+  if(mntItems.length>0){
+    await Promise.all(mntItems.map(m=>
+      post({action:'reportFault', jobId, packageId:pkgId,
+        equipmentId:m.equipmentId, equipmentType:m.equipmentType,
+        oldEquipment:m.equipmentId, newEquipment:'',
+        department:USER.department, cellLeader:USER.username,
+        reason:m.reason, mntManager:'Tanveer.Hussain'})
+    ));
+  }
+
+  window._eqStatus = {};
   document.getElementById('movl').classList.remove('open');
-  alert(`Job closed. Ticket ${res.ticketId} created.`);loadView('home');
+  const mntMsg = mntItems.length>0 ? ` ${mntItems.length} equipment sent to MNT.` : '';
+  alert(`Job closed. Ticket ${res.ticketId} created.${mntMsg}`);
+  loadView('home');
 }
 
 function openExemptionModal(jobId,pkgId){
