@@ -1561,21 +1561,28 @@ async function renderCreateJob(c){
   document.getElementById('tb-title').textContent='New Job Assignment';
   c.innerHTML='<div class="loading"><div class="spinner"></div><span>Loading pool data...</span></div>';
 
-  const poolRes = await get({action:'getPool'});
+  // Fetch pool + running jobs in parallel
+  const [poolRes, jobsRes] = await Promise.all([
+    get({action:'getPool'}),
+    get({action:'getJobs', department:'All'})
+  ]);
   window._poolData = poolRes.pool||{};
 
-  // CTU to PKG mapping
-  const CTU_PKG = {
-    'CTU-706':'PKG-706','CTU-707':'PKG-707','CTU-709':'PKG-709',
-    'CTU-716':'PKG-716','CTU-718':'PKG-718','CTU-719':'PKG-719',
-    'CTU-720':'PKG-720','CTU-721':'PKG-721','CTU-722':'PKG-722',
-    'CTU-723':'PKG-723','CTU-724':'PKG-724','CTU-725':'PKG-725',
-    'CTU-726':'PKG-726'
-  };
-  const CTU_LIST = ['CTU-706','CTU-707','CTU-709','CTU-716','CTU-718',
+  // Find CTUs currently on running jobs
+  const runningJobs = (jobsRes.jobs||[]).filter(j=>j.status==='Running'||j.status==='Exemption');
+  const busyCTUs = new Set(runningJobs.map(j=>j.packageId||'').filter(Boolean));
+  // Also check pending requests (Reserved)
+  const pendingJobs = (jobsRes.jobs||[]).filter(j=>j.status==='Pending AM'||j.status==='Pending FSM'||j.status==='Reserved');
+  pendingJobs.forEach(j=>busyCTUs.add(j.packageId||''));
+
+  const ALL_CTUS = ['CTU-706','CTU-707','CTU-709','CTU-716','CTU-718',
                     'CTU-719','CTU-720','CTU-721','CTU-722','CTU-723',
                     'CTU-724','CTU-725','CTU-726'];
-  window._CTU_PKG = CTU_PKG;
+
+  // Filter out busy CTUs — only show available ones
+  const availableCTUs = ALL_CTUS.filter(ctu => !busyCTUs.has(ctu));
+  window._availableCTUs = availableCTUs;
+  window._busyCTUs = [...busyCTUs];
 
   c.innerHTML=`
   <div class="slbl">Job details</div>
@@ -1585,11 +1592,12 @@ async function renderCreateJob(c){
     <div class="fg" style="margin-bottom:0"><label class="flbl">Mobilization Date</label><input type="date" class="finput" id="cj-m"></div>
   </div>
 
-  <div class="slbl">Select package <span style="color:var(--green);font-weight:400">(available only)</span></div>
+  <div class="slbl">Select package <span style="color:var(--green);font-weight:400">(${availableCTUs.length} available${busyCTUs.size>0?' · '+busyCTUs.size+' on job':''})</span></div>
   <div class="card" style="margin-bottom:10px">
     <select class="finput" id="cj-p" onchange="onCTUSelect(this.value)" style="border:none;border-radius:0;padding:13px 14px;font-size:14px;cursor:pointer;font-family:'JetBrains Mono',monospace">
       <option value="">— Select a package —</option>
-      ${CTU_LIST.map(ctu=>`<option value="${ctu}">${ctu}</option>`).join('')}
+      ${availableCTUs.map(ctu=>`<option value="${ctu}">${ctu}</option>`).join('')}
+      ${availableCTUs.length===0?'<option value="" disabled>No packages available</option>':''}
     </select>
   </div>
 
