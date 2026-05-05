@@ -1334,20 +1334,19 @@ async function renderEq(c){
     c.innerHTML = '<div class="loading"><div class="spinner"></div><span>Loading equipment...</span></div>';
 
     // Fetch all data in parallel
-    let eqRes={equipment:[]}, jRes={jobs:[]}, mntRes={records:[]}, pkgRes={packages:[]};
+    let eqRes={equipment:[]}, jRes={jobs:[]}, mntRes={records:[]};
     try{
-      [eqRes, jRes, mntRes, pkgRes] = await Promise.all([
+      [eqRes, jRes, mntRes] = await Promise.all([
         get({action:'getEquipment', department:'All'}, true),
         get({action:'getJobs', department:'All'}, true),
-        get({action:'getMNT'}, true),
-        get({action:'getPackages', department:'All'}, true)
+        get({action:'getMNT'}, true)
       ]);
     }catch(e){ console.error('AM eq fetch error',e); }
 
     const eq = (eqRes.equipment||[]);
     const runningJobs = (jRes.jobs||[]).filter(j=>j.status==='Running'||j.status==='Exemption');
     const mntRecs = (mntRes.records||[]);
-    const pkgs = (pkgRes.packages||[]);
+    const pkgs = [];
 
     // Build package → equipment map
     const pkgEqMap = {};
@@ -1962,12 +1961,21 @@ async function renderTE(c){
 async function renderEditRequest(c,req){
   document.getElementById('tb-title').textContent='Edit Request';
   c.innerHTML='<div class="loading"><div class="spinner"></div><span>Loading...</span></div>';
-  const[pkgRes,poolRes]=await Promise.all([get({action:'getPackages',department:USER.department}),get({action:'getPool'})]);
-  const packages=pkgRes.packages||[],pool=poolRes.pool||{};
-  window._pkgData=packages;window._poolData=pool;window._editReq=req;
+  const [poolRes, jobsRes] = await Promise.all([
+    get({action:'getPool'}),
+    get({action:'getJobs', department:'All'})
+  ]);
+  const pool=poolRes.pool||{};
+  window._poolData=pool; window._editReq=req;
+  const runningCTUs = new Set((jobsRes.jobs||[])
+    .filter(j=>j.status==='Running'||j.status==='Exemption')
+    .map(j=>j.packageId||''));
+  const ALL_CTUS = ['CTU-706','CTU-707','CTU-709','CTU-716','CTU-718',
+                    'CTU-719','CTU-720','CTU-721','CTU-722','CTU-723',
+                    'CTU-724','CTU-725','CTU-726'];
   // Original equipment from request
   const origEqList=req.equipmentList||[];
-  const pkgOpts=[...new Set(packages.filter(p=>!p.busy||p.pkgId===req.packageId).map(p=>p.pkgId))].sort().map(id=>`<option value="${id}"${id===req.packageId?' selected':''}>${id}${id===req.packageId?' (current)':''}</option>`).join('');
+  const pkgOpts=ALL_CTUS.map(id=>`<option value="${id}"${id===req.packageId?' selected':''}>${id}${runningCTUs.has(id)&&id!==req.packageId?' (on job)':''}</option>`).join('');
   c.innerHTML=`
   <div class="alert r" style="margin-bottom:12px"><span class="alert-icon">❌</span><div><strong>Rejected:</strong> ${req.amNotes||req.fsmNotes||'No reason provided'}</div></div>
   <div class="slbl">Original equipment (${origEqList.length} units)</div>
