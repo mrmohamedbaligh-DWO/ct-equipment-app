@@ -268,6 +268,16 @@ let USER=null,NAV=[],CACHE={},OKPI=null;
 function lockBtn(btn,msg){if(!btn)return;btn.disabled=true;btn._origText=btn.textContent;btn.textContent=msg||'Processing...';btn.style.opacity='0.6';}
 function unlockBtn(btn){if(!btn)return;btn.disabled=false;btn.textContent=btn._origText||btn.textContent;btn.style.opacity='';}
 
+function openMod(html){
+  document.getElementById('mbody').innerHTML=html;
+  document.getElementById('movl').classList.add('open');
+}
+function closeMod(e){
+  if(e&&e.target!==document.getElementById('movl'))return;
+  document.getElementById('movl').classList.remove('open');
+  document.getElementById('mbody').innerHTML='';
+}
+
 // --- API -----------------------------------
 async function get(p,force){
   const k=JSON.stringify(p),now=Date.now();
@@ -318,7 +328,11 @@ async function showApp(){
   const rm={'Cell Leader':'rc-cl','Asset Manager':'rc-am','MNT Manager':'rc-mnt','QAQC Manager':'rc-qa','FSM':'rc-fsm','Operation Manager':'rc-op','Ticketing':'rc-tk','Technical Engineer':'rc-op','Admin':'rc-am'};
   const chip=document.getElementById('tb-chip');
   const isActing=USER._isAdmin&&USER.role!=='Admin';
-  chip.textContent=USER.role+(isActing?' [Admin]':'');
+  chip.textContent=USER.role+(isActing?' [A]':'');
+  chip.style.background=isActing?'var(--amber)':'';
+  chip.style.color=isActing?'#000':'';
+  chip.style.cursor='pointer';
+  chip.onclick=function(){ if(USER._isAdmin) openAdminSwitcher(); };
   chip.className='role-chip '+(rm[USER.role]||'rc-tk');
   setupNav();
   document.getElementById('mc').innerHTML='<div class="loading"><div class="spinner"></div><span>Loading your data...</span></div>';
@@ -2276,7 +2290,7 @@ function adminSwitchFromEl(el){
 }
 
 function adminSwitch(r){
-  var orig = JSON.parse(JSON.stringify(USER));
+  var orig = {role:USER.role, department:USER.department, username:USER.username, fullName:USER.fullName, _isAdmin:USER._isAdmin};
   USER = {
     role: r.role,
     department: r.dept,
@@ -2285,6 +2299,32 @@ function adminSwitch(r){
     _isAdmin: true,
     _adminOrig: orig
   };
+  setupNav();
+  loadView('home');
+}
+
+function openAdminSwitcher(){
+  // If currently acting as another role — show return to admin option
+  if(USER._isAdmin && USER.role !== 'Admin'){
+    openMod('<div class="modal-title">Admin Controls</div>'
+      +'<button class="btn primary" onclick="returnToAdmin()" style="width:100%;margin-bottom:10px">Return to Admin Dashboard</button>'
+      +'<button class="btn ghost" onclick="closeMod()" style="width:100%">Stay as '+USER.role+'</button>');
+  } else {
+    // Already admin — go to admin dashboard
+    closeMod();
+    loadView('home');
+  }
+}
+
+function returnToAdmin(){
+  USER = {
+    role: 'Admin',
+    department: 'All',
+    username: 'Admin',
+    fullName: 'Admin',
+    _isAdmin: true
+  };
+  closeMod();
   setupNav();
   loadView('home');
 }
