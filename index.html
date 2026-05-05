@@ -1579,11 +1579,15 @@ async function openEqDetails(eqId, eqType, serial){
       get({action:'getJobs', department:'All'}, true)
     ]);
 
-    const history = (histRes.history||[]).sort((a,b)=>new Date(b.date)-new Date(a.date));
+    const history = (histRes.history||[]).sort((a,b)=>{
+      const da = a.date ? new Date(a.date.split('-').join('/')) : 0;
+      const db = b.date ? new Date(b.date.split('-').join('/')) : 0;
+      return db - da;
+    });
     const jobs = (jobsRes.jobs||[]).filter(j=>(j.equipmentList||[]).includes(eqId));
 
     // Current status
-    const currentStatus = history.length>0 ? history[0].status : 'Unknown';
+    const currentStatus = histRes.currentStatus || (history.length>0 ? history[0].status : 'Unknown');
     const statusColor = currentStatus==='On Job'?'b':currentStatus==='Pool'?'g':currentStatus==='Under MNT'?'a':currentStatus==='Transferred'?'t':'gray';
 
     // Calculate utilization
@@ -1596,10 +1600,16 @@ async function openEqDetails(eqId, eqType, serial){
     let daysMntMonth = 0, daysMntYear = 0;
 
     // Calculate from history pairs (start → end)
+    // Fix timezone: parse date as local not UTC
+    const parseDate = d => {
+      if(!d) return now;
+      const parts = d.split('-');
+      return parts.length===3 ? new Date(+parts[0], +parts[1]-1, +parts[2]) : new Date(d);
+    };
     for(let i = history.length-1; i >= 0; i--){
       const rec = history[i];
-      const recDate = new Date(rec.date);
-      const nextDate = i>0 ? new Date(history[i-1].date) : now;
+      const recDate = parseDate(rec.date);
+      const nextDate = i>0 ? parseDate(history[i-1].date) : now;
       const days = Math.max(0, Math.round((nextDate - recDate)/(1000*60*60*24)));
 
       const inMonth = recDate < now && nextDate > startOfMonth;
