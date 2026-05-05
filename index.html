@@ -2242,11 +2242,23 @@ async function renderAdmin(c){
     +((pmR.alerts||[]).filter(function(a){return a.status==='Overdue';}).slice(0,10).map(function(a){return '<div class="crow nc"><div class="cb"><div class="ct2">'+a.equipmentId+'</div><div class="cs">'+a.pmType+' · Due '+a.dueDate+'</div></div><span class="bdg r">OVERDUE</span></div>';}).join('')||'<div class="empty">No overdue PM</div>')
     +'</div></div>'
     +'<div class="slbl" style="margin-top:4px">Reports</div>'
-    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">'
-    +'<button onclick="adminExportReport(this.dataset.rtype)" data-rtype="jobs" style="padding:12px;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--t1);cursor:pointer;text-align:left"><div style="font-size:18px;margin-bottom:4px">📊</div><div style="font-size:12px;font-weight:600">All Jobs</div><div style="font-size:10px;color:var(--t3)">Export CSV</div></button>'
-    +'<button onclick="adminExportReport(this.dataset.rtype)" data-rtype="utilization" style="padding:12px;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--t1);cursor:pointer;text-align:left"><div style="font-size:18px;margin-bottom:4px">⚙</div><div style="font-size:12px;font-weight:600">Utilization</div><div style="font-size:10px;color:var(--t3)">Per equipment</div></button>'
-    +'<button onclick="adminExportReport(this.dataset.rtype)" data-rtype="mnt" style="padding:12px;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--t1);cursor:pointer;text-align:left"><div style="font-size:18px;margin-bottom:4px">🔧</div><div style="font-size:12px;font-weight:600">MNT History</div><div style="font-size:10px;color:var(--t3)">Export CSV</div></button>'
-    +'<button onclick="adminExportReport(this.dataset.rtype)" data-rtype="transfer" style="padding:12px;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--t1);cursor:pointer;text-align:left"><div style="font-size:18px;margin-bottom:4px">↔</div><div style="font-size:12px;font-weight:600">Transfer Log</div><div style="font-size:10px;color:var(--t3)">Export CSV</div></button>'
+    +'<div class="card" style="padding:13px;margin-bottom:12px">'
+    +'<div style="margin-bottom:10px"><label style="font-size:10px;color:var(--t2);display:block;margin-bottom:5px">Select report</label>'
+    +'<select class="finput" id="report-type" onchange="adminShowFilters()" style="font-size:12px;cursor:pointer">'
+    +'<option value="">-- Choose a report --</option>'
+    +'<option value="equipment_utilization">Equipment Utilization</option>'
+    +'<option value="transfer_log">Transfer Log</option>'
+    +'<option value="swap_log">Swap Log</option>'
+    +'<option value="job_requests">Job Requests</option>'
+    +'<option value="equipment_master">Equipment Master</option>'
+    +'<option value="job_log">Job Log</option>'
+    +'<option value="change_requests">Change Requests</option>'
+    +'<option value="mnt_log">MNT Log</option>'
+    +'<option value="exemption_log">Exemption Log</option>'
+    +'<option value="ticketing_log">Ticketing Log</option>'
+    +'</select></div>'
+    +'<div id="report-filters" style="display:none;margin-bottom:10px"></div>'
+    +'<button onclick="adminRunReport()" style="width:100%;background:var(--blue);color:#fff;border:none;border-radius:8px;padding:10px;font-size:12px;font-weight:600;cursor:pointer">Export CSV</button>'
     +'</div>'
     +'<div class="slbl" style="display:flex;align-items:center;justify-content:space-between;margin-top:4px"><span>Users ('+users.length+')</span><button onclick="adminAddUser()" style="background:var(--blue);color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer">+ Add user</button></div>'
     +'<div class="card" style="margin-bottom:10px">'+usersHTML+'</div>'
@@ -2261,6 +2273,141 @@ async function renderAdmin(c){
 function adminSwitchFromEl(el){
   var r={role:el.dataset.role, dept:el.dataset.dept, username:el.dataset.user, label:el.dataset.label};
   adminSwitch(r);
+}
+
+function adminSwitch(r){
+  var orig = JSON.parse(JSON.stringify(USER));
+  USER = {
+    role: r.role,
+    department: r.dept,
+    username: r.username,
+    fullName: r.label,
+    _isAdmin: true,
+    _adminOrig: orig
+  };
+  setupNav();
+  loadView('home');
+}
+
+function adminShowFilters(){
+  var type = document.getElementById('report-type').value;
+  var filtersDiv = document.getElementById('report-filters');
+  if(!type){ filtersDiv.style.display='none'; return; }
+  filtersDiv.style.display='block';
+
+  var DEPTS = ['All','D&WO','UC','SAWCOD'];
+  var deptFilter = '<div style="margin-bottom:8px"><label style="font-size:10px;color:var(--t2);display:block;margin-bottom:4px">Department</label>'
+    +'<select class="finput" id="rf-dept" style="font-size:12px">'
+    +DEPTS.map(function(d){return '<option value="'+d+'">'+d+'</option>';}).join('')
+    +'</select></div>';
+
+  var statusFilters = {
+    job_log: ['All','Running','Completed','Exemption'],
+    job_requests: ['All','Pending AM','Pending FSM','Approved','Rejected'],
+    mnt_log: ['All','Under MNT','Done','Rejected'],
+    exemption_log: ['All','Pending','Approved','Rejected'],
+    ticketing_log: ['All','Not Acknowledged','Acknowledged','Done'],
+    change_requests: ['All','Pending','Approved','Rejected']
+  };
+
+  var html = '';
+  if(['job_log','job_requests','mnt_log'].includes(type)) html += deptFilter;
+
+  if(statusFilters[type]){
+    html += '<div><label style="font-size:10px;color:var(--t2);display:block;margin-bottom:4px">Status</label>'
+      +'<select class="finput" id="rf-status" style="font-size:12px">'
+      +statusFilters[type].map(function(s){return '<option value="'+s+'">'+s+'</option>';}).join('')
+      +'</select></div>';
+  }
+
+  if(['equipment_master','equipment_utilization'].includes(type)){
+    html += '<div><label style="font-size:10px;color:var(--t2);display:block;margin-bottom:4px">Equipment Type</label>'
+      +'<select class="finput" id="rf-eqtype" style="font-size:12px">'
+      +'<option value="All">All types</option>'
+      +['Control Cabin','Power Pack','Injector','Gooseneck','Stripper','Work Reel','BOP','Fluid Pump','Nitrogen Pump','C-Pump','Batch Mixer','Frac Tank','Skid Tank','Acid Transporter','Trailer Mounted']
+        .map(function(t){return '<option value="'+t+'">'+t+'</option>';}).join('')
+      +'</select></div>';
+  }
+
+  if(['job_log','equipment_utilization','transfer_log','mnt_log'].includes(type)){
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">'
+      +'<div><label style="font-size:10px;color:var(--t2);display:block;margin-bottom:4px">From date</label>'
+      +'<input type="date" class="finput" id="rf-from" style="font-size:12px"></div>'
+      +'<div><label style="font-size:10px;color:var(--t2);display:block;margin-bottom:4px">To date</label>'
+      +'<input type="date" class="finput" id="rf-to" style="font-size:12px"></div>'
+      +'</div>';
+  }
+
+  filtersDiv.innerHTML = html || '<div style="font-size:11px;color:var(--t3)">No filters for this report</div>';
+}
+
+async function adminRunReport(){
+  var type = document.getElementById('report-type').value;
+  if(!type){ alert('Please select a report type'); return; }
+
+  var dept = document.getElementById('rf-dept') ? document.getElementById('rf-dept').value : 'All';
+  var status = document.getElementById('rf-status') ? document.getElementById('rf-status').value : 'All';
+  var eqtype = document.getElementById('rf-eqtype') ? document.getElementById('rf-eqtype').value : 'All';
+  var fromDate = document.getElementById('rf-from') ? document.getElementById('rf-from').value : '';
+  var toDate = document.getElementById('rf-to') ? document.getElementById('rf-to').value : '';
+
+  var actionMap = {
+    equipment_utilization: 'getEquipmentUtilization',
+    transfer_log: 'getTransferLog',
+    swap_log: 'getSwapLog',
+    job_requests: 'getJobRequests',
+    equipment_master: 'getEquipment',
+    job_log: 'getJobs',
+    change_requests: 'getChangeRequests',
+    mnt_log: 'getMNT',
+    exemption_log: 'getExemptions',
+    ticketing_log: 'getTickets'
+  };
+
+  var filenameMap = {
+    equipment_utilization: 'Equipment_Utilization.csv',
+    transfer_log: 'Transfer_Log.csv',
+    swap_log: 'Swap_Log.csv',
+    job_requests: 'Job_Requests.csv',
+    equipment_master: 'Equipment_Master.csv',
+    job_log: 'Job_Log.csv',
+    change_requests: 'Change_Requests.csv',
+    mnt_log: 'MNT_Log.csv',
+    exemption_log: 'Exemption_Log.csv',
+    ticketing_log: 'Ticketing_Log.csv'
+  };
+
+  var btn = document.querySelector('button[onclick="adminRunReport()"]');
+  if(btn){ btn.textContent='Preparing...'; btn.disabled=true; }
+
+  try{
+    var res = await get({action:actionMap[type], department:dept}, true);
+    var rawData = res.jobs||res.records||res.logs||res.utilization||res.requests||res.equipment||res.exemptions||res.tickets||res.changeRequests||[];
+
+    // Apply filters
+    var data = rawData.filter(function(r){
+      if(status&&status!=='All'&&r.status&&r.status!==status) return false;
+      if(eqtype&&eqtype!=='All'&&r.type&&r.type!==eqtype) return false;
+      if(fromDate&&r.date&&r.date<fromDate) return false;
+      if(toDate&&r.date&&r.date>toDate) return false;
+      return true;
+    });
+
+    if(!data.length){ alert('No data found for selected filters'); if(btn){btn.textContent='Export CSV';btn.disabled=false;} return; }
+
+    var keys = Object.keys(data[0]);
+    var csv = [keys.join(',')].concat(data.map(function(row){
+      return keys.map(function(k){ return JSON.stringify(row[k]!=null?String(row[k]):''); }).join(',');
+    })).join('\n');
+
+    var blob = new Blob([csv], {type:'text/csv'});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href=url; a.download=filenameMap[type]||'report.csv'; a.click();
+    URL.revokeObjectURL(url);
+    alert('Report exported: '+data.length+' records');
+  }catch(e){ alert('Export error: '+e.message); }
+  if(btn){ btn.textContent='Export CSV'; btn.disabled=false; }
 }
 
 async function adminExportReport(typeOrEl){
