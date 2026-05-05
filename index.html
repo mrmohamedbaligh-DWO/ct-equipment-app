@@ -2149,43 +2149,29 @@ async function renderAdmin(c){
   document.getElementById('tb-title').textContent='Admin Panel';
   c.innerHTML='<div class="loading"><div class="spinner"></div><span>Loading...</span></div>';
 
-  // Fetch all data in parallel
-  let jR={jobs:[]}, eqR={equipment:[]}, mntR={records:[]}, pmR={alerts:[]}, usersR={users:[]}, logsR={logs:[]};
+  var jR={jobs:[]}, eqR={equipment:[]}, pmR={alerts:[]}, usersR={users:[]}, logsR={logs:[]};
   try{
-    [jR, eqR, mntR, pmR, usersR, logsR] = await Promise.all([
+    var results = await Promise.all([
       get({action:'getJobs', department:'All'}, true),
       get({action:'getEquipment', department:'All'}, true),
-      get({action:'getMNT'}, true),
       get({action:'getPMAlerts', department:'All'}, true),
       get({action:'getUsers'}, true),
       get({action:'getLoginLogs'}, true)
     ]);
+    jR=results[0]; eqR=results[1]; pmR=results[2]; usersR=results[3]; logsR=results[4];
   }catch(e){ console.error('Admin fetch error', e); }
 
-  const jobs = jR.jobs||[];
-  const running = jobs.filter(j=>j.status==='Running'||j.status==='Exemption');
-  const eq = eqR.equipment||[];
-  const inPool = eq.filter(e=>e.status==='Active').length;
-  const onJob = eq.filter(e=>e.status==='On Job'||e.status==='Reserved').length;
-  const inMnt = eq.filter(e=>e.status==='Under MNT').length;
-  const pmOverdue = (pmR.alerts||[]).filter(a=>a.status==='Overdue').length;
-  const users = usersR.users||[];
-  const logs = (logsR.logs||[]).slice(0,20);
+  var jobs = jR.jobs||[];
+  var running = jobs.filter(function(j){return j.status==='Running'||j.status==='Exemption';});
+  var eq = eqR.equipment||[];
+  var inPool = eq.filter(function(e){return e.status==='Active';}).length;
+  var onJob = eq.filter(function(e){return e.status==='On Job'||e.status==='Reserved';}).length;
+  var inMnt = eq.filter(function(e){return e.status==='Under MNT';}).length;
+  var pmOverdue = (pmR.alerts||[]).filter(function(a){return a.status==='Overdue';}).length;
+  var users = usersR.users||[];
+  var logs = (logsR.logs||[]).slice(0,20);
 
-  // Role colors
-  const roleColor = {
-    'Cell Leader':'#38BDF8','Asset Manager':'#818CF8','MNT Manager':'#34D399',
-    'QAQC Manager':'#FB923C','FSM':'#A78BFA','Operation Manager':'#F472B6',
-    'Ticketing':'#94A3B8','Admin':'#FBBF24'
-  };
-  const roleBg = {
-    'Cell Leader':'#0F2D4A','Asset Manager':'#1C1F3A','MNT Manager':'#0D2A2A',
-    'QAQC Manager':'#2D1A0A','FSM':'#1E1B3A','Operation Manager':'#2D1020',
-    'Ticketing':'#1E293B','Admin':'#2D2010'
-  };
-
-  // ROLES list for switch
-  const ROLES=[
+  var ROLES=[
     {role:'Cell Leader',dept:'D&WO',username:'Mohamed.Baligh',label:'Cell Leader D&WO'},
     {role:'Cell Leader',dept:'D&WO',username:'Mohamed.Hamdy',label:'Cell Leader D&WO (2)'},
     {role:'Cell Leader',dept:'UC',username:'Mohamed.Amin',label:'Cell Leader UC'},
@@ -2200,236 +2186,171 @@ async function renderAdmin(c){
     {role:'Ticketing',dept:'All',username:'Archi.FTY',label:'Ticketing'},
   ];
 
-  c.innerHTML=`
-  <!-- Admin Mode Banner -->
-  <div style="background:#1E3A5F;border-radius:8px;padding:9px 13px;margin-bottom:12px;font-size:11px;color:#60A5FA;display:flex;align-items:center;gap:8px">
-    🔑 Admin mode — tap any role below to switch dashboard
-  </div>
+  var roleColor={'Cell Leader':'#38BDF8','Asset Manager':'#818CF8','MNT Manager':'#34D399','QAQC Manager':'#FB923C','FSM':'#A78BFA','Operation Manager':'#F472B6','Ticketing':'#94A3B8','Admin':'#FBBF24'};
+  var roleBg={'Cell Leader':'#0F2D4A','Asset Manager':'#1C1F3A','MNT Manager':'#0D2A2A','QAQC Manager':'#2D1A0A','FSM':'#1E1B3A','Operation Manager':'#2D1020','Ticketing':'#1E293B','Admin':'#2D2010'};
 
-  <!-- KPIs -->
-  <div class="slbl">System overview</div>
-  <div class="kpi-row">
-    <div class="kpi g" onclick="toggleKPI('adm-jobs')"><div class="kpi-lbl">Jobs running <span class="kpi-tap">tap ▸</span></div><div class="kpi-val g">${running.length}</div><div class="kpi-sub">all depts</div></div>
-    <div class="kpi b" onclick="toggleKPI('adm-eq')"><div class="kpi-lbl">Equipment <span class="kpi-tap">tap ▸</span></div><div class="kpi-val b">${eq.length}</div><div class="kpi-sub">${inPool} in pool</div></div>
-    <div class="kpi a" onclick="toggleKPI('adm-mnt')"><div class="kpi-lbl">Under MNT <span class="kpi-tap">tap ▸</span></div><div class="kpi-val a">${inMnt}</div><div class="kpi-sub">${onJob} on job</div></div>
-    <div class="kpi r" onclick="toggleKPI('adm-pm')"><div class="kpi-lbl">PM overdue <span class="kpi-tap">tap ▸</span></div><div class="kpi-val r">${pmOverdue}</div><div class="kpi-sub">need action</div></div>
-  </div>
+  function userInitials(username){
+    return (username||'?').split('.').map(function(p){return (p[0]||'').toUpperCase();}).join('').slice(0,2);
+  }
 
-  <!-- KPI expandables -->
-  <div id="adm-jobs" style="display:none"><div class="expand">
-    <div class="exp-head"><span class="exp-title">Running jobs</span><span class="exp-close" onclick="toggleKPI('adm-jobs')">close</span></div>
-    ${running.map(j=>`<div class="crow nc"><div class="cb"><div class="ct2">${j.jobId} · ${j.wellNumber}</div><div class="cs">${j.packageId} · ${j.department}</div></div><span class="bdg g">Running</span></div>`).join('')||'<div class="empty">No running jobs</div>'}
-  </div></div>
-  <div id="adm-eq" style="display:none"><div class="expand">
-    <div class="exp-head"><span class="exp-title">Equipment summary</span><span class="exp-close" onclick="toggleKPI('adm-eq')">close</span></div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px">
-      <div style="background:var(--s2);border-radius:8px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:700;color:var(--green)">${inPool}</div><div style="font-size:10px;color:var(--t2)">In Pool</div></div>
-      <div style="background:var(--s2);border-radius:8px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:700;color:var(--blue)">${onJob}</div><div style="font-size:10px;color:var(--t2)">On Job</div></div>
-      <div style="background:var(--s2);border-radius:8px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:700;color:var(--amber)">${inMnt}</div><div style="font-size:10px;color:var(--t2)">Under MNT</div></div>
-      <div style="background:var(--s2);border-radius:8px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:700;color:var(--t1)">${eq.length}</div><div style="font-size:10px;color:var(--t2)">Total</div></div>
-    </div>
-  </div></div>
-  <div id="adm-mnt" style="display:none"><div class="expand">
-    <div class="exp-head"><span class="exp-title">Under MNT</span><span class="exp-close" onclick="toggleKPI('adm-mnt')">close</span></div>
-    ${eq.filter(e=>e.status==='Under MNT').map(e=>`<div class="crow nc"><div class="cb"><div class="ct2">${e.id}</div><div class="cs">${e.type}</div></div><span class="bdg a">MNT</span></div>`).join('')||'<div class="empty">No equipment under MNT</div>'}
-  </div></div>
-  <div id="adm-pm" style="display:none"><div class="expand">
-    <div class="exp-head"><span class="exp-title">PM overdue</span><span class="exp-close" onclick="toggleKPI('adm-pm')">close</span></div>
-    ${(pmR.alerts||[]).filter(a=>a.status==='Overdue').slice(0,10).map(a=>`<div class="crow nc"><div class="cb"><div class="ct2">${a.equipmentId}</div><div class="cs">${a.pmType} · Due ${a.dueDate}</div></div><span class="bdg r">OVERDUE</span></div>`).join('')||'<div class="empty">No overdue PM</div>'}
-  </div></div>
+  var rolesHTML = ROLES.map(function(r){
+    var rc=roleColor[r.role]||'#94A3B8', rb=roleBg[r.role]||'#1E293B';
+    var rData = 'data-role="'+r.role+'" data-dept="'+r.dept+'" data-user="'+r.username+'" data-label="'+r.label+'"';
+    return '<div class="crow" style="cursor:pointer;padding:11px 13px" '+rData+' onclick="adminSwitchFromEl(this)">'
+      +'<div style="width:30px;height:30px;border-radius:50%;background:'+rb+';display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:'+rc+';flex-shrink:0">'+userInitials(r.username)+'</div>'
+      +'<div class="cb" style="margin-left:10px;flex:1"><div class="ct2">'+r.label+'</div><div class="cs">'+r.username+'</div></div>'
+      +'<span style="font-size:9px;padding:2px 8px;border-radius:10px;background:'+rb+';color:'+rc+';font-weight:600">'+r.role+'</span>'
+      +'<span style="color:var(--t3);margin-left:6px;font-size:14px">›</span>'
+      +'</div>';
+  }).join('');
 
-  <!-- REPORTS -->
-  <div class="slbl" style="margin-top:4px">Reports</div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
-    <button onclick="exportReport('jobs')" style="padding:12px;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--t1);cursor:pointer;text-align:left">
-      <div style="font-size:18px;margin-bottom:4px">📊</div>
-      <div style="font-size:12px;font-weight:600">All Jobs</div>
-      <div style="font-size:10px;color:var(--t3)">Export Excel</div>
-    </button>
-    <button onclick="exportReport('utilization')" style="padding:12px;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--t1);cursor:pointer;text-align:left">
-      <div style="font-size:18px;margin-bottom:4px">⚙</div>
-      <div style="font-size:12px;font-weight:600">Utilization</div>
-      <div style="font-size:10px;color:var(--t3)">Per equipment</div>
-    </button>
-    <button onclick="exportReport('mnt')" style="padding:12px;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--t1);cursor:pointer;text-align:left">
-      <div style="font-size:18px;margin-bottom:4px">🔧</div>
-      <div style="font-size:12px;font-weight:600">MNT History</div>
-      <div style="font-size:10px;color:var(--t3)">Export Excel</div>
-    </button>
-    <button onclick="exportReport('transfer')" style="padding:12px;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--t1);cursor:pointer;text-align:left">
-      <div style="font-size:18px;margin-bottom:4px">↔</div>
-      <div style="font-size:12px;font-weight:600">Transfer Log</div>
-      <div style="font-size:10px;color:var(--t3)">Export Excel</div>
-    </button>
-  </div>
+  var usersHTML = users.length>0 ? users.map(function(u){
+    var rc=roleColor[u.role]||'#94A3B8', rb=roleBg[u.role]||'#1E293B';
+    return '<div class="crow" style="padding:10px 13px">'
+      +'<div style="width:32px;height:32px;border-radius:50%;background:'+rb+';display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:'+rc+';flex-shrink:0">'+userInitials(u.username)+'</div>'
+      +'<div class="cb" style="margin-left:10px;flex:1"><div class="ct2">'+u.username+'</div><div class="cs">'+(u.dept||'All')+'</div></div>'
+      +'<span style="font-size:9px;padding:2px 7px;border-radius:10px;font-weight:600;background:'+rb+';color:'+rc+'">'+u.role+'</span>'
+      +'<button onclick="adminEditUser(''+u.username+'')" style="margin-left:8px;background:var(--s3);color:var(--t2);border:none;border-radius:6px;padding:4px 8px;font-size:10px;cursor:pointer">Edit</button>'
+      +'</div>';
+  }).join('') : '<div style="padding:12px 13px;font-size:11px;color:var(--t3)">Loading users...</div>';
 
-  <!-- USER MANAGEMENT -->
-  <div class="slbl" style="display:flex;align-items:center;justify-content:space-between;margin-top:4px">
-    <span>Users (${users.length||12})</span>
-    <button onclick="openAddUser()" style="background:var(--blue);color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer">+ Add user</button>
-  </div>
-  <div class="card" style="margin-bottom:10px">
-    ${users.length>0 ? users.map(u=>`
-      <div class="crow" style="padding:10px 13px">
-        <div style="width:32px;height:32px;border-radius:50%;background:${roleBg[u.role]||'#1E293B'};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:${roleColor[u.role]||'#94A3B8'};flex-shrink:0">
-          ${(u.username||'?').split('.').map(p=>p[0]?.toUpperCase()||'').join('').slice(0,2)}
-        </div>
-        <div class="cb" style="margin-left:10px;flex:1">
-          <div class="ct2">${u.username}</div>
-          <div class="cs">${u.dept||'All'}</div>
-        </div>
-        <span style="font-size:9px;padding:2px 7px;border-radius:10px;font-weight:600;background:${roleBg[u.role]||'#1E293B'};color:${roleColor[u.role]||'#94A3B8'}">${u.role}</span>
-        <button onclick="openEditUser(${JSON.stringify(u).replace(/'/g,'&apos;')})" style="margin-left:8px;background:var(--s3);color:var(--t2);border:none;border-radius:6px;padding:4px 8px;font-size:10px;cursor:pointer">Edit</button>
-      </div>`).join('') :
-    `<div style="padding:10px 13px;font-size:11px;color:var(--t3)">Loading users from Google Sheet...</div>`}
-  </div>
+  var logsHTML = logs.length>0 ? logs.map(function(l){
+    return '<div style="padding:8px 13px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)">'
+      +'<div style="width:7px;height:7px;border-radius:50%;background:'+(l.success?'var(--green)':'var(--red)')+'"></div>'
+      +'<div style="flex:1;font-size:10px;color:var(--t2)"><span style="color:var(--t1);font-weight:500">'+l.username+'</span>'+(l.success?' logged in':' — failed login')+'</div>'
+      +'<span style="font-size:9px;color:var(--t3)">'+(l.date||'')+'</span>'
+      +'</div>';
+  }).join('') : '<div style="padding:10px 13px;font-size:11px;color:var(--t3)">No login logs yet</div>';
 
-  <!-- LOGIN LOG -->
-  <div class="slbl" style="margin-top:4px">Login activity</div>
-  <div class="card" style="margin-bottom:10px">
-    ${logs.length>0 ? logs.map(l=>`
-      <div style="padding:8px 13px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)">
-        <div style="width:7px;height:7px;border-radius:50%;background:${l.success?'var(--green)':'var(--red)'}"></div>
-        <div style="flex:1;font-size:10px;color:var(--t2)">
-          <span style="color:var(--t1);font-weight:500">${l.username}</span>
-          ${l.success?' logged in':' — failed login'}
-        </div>
-        <span style="font-size:9px;color:var(--t3)">${l.date||''}</span>
-      </div>`).join('') :
-    `<div style="padding:10px 13px;font-size:11px;color:var(--t3)">No login logs yet</div>`}
-  </div>
+  c.innerHTML = '<div style="background:#1E3A5F;border-radius:8px;padding:9px 13px;margin-bottom:12px;font-size:11px;color:#60A5FA;display:flex;align-items:center;gap:8px">'
+    +'🔑 Admin mode — tap any role below to switch dashboard</div>'
+    +'<div class="slbl">System overview</div>'
+    +'<div class="kpi-row">'
+    +'<div class="kpi g" onclick="toggleKPI('adm-jobs')"><div class="kpi-lbl">Jobs running <span class="kpi-tap">tap ▸</span></div><div class="kpi-val g">'+running.length+'</div><div class="kpi-sub">all depts</div></div>'
+    +'<div class="kpi b" onclick="toggleKPI('adm-eq')"><div class="kpi-lbl">Equipment <span class="kpi-tap">tap ▸</span></div><div class="kpi-val b">'+eq.length+'</div><div class="kpi-sub">'+inPool+' in pool</div></div>'
+    +'<div class="kpi a" onclick="toggleKPI('adm-mnt')"><div class="kpi-lbl">Under MNT <span class="kpi-tap">tap ▸</span></div><div class="kpi-val a">'+inMnt+'</div><div class="kpi-sub">'+onJob+' on job</div></div>'
+    +'<div class="kpi r" onclick="toggleKPI('adm-pm')"><div class="kpi-lbl">PM overdue <span class="kpi-tap">tap ▸</span></div><div class="kpi-val r">'+pmOverdue+'</div><div class="kpi-sub">need action</div></div>'
+    +'</div>'
+    +'<div id="adm-jobs" style="display:none"><div class="expand"><div class="exp-head"><span class="exp-title">Running jobs</span><span class="exp-close" onclick="toggleKPI('adm-jobs')">close</span></div>'
+    +(running.map(function(j){return '<div class="crow nc"><div class="cb"><div class="ct2">'+j.jobId+' · '+j.wellNumber+'</div><div class="cs">'+j.packageId+' · '+j.department+'</div></div><span class="bdg g">Running</span></div>';}).join('')||'<div class="empty">No running jobs</div>')
+    +'</div></div>'
+    +'<div id="adm-mnt" style="display:none"><div class="expand"><div class="exp-head"><span class="exp-title">Under MNT</span><span class="exp-close" onclick="toggleKPI('adm-mnt')">close</span></div>'
+    +(eq.filter(function(e){return e.status==='Under MNT';}).map(function(e){return '<div class="crow nc"><div class="cb"><div class="ct2">'+e.id+'</div><div class="cs">'+e.type+'</div></div><span class="bdg a">MNT</span></div>';}).join('')||'<div class="empty">No equipment under MNT</div>')
+    +'</div></div>'
+    +'<div id="adm-pm" style="display:none"><div class="expand"><div class="exp-head"><span class="exp-title">PM overdue</span><span class="exp-close" onclick="toggleKPI('adm-pm')">close</span></div>'
+    +((pmR.alerts||[]).filter(function(a){return a.status==='Overdue';}).slice(0,10).map(function(a){return '<div class="crow nc"><div class="cb"><div class="ct2">'+a.equipmentId+'</div><div class="cs">'+a.pmType+' · Due '+a.dueDate+'</div></div><span class="bdg r">OVERDUE</span></div>';}).join('')||'<div class="empty">No overdue PM</div>')
+    +'</div></div>'
+    +'<div class="slbl" style="margin-top:4px">Reports</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">'
+    +'<button onclick="adminExportReport('jobs')" style="padding:12px;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--t1);cursor:pointer;text-align:left"><div style="font-size:18px;margin-bottom:4px">📊</div><div style="font-size:12px;font-weight:600">All Jobs</div><div style="font-size:10px;color:var(--t3)">Export CSV</div></button>'
+    +'<button onclick="adminExportReport('utilization')" style="padding:12px;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--t1);cursor:pointer;text-align:left"><div style="font-size:18px;margin-bottom:4px">⚙</div><div style="font-size:12px;font-weight:600">Utilization</div><div style="font-size:10px;color:var(--t3)">Per equipment</div></button>'
+    +'<button onclick="adminExportReport('mnt')" style="padding:12px;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--t1);cursor:pointer;text-align:left"><div style="font-size:18px;margin-bottom:4px">🔧</div><div style="font-size:12px;font-weight:600">MNT History</div><div style="font-size:10px;color:var(--t3)">Export CSV</div></button>'
+    +'<button onclick="adminExportReport('transfer')" style="padding:12px;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--t1);cursor:pointer;text-align:left"><div style="font-size:18px;margin-bottom:4px">↔</div><div style="font-size:12px;font-weight:600">Transfer Log</div><div style="font-size:10px;color:var(--t3)">Export CSV</div></button>'
+    +'</div>'
+    +'<div class="slbl" style="display:flex;align-items:center;justify-content:space-between;margin-top:4px"><span>Users ('+users.length+')</span><button onclick="adminAddUser()" style="background:var(--blue);color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer">+ Add user</button></div>'
+    +'<div class="card" style="margin-bottom:10px">'+usersHTML+'</div>'
+    +'<div class="slbl" style="margin-top:4px">Login activity</div>'
+    +'<div class="card" style="margin-bottom:10px">'+logsHTML+'</div>'
+    +'<div class="slbl" style="margin-top:4px">Switch to role</div>'
+    +'<div class="card" style="margin-bottom:10px">'+rolesHTML+'</div>';
 
-  <!-- SWITCH ROLE -->
-  <div class="slbl" style="margin-top:4px">Switch to role</div>
-  <div class="card" style="margin-bottom:10px">
-    ${ROLES.map(r=>`
-      <div class="crow" style="cursor:pointer;padding:11px 13px" onclick="adminSwitch(${JSON.stringify(r).replace(/'/g,'&apos;')})">
-        <div style="width:30px;height:30px;border-radius:50%;background:${roleBg[r.role]||'#1E293B'};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:${roleColor[r.role]||'#94A3B8'};flex-shrink:0">
-          ${(r.username||'').split('.').map(p=>p[0]?.toUpperCase()||'').join('').slice(0,2)}
-        </div>
-        <div class="cb" style="margin-left:10px;flex:1">
-          <div class="ct2">${r.label}</div>
-          <div class="cs">${r.username}</div>
-        </div>
-        <span style="font-size:9px;padding:2px 8px;border-radius:10px;background:${roleBg[r.role]||'#1E293B'};color:${roleColor[r.role]||'#94A3B8'};font-weight:600">${r.role}</span>
-        <span style="color:var(--t3);margin-left:6px;font-size:14px">›</span>
-      </div>`).join('')}
-  </div>`;
+  window._adminUsers = users;
 }
 
-// ─── Report export functions ───────────────────
-async function exportReport(type){
-  let action, filename;
+function adminSwitchFromEl(el){
+  var r={role:el.dataset.role, dept:el.dataset.dept, username:el.dataset.user, label:el.dataset.label};
+  adminSwitch(r);
+}
+
+async function adminExportReport(type){
+  var action, filename;
   if(type==='jobs'){ action='getJobs'; filename='Jobs_Report.csv'; }
   else if(type==='mnt'){ action='getMNT'; filename='MNT_Report.csv'; }
   else if(type==='transfer'){ action='getTransferLog'; filename='Transfer_Log.csv'; }
   else if(type==='utilization'){ action='getEquipmentUtilization'; filename='Utilization_Report.csv'; }
 
-  const btn = event.target.closest('button');
-  const orig = btn.innerHTML;
+  var btn = event.target.closest('button');
+  var orig = btn.innerHTML;
   btn.innerHTML='<div style="font-size:11px">Preparing...</div>';
-
   try{
-    const res = await get({action, department:'All'}, true);
-    const data = res.jobs||res.records||res.logs||res.utilization||[];
+    var res = await get({action:action, department:'All'}, true);
+    var data = res.jobs||res.records||res.logs||res.utilization||[];
     if(!data.length){ alert('No data to export'); btn.innerHTML=orig; return; }
-
-    // Convert to CSV
-    const keys = Object.keys(data[0]);
-    const csv = [keys.join(','), ...data.map(row=>keys.map(k=>JSON.stringify(row[k]??'')).join(','))].join('
+    var keys = Object.keys(data[0]);
+    var csv = [keys.join(',')].concat(data.map(function(row){
+      return keys.map(function(k){ return JSON.stringify(row[k]!=null?row[k]:''); }).join(',');
+    })).join('
 ');
-    const blob = new Blob([csv], {type:'text/csv'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    var blob = new Blob([csv], {type:'text/csv'});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
     a.href=url; a.download=filename; a.click();
     URL.revokeObjectURL(url);
   }catch(e){ alert('Export error: '+e.message); }
   btn.innerHTML=orig;
 }
 
-// ─── User management modal ───────────────────
-function openAddUser(){
-  const ROLES_LIST = ['Cell Leader','Asset Manager','MNT Manager','QAQC Manager','FSM','Operation Manager','Ticketing','Admin'];
-  const DEPTS = ['D&WO','UC','SAWCOD','All'];
-  openMod(`
-    <div class="modal-title">Add new user</div>
-    <div class="fg"><label class="flbl">Username</label><input type="text" class="finput" id="nu-user" placeholder="e.g. John.Smith"></div>
-    <div class="fg"><label class="flbl">Password</label><input type="text" class="finput" id="nu-pass" placeholder="e.g. Smith1234"></div>
-    <div class="fg"><label class="flbl">Full Name</label><input type="text" class="finput" id="nu-name" placeholder="e.g. John Smith"></div>
-    <div class="fg"><label class="flbl">Role</label>
-      <select class="finput" id="nu-role">
-        ${ROLES_LIST.map(r=>`<option value="${r}">${r}</option>`).join('')}
-      </select>
-    </div>
-    <div class="fg"><label class="flbl">Department</label>
-      <select class="finput" id="nu-dept">
-        ${DEPTS.map(d=>`<option value="${d}">${d}</option>`).join('')}
-      </select>
-    </div>
-    <button class="btn primary" onclick="saveNewUser()">Add user</button>
-  `);
+function adminAddUser(){
+  var ROLES_LIST=['Cell Leader','Asset Manager','MNT Manager','QAQC Manager','FSM','Operation Manager','Ticketing','Admin'];
+  var DEPTS=['D&WO','UC','SAWCOD','All'];
+  var rolesOpts=ROLES_LIST.map(function(r){return '<option value="'+r+'">'+r+'</option>';}).join('');
+  var deptsOpts=DEPTS.map(function(d){return '<option value="'+d+'">'+d+'</option>';}).join('');
+  openMod('<div class="modal-title">Add new user</div>'
+    +'<div class="fg"><label class="flbl">Username</label><input type="text" class="finput" id="nu-user" placeholder="e.g. John.Smith"></div>'
+    +'<div class="fg"><label class="flbl">Password</label><input type="text" class="finput" id="nu-pass" placeholder="e.g. Smith1234"></div>'
+    +'<div class="fg"><label class="flbl">Full Name</label><input type="text" class="finput" id="nu-name" placeholder="e.g. John Smith"></div>'
+    +'<div class="fg"><label class="flbl">Role</label><select class="finput" id="nu-role">'+rolesOpts+'</select></div>'
+    +'<div class="fg"><label class="flbl">Department</label><select class="finput" id="nu-dept">'+deptsOpts+'</select></div>'
+    +'<button class="btn primary" onclick="adminSaveNewUser()">Add user</button>');
 }
 
-async function saveNewUser(){
-  const username = document.getElementById('nu-user').value.trim();
-  const password = document.getElementById('nu-pass').value.trim();
-  const fullName = document.getElementById('nu-name').value.trim();
-  const role     = document.getElementById('nu-role').value;
-  const dept     = document.getElementById('nu-dept').value;
-  if(!username||!password||!fullName){ alert('Please fill all fields'); return; }
-  const res = await post({action:'addUser', username, password, fullName, role, department:dept, active:'Yes'});
-  if(res.success){
-    closeMod();
-    alert('User '+username+' added!');
-    loadView('home');
-  } else { alert('Error: '+(res.error||'Failed to add user')); }
+async function adminSaveNewUser(){
+  var username=document.getElementById('nu-user').value.trim();
+  var password=document.getElementById('nu-pass').value.trim();
+  var fullName=document.getElementById('nu-name').value.trim();
+  var role=document.getElementById('nu-role').value;
+  var dept=document.getElementById('nu-dept').value;
+  if(!username||!password||!fullName){alert('Please fill all fields');return;}
+  var res=await post({action:'addUser',username:username,password:password,fullName:fullName,role:role,department:dept,active:'Yes'});
+  if(res.success){closeMod();alert('User '+username+' added!');loadView('home');}
+  else{alert('Error: '+(res.error||'Failed'));}
 }
 
-function openEditUser(u){
-  const ROLES_LIST = ['Cell Leader','Asset Manager','MNT Manager','QAQC Manager','FSM','Operation Manager','Ticketing','Admin'];
-  const DEPTS = ['D&WO','UC','SAWCOD','All'];
-  openMod(`
-    <div class="modal-title">Edit user — ${u.username}</div>
-    <div class="fg"><label class="flbl">Username</label><input type="text" class="finput" id="eu-user" value="${u.username}" readonly style="opacity:.6"></div>
-    <div class="fg"><label class="flbl">Password</label><input type="text" class="finput" id="eu-pass" value="${u.password||''}"></div>
-    <div class="fg"><label class="flbl">Full Name</label><input type="text" class="finput" id="eu-name" value="${u.fullName||u.username}"></div>
-    <div class="fg"><label class="flbl">Role</label>
-      <select class="finput" id="eu-role">
-        ${ROLES_LIST.map(r=>`<option value="${r}"${r===u.role?' selected':''}>${r}</option>`).join('')}
-      </select>
-    </div>
-    <div class="fg"><label class="flbl">Department</label>
-      <select class="finput" id="eu-dept">
-        ${DEPTS.map(d=>`<option value="${d}"${d===u.dept?' selected':''}>${d}</option>`).join('')}
-      </select>
-    </div>
-    <div class="fg"><label class="flbl">Active</label>
-      <select class="finput" id="eu-active">
-        <option value="Yes"${u.active==='Yes'?' selected':''}>Yes</option>
-        <option value="No"${u.active==='No'?' selected':''}>No</option>
-      </select>
-    </div>
-    <div style="display:flex;gap:8px">
-      <button class="btn primary" style="flex:1" onclick="saveEditUser('${u.username}')">Save changes</button>
-      <button class="btn danger" style="flex:0 0 auto" onclick="confirmDeleteUser('${u.username}')">Delete</button>
-    </div>
-  `);
+function adminEditUser(username){
+  var users=window._adminUsers||[];
+  var u=users.find(function(x){return x.username===username;})||{username:username};
+  var ROLES_LIST=['Cell Leader','Asset Manager','MNT Manager','QAQC Manager','FSM','Operation Manager','Ticketing','Admin'];
+  var DEPTS=['D&WO','UC','SAWCOD','All'];
+  var rolesOpts=ROLES_LIST.map(function(r){return '<option value="'+r+'"'+(r===u.role?' selected':'')+'>'+r+'</option>';}).join('');
+  var deptsOpts=DEPTS.map(function(d){return '<option value="'+d+'"'+(d===u.dept?' selected':'')+'>'+d+'</option>';}).join('');
+  var activeOpts='<option value="Yes"'+(u.active==='Yes'?' selected':'')+'>Yes</option><option value="No"'+(u.active==='No'?' selected':'')+'>No</option>';
+  openMod('<div class="modal-title">Edit — '+username+'</div>'
+    +'<div class="fg"><label class="flbl">Username</label><input type="text" class="finput" value="'+username+'" readonly style="opacity:.6"></div>'
+    +'<div class="fg"><label class="flbl">Password</label><input type="text" class="finput" id="eu-pass" value="'+(u.password||'')+'"></div>'
+    +'<div class="fg"><label class="flbl">Full Name</label><input type="text" class="finput" id="eu-name" value="'+(u.fullName||username)+'"></div>'
+    +'<div class="fg"><label class="flbl">Role</label><select class="finput" id="eu-role">'+rolesOpts+'</select></div>'
+    +'<div class="fg"><label class="flbl">Department</label><select class="finput" id="eu-dept">'+deptsOpts+'</select></div>'
+    +'<div class="fg"><label class="flbl">Active</label><select class="finput" id="eu-active">'+activeOpts+'</select></div>'
+    +'<div style="display:flex;gap:8px">'
+    +'<button class="btn primary" style="flex:1" onclick="adminSaveEdit(''+username+'')">Save</button>'
+    +'<button class="btn danger" style="flex:0 0 auto" onclick="adminDeleteUser(''+username+'')">Delete</button>'
+    +'</div>');
 }
 
-async function saveEditUser(username){
-  const password = document.getElementById('eu-pass').value.trim();
-  const fullName = document.getElementById('eu-name').value.trim();
-  const role     = document.getElementById('eu-role').value;
-  const dept     = document.getElementById('eu-dept').value;
-  const active   = document.getElementById('eu-active').value;
-  const res = await post({action:'editUser', username, password, fullName, role, department:dept, active});
-  if(res.success){ closeMod(); alert('User updated!'); loadView('home'); }
-  else { alert('Error: '+(res.error||'Update failed')); }
+async function adminSaveEdit(username){
+  var password=document.getElementById('eu-pass').value.trim();
+  var fullName=document.getElementById('eu-name').value.trim();
+  var role=document.getElementById('eu-role').value;
+  var dept=document.getElementById('eu-dept').value;
+  var active=document.getElementById('eu-active').value;
+  var res=await post({action:'editUser',username:username,password:password,fullName:fullName,role:role,department:dept,active:active});
+  if(res.success){closeMod();alert('User updated!');loadView('home');}
+  else{alert('Error: '+(res.error||'Update failed'));}
 }
 
-async function confirmDeleteUser(username){
-  if(!confirm('Delete user '+username+'? This cannot be undone.')) return;
-  const res = await post({action:'deleteUser', username});
-  if(res.success){ closeMod(); alert('User deleted'); loadView('home'); }
-  else { alert('Error: '+(res.error||'Delete failed')); }
+async function adminDeleteUser(username){
+  if(!confirm('Delete user '+username+'?'))return;
+  var res=await post({action:'deleteUser',username:username});
+  if(res.success){closeMod();alert('User deleted');loadView('home');}
+  else{alert('Error: '+(res.error||'Delete failed'));}
 }
