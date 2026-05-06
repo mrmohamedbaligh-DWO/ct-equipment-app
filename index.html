@@ -1924,12 +1924,12 @@ async function renderAlerts(c){
     var daysText=a.daysLeft<0?'OVERDUE '+Math.abs(a.daysLeft)+' days':a.daysLeft+' days left';
     var editBtn = canEditPM
       ? '<button onclick="openEditPMFromEl(this)" data-eqid="'+a.equipmentId+'" data-pm="'+a.pmType+'" data-date="'+a.dueDate+'" '
-        +'style="margin-left:8px;background:var(--s3);color:var(--t2);border:none;border-radius:5px;'
-        +'padding:3px 8px;font-size:10px;cursor:pointer">Edit date</button>'
+        +'style="margin-left:8px;flex-shrink:0;background:var(--s3);color:var(--t2);border:none;border-radius:5px;'
+        +'padding:3px 8px;font-size:10px;cursor:pointer">Edit</button>'
       : '';
-    return '<div class="alert '+cls+'" style="cursor:pointer" onclick="openEqDetailsFromEl(this)" data-eqid="'+a.equipmentId+'" data-eqtype="'+a.type+'" data-serial="">'
-      +'<span class="alert-icon">'+icon+'</span>'
-      +'<div style="flex:1">'
+    return '<div class="alert '+cls+'" style="align-items:center" onclick="openEqDetailsFromEl(this)" data-eqid="'+a.equipmentId+'" data-eqtype="'+a.type+'" data-serial="">'
+      +'<span class="alert-icon" style="pointer-events:none">'+icon+'</span>'
+      +'<div style="flex:1;pointer-events:none">'
       +'<div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px">'
       +'<strong>'+a.equipmentId+'</strong>'
       +'<span style="font-size:10px;background:var(--s3);padding:1px 6px;border-radius:4px">'+a.pmType+'</span>'
@@ -1940,38 +1940,65 @@ async function renderAlerts(c){
       +'</div>';
   }
 
-  var pmHTML='';
+  // Build filter chips
+  var filterHTML = '';
+  if(sortedTypes.length > 1){
+    filterHTML = '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;position:sticky;top:0;background:var(--bg);padding:8px 0;z-index:10">'
+      +'<button class="bdg b" onclick="filterPMType(this,this.dataset.t)" data-t="all" data-active="true" '
+      +'style="cursor:pointer;padding:5px 12px;font-size:11px;border:none">All ('+pm.length+')</button>';
+    sortedTypes.forEach(function(t){
+      var tk=t.replace(/[^a-zA-Z0-9]/g,'');
+      filterHTML += '<button class="bdg gray" onclick="filterPMType(this,this.dataset.t)" data-t="'+tk+'" '
+        +'style="cursor:pointer;padding:5px 10px;font-size:10px;border:none">'+t+' ('+byType[t].length+')</button>';
+    });
+    filterHTML += '</div>';
+  }
+
+  // Build grouped alerts HTML
+  var pmHTML = '';
   if(pm.length===0){
     pmHTML='<div class="empty">No PM alerts</div>';
   } else {
     sortedTypes.forEach(function(t){
-      pmHTML+='<div class="slbl" style="margin-top:8px">'+t+' ('+byType[t].length+')</div>';
-      byType[t].forEach(function(a){ pmHTML+=alertRow(a); });
+      var typeKey = t.replace(/[^a-zA-Z0-9]/g,'');
+      pmHTML += '<div class="pm-type-group" data-type="'+typeKey+'">'
+        +'<div class="slbl">'+t+' ('+byType[t].length+')</div>';
+      byType[t].forEach(function(a){ pmHTML += alertRow(a); });
+      pmHTML += '</div>';
     });
   }
 
-  var exHTML='';
+  var exHTML = '';
   if(ex.length>0){
-    exHTML='<div class="slbl" style="margin-top:12px">Active exemptions ('+ex.length+')</div>';
+    exHTML = '<div class="slbl" style="margin-top:12px">Active exemptions ('+ex.length+')</div>';
     ex.forEach(function(e){
-      exHTML+='<div class="alert a"><span class="alert-icon">📋</span>'
+      exHTML += '<div class="alert a"><span class="alert-icon">📋</span>'
         +'<div><strong>'+e.jobId+'</strong> — '+(e.reason||'Exemption')+'<br>'
         +'<span style="font-size:10px;color:var(--t2)">Expires: '+(e.expiryDate||'—')+'</span></div></div>';
     });
   }
 
-  c.innerHTML='<div class="slbl">PM Alerts ('+pm.length+')</div>'+pmHTML+exHTML;
+  c.innerHTML = filterHTML
+    +'<div class="slbl">PM Alerts ('+pm.length+')</div>'
+    +pmHTML+exHTML;
 }
 
-function openEqDetailsFromEl(el){
-  var eqId=el.dataset.eqid||'', eqType=el.dataset.eqtype||'', serial=el.dataset.serial||'';
-  openEqDetails(eqId, eqType, serial);
+function filterPMType(btn, type){
+  // Update active button style
+  var allBtns = btn.parentElement.querySelectorAll('button');
+  allBtns.forEach(function(b){
+    b.className='bdg gray';
+    b.style.cssText='cursor:pointer;padding:5px 10px;font-size:10px;border:none';
+  });
+  btn.className='bdg b';
+  btn.style.cssText='cursor:pointer;padding:5px 12px;font-size:11px;border:none';
+
+  // Show/hide groups
+  document.querySelectorAll('.pm-type-group').forEach(function(g){
+    g.style.display=(type==='all'||g.dataset.type===type)?'block':'none';
+  });
 }
 
-function openEditPMFromEl(btn){
-  var eqId=btn.dataset.eqid, pmType=btn.dataset.pm, currentDate=btn.dataset.date;
-  openEditPM(eqId, pmType, currentDate);
-}
 
 function openEditPM(eqId, pmType, currentDate){
   openMod('<div class="modal-title">Edit '+pmType+' Date</div>'
