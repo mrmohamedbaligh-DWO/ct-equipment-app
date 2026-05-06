@@ -2336,6 +2336,78 @@ function updateAuxSlots(type){
   container.innerHTML=html;
 }
 
+async function submitJobRequest(){
+  var well = (document.getElementById('cj-w')||{value:''}).value.trim();
+  var rig  = (document.getElementById('cj-r')||{value:''}).value.trim();
+  var mob  = (document.getElementById('cj-m')||{value:''}).value;
+  var pkgId = (document.getElementById('cj-p')||{value:''}).value;
+  if(!well||!rig||!pkgId||!mob){ alert('Please fill all required fields and select a package'); return; }
+
+  // Collect single-select equipment (Control Cabin, Power Pack, Injector, Gooseneck, Stripper)
+  var selectedEq = [];
+  ['ControlCabin','PowerPack','Injector','Gooseneck','Stripper'].forEach(function(key){
+    var sel = document.getElementById('single-sel-'+key);
+    if(sel && sel.value) selectedEq.push(sel.value);
+  });
+
+  // Collect BOP / Work Reel / Fluid Pump from qty selectors
+  ['WorkReel','BOP','FluidPump'].forEach(function(key){
+    var qty = parseInt((document.getElementById('qty-'+key)||{value:'0'}).value)||0;
+    for(var i=1;i<=qty;i++){
+      var sel = document.getElementById('qty-sel-'+key+'-'+i);
+      if(sel && sel.value) selectedEq.push(sel.value);
+    }
+  });
+
+  // Collect Nitrogen Units
+  var n2Qty = parseInt((document.getElementById('n2-qty')||{value:'0'}).value)||0;
+  for(var i=1;i<=n2Qty;i++){
+    var sel = document.getElementById('n2-sel-'+i);
+    if(sel && sel.value) selectedEq.push(sel.value);
+  }
+
+  // Collect Aux Equipment
+  var auxList = document.getElementById('aux-list');
+  if(auxList && auxList.style.display!=='none'){
+    ['CPump','BatchMixer','FracTank','SkidTank','AcidTransporter','TrailerMounted'].forEach(function(key){
+      var qty = parseInt((document.getElementById('aux-qty-'+key)||{value:'0'}).value)||0;
+      for(var i=1;i<=qty;i++){
+        var sel = document.getElementById('aux-sel-'+key+'-'+i);
+        if(sel && sel.value) selectedEq.push(sel.value);
+      }
+    });
+  }
+
+  if(selectedEq.length === 0){ alert('Please select at least one equipment item'); return; }
+
+  var btn = document.getElementById('cj-submit');
+  if(btn){ btn.textContent='Submitting...'; btn.disabled=true; }
+
+  try{
+    var res = await post({
+      action: 'submitJobRequest',
+      packageId: pkgId,
+      ctuNumber: pkgId,
+      department: USER.department,
+      cellLeader: USER.username,
+      wellNumber: well,
+      rigNumber: rig,
+      mobDate: mob,
+      equipmentList: selectedEq
+    });
+    if(res.success){
+      alert('Job request submitted! Waiting for Asset Manager approval.');
+      goBack();
+    } else {
+      alert('Error: '+(res.error||'Submission failed'));
+      if(btn){ btn.textContent='Submit for Asset Manager approval →'; btn.disabled=false; }
+    }
+  } catch(e){
+    alert('Connection error: '+e.message);
+    if(btn){ btn.textContent='Submit for Asset Manager approval →'; btn.disabled=false; }
+  }
+}
+
 async function renderHistory(c){
   document.getElementById('tb-title').textContent='History';
   const res=await get({action:'getTickets'});
