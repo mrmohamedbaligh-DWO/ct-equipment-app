@@ -2000,6 +2000,23 @@ function filterPMType(btn, type){
 }
 
 
+function openEqDetailsFromEl(el){
+  // Stop propagation if clicking edit button inside alert
+  if(event && event.target && event.target.tagName==='BUTTON') return;
+  var eqId=el.dataset.eqid||'';
+  var eqType=el.dataset.eqtype||'';
+  var serial=el.dataset.serial||'';
+  if(eqId) openEqDetails(eqId, eqType, serial);
+}
+
+function openEditPMFromEl(btn){
+  event.stopPropagation();
+  var eqId=btn.dataset.eqid||'';
+  var pmType=btn.dataset.pm||'';
+  var currentDate=btn.dataset.date||'';
+  openEditPM(eqId, pmType, currentDate);
+}
+
 function openEditPM(eqId, pmType, currentDate){
   openMod('<div class="modal-title">Edit '+pmType+' Date</div>'
     +'<div style="font-size:12px;font-family:monospace;color:var(--t2);margin-bottom:12px">'+eqId+'</div>'
