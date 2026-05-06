@@ -966,7 +966,7 @@ async function renderMNT(c){
       <div style="padding:10px 13px;border-bottom:1px solid var(--border)">
         <div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="font-size:13px;font-weight:600;color:var(--t1)">${r.equipmentId}</span><span class="bdg a">${r.mntType}</span></div>
         <div style="font-size:10px;color:var(--t2);margin-bottom:8px">${r.notes||''} · Started ${r.startDate}</div>
-        <button class="btn success" style="padding:8px;font-size:12px" onclick="markMNTDone('${r.mntId}','${r.equipmentId}')">Mark done → Send to QAQC</button>
+        <button class="btn success" style="padding:8px;font-size:12px" onclick="openMntAction(this)" data-mntid="${r.mntId}" data-eqid="${r.equipmentId}">Mark done → Send to QAQC</button>
       </div>`).join('')}
   </div></div>
   <div id="mnt-aw" style="display:none"><div class="expand">
