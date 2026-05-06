@@ -1640,8 +1640,25 @@ async function openEqDetails(eqId, eqType, serial){
     });
     const jobs = (jobsRes.jobs||[]).filter(j=>(j.equipmentList||[]).includes(eqId));
 
-    // Current status
+    // Current status + PM dates from Equipment_Master
     const currentStatus = histRes.currentStatus || (history.length>0 ? history[0].status : 'Unknown');
+    const pm2Date = histRes.pm2Date || '';
+    const pm3Date = histRes.pm3Date || '';
+    const today = new Date();
+    function pmDays(dateStr){
+      if(!dateStr) return null;
+      var d = new Date(dateStr.split('-').join('/'));
+      return Math.ceil((d - today)/(1000*60*60*24));
+    }
+    function pmBadge(dateStr){
+      if(!dateStr) return '<span style="color:var(--t3)">—</span>';
+      var days = pmDays(dateStr);
+      var color = days < 0 ? 'var(--red)' : days <= 7 ? 'var(--red)' : days <= 30 ? 'var(--amber)' : 'var(--green)';
+      var label = days < 0 ? 'OVERDUE '+Math.abs(days)+' days' : days+' days left';
+      return '<span style="color:'+color+';font-weight:600">'+dateStr+'</span>'
+        +' <span style="font-size:10px;color:'+color+'">'+label+'</span>';
+    }
+    const canEditPM = USER.role==='Cell Leader'||USER.role==='MNT Manager';
     const statusColor = currentStatus==='On Job'?'b':currentStatus==='Pool'?'g':currentStatus==='Under MNT'?'a':currentStatus==='Transferred'?'t':'gray';
 
     // Calculate utilization
@@ -1699,6 +1716,25 @@ async function openEqDetails(eqId, eqType, serial){
         <div style="font-size:11px;color:var(--t2)">
           Since ${history.length>0?history[0].date:'—'}
           ${history.length>0&&history[0].jobId?'· '+history[0].jobId:''}
+        </div>
+      </div>
+    </div>
+
+    <!-- PM Dates -->
+    <div style="margin-bottom:16px">
+      <div class="slbl" style="margin-bottom:8px">Preventive Maintenance</div>
+      <div style="background:var(--s2);border-radius:10px;padding:12px 14px">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)">
+          <span style="font-size:11px;font-weight:600;color:var(--t1)">PM-II</span>
+          <div style="text-align:right;font-size:11px">${pmBadge(pm2Date)}
+            ${canEditPM?'<button onclick="openEditPMFromEl(this)" data-eqid="'+eqId+'" data-pm="PM-II" data-date="'+pm2Date+'" style="margin-left:8px;background:var(--s3);color:var(--t2);border:none;border-radius:5px;padding:2px 7px;font-size:10px;cursor:pointer">Edit</button>':''}
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0">
+          <span style="font-size:11px;font-weight:600;color:var(--t1)">PM-III</span>
+          <div style="text-align:right;font-size:11px">${pmBadge(pm3Date)}
+            ${canEditPM?'<button onclick="openEditPMFromEl(this)" data-eqid="'+eqId+'" data-pm="PM-III" data-date="'+pm3Date+'" style="margin-left:8px;background:var(--s3);color:var(--t2);border:none;border-radius:5px;padding:2px 7px;font-size:10px;cursor:pointer">Edit</button>':''}
+          </div>
         </div>
       </div>
     </div>
@@ -1857,14 +1893,120 @@ async function removeFromPool(eqId, btn){
 
 async function renderAlerts(c){
   document.getElementById('tb-title').textContent='Alerts';
-  const[pmR,exR]=await Promise.all([get({action:'getPMAlerts',department:USER.department||'All'}),get({action:'getExemptions'})]);
-  const pm=pmR.alerts||[],ex=(exR.exemptions||[]).filter(e=>e.status&&e.status.includes('Active'));
-  c.innerHTML=`
-  <div class="slbl">PM alerts (${pm.length})</div>
-  ${pm.length===0?'<div class="empty">No PM alerts</div>':pm.map(a=>`<div class="alert ${a.status==='Overdue'?'r':'a'}"><span class="alert-icon">${a.status==='Overdue'?'🔴':'⚠️'}</span><div><strong>${a.equipmentId}</strong> — ${a.pmType}<br><span style="font-size:9px">${a.type} · ${a.department} · ${a.status==='Overdue'?'OVERDUE':a.daysLeft+' days'}</span></div></div>`).join('')}
-  <div class="slbl" style="margin-top:10px">Active exemptions (${ex.length})</div>
-  ${ex.length===0?'<div class="empty">No active exemptions</div>':ex.map(e=>`<div class="card" style="margin-bottom:8px"><div class="crow nc"><div class="cb"><div class="ct2">${e.exemptionId} — ${e.equipmentId}</div><div class="cs">${e.packageId} · ${e.reason}</div><div class="cs">Expires ${e.expiryDate}</div></div><span class="bdg a">${e.status}</span></div></div>`).join('')}`;
+  const[pmR,exR]=await Promise.all([
+    get({action:'getPMAlerts',department:USER.department||'All'}),
+    get({action:'getExemptions'})
+  ]);
+  const pm=pmR.alerts||[];
+  const ex=(exR.exemptions||[]).filter(function(e){return e.status&&e.status.includes('Active');});
+  const canEditPM = USER.role==='Cell Leader'||USER.role==='MNT Manager';
+
+  // Group PM alerts by equipment type
+  var byType={};
+  pm.forEach(function(a){
+    var t=a.type||'Other';
+    if(!byType[t]) byType[t]=[];
+    byType[t].push(a);
+  });
+
+  var typeOrder=['Control Cabin','Power Pack','Injector','Gooseneck','Stripper',
+    'Work Reel','BOP','Fluid Pump','Nitrogen Pump','C-Pump','Batch Mixer',
+    'Frac Tank','Skid Tank','Acid Transporter','Trailer Mounted'];
+
+  var sortedTypes=Object.keys(byType).sort(function(a,b){
+    var ai=typeOrder.indexOf(a), bi=typeOrder.indexOf(b);
+    return (ai<0?99:ai)-(bi<0?99:bi);
+  });
+
+  function alertRow(a){
+    var cls=a.status==='Overdue'?'r':a.status==='Critical'?'r':'a';
+    var icon=a.status==='Overdue'?'🔴':a.status==='Critical'?'🟠':'⚠️';
+    var daysText=a.daysLeft<0?'OVERDUE '+Math.abs(a.daysLeft)+' days':a.daysLeft+' days left';
+    var editBtn = canEditPM
+      ? '<button onclick="openEditPMFromEl(this)" data-eqid="'+a.equipmentId+'" data-pm="'+a.pmType+'" data-date="'+a.dueDate+'" '
+        +'style="margin-left:8px;background:var(--s3);color:var(--t2);border:none;border-radius:5px;'
+        +'padding:3px 8px;font-size:10px;cursor:pointer">Edit date</button>'
+      : '';
+    return '<div class="alert '+cls+'" style="cursor:pointer" onclick="openEqDetailsFromEl(this)" data-eqid="'+a.equipmentId+'" data-eqtype="'+a.type+'" data-serial="">'
+      +'<span class="alert-icon">'+icon+'</span>'
+      +'<div style="flex:1">'
+      +'<div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px">'
+      +'<strong>'+a.equipmentId+'</strong>'
+      +'<span style="font-size:10px;background:var(--s3);padding:1px 6px;border-radius:4px">'+a.pmType+'</span>'
+      +'</div>'
+      +'<div style="font-size:11px;margin-top:2px">Due <strong>'+a.dueDate+'</strong> — '+daysText+'</div>'
+      +'</div>'
+      +editBtn
+      +'</div>';
+  }
+
+  var pmHTML='';
+  if(pm.length===0){
+    pmHTML='<div class="empty">No PM alerts</div>';
+  } else {
+    sortedTypes.forEach(function(t){
+      pmHTML+='<div class="slbl" style="margin-top:8px">'+t+' ('+byType[t].length+')</div>';
+      byType[t].forEach(function(a){ pmHTML+=alertRow(a); });
+    });
+  }
+
+  var exHTML='';
+  if(ex.length>0){
+    exHTML='<div class="slbl" style="margin-top:12px">Active exemptions ('+ex.length+')</div>';
+    ex.forEach(function(e){
+      exHTML+='<div class="alert a"><span class="alert-icon">📋</span>'
+        +'<div><strong>'+e.jobId+'</strong> — '+(e.reason||'Exemption')+'<br>'
+        +'<span style="font-size:10px;color:var(--t2)">Expires: '+(e.expiryDate||'—')+'</span></div></div>';
+    });
+  }
+
+  c.innerHTML='<div class="slbl">PM Alerts ('+pm.length+')</div>'+pmHTML+exHTML;
 }
+
+function openEqDetailsFromEl(el){
+  var eqId=el.dataset.eqid||'', eqType=el.dataset.eqtype||'', serial=el.dataset.serial||'';
+  openEqDetails(eqId, eqType, serial);
+}
+
+function openEditPMFromEl(btn){
+  var eqId=btn.dataset.eqid, pmType=btn.dataset.pm, currentDate=btn.dataset.date;
+  openEditPM(eqId, pmType, currentDate);
+}
+
+function openEditPM(eqId, pmType, currentDate){
+  openMod('<div class="modal-title">Edit '+pmType+' Date</div>'
+    +'<div style="font-size:12px;font-family:monospace;color:var(--t2);margin-bottom:12px">'+eqId+'</div>'
+    +'<div class="fg"><label class="flbl">Current date</label>'
+    +'<input type="text" class="finput" value="'+currentDate+'" readonly style="opacity:.6"></div>'
+    +'<div class="fg"><label class="flbl">New date</label>'
+    +'<input type="date" class="finput" id="pm-new-date" value="'+currentDate+'"></div>'
+    +'<input type="hidden" id="pm-eq-id" value="'+eqId+'">'
+    +'<input type="hidden" id="pm-type" value="'+pmType+'">'
+    +'<input type="hidden" id="pm-old-date" value="'+currentDate+'">'
+    +'<button class="btn primary" onclick="savePMDate()">Save new date</button>');
+}
+
+async function savePMDate(){
+  var eqId=document.getElementById('pm-eq-id').value;
+  var pmType=document.getElementById('pm-type').value;
+  var newDate=document.getElementById('pm-new-date').value;
+  var oldDate=document.getElementById('pm-old-date').value;
+  if(!newDate){alert('Please select a date');return;}
+  var btn=document.querySelector('#mbody button');
+  if(btn){btn.textContent='Saving...';btn.disabled=true;}
+  var res=await post({action:'updatePMDate',equipmentId:eqId,pmType:pmType,
+    newDate:newDate,oldDate:oldDate,updatedBy:USER.username});
+  if(res.success){
+    closeMod();
+    alert('✓ '+pmType+' date updated to '+newDate);
+    Object.keys(CACHE).forEach(function(k){delete CACHE[k];});
+    loadView('alerts');
+  } else {
+    alert('Error: '+(res.error||'Update failed'));
+    if(btn){btn.textContent='Save new date';btn.disabled=false;}
+  }
+}
+
 
 async function renderMNTList(c){
   document.getElementById('tb-title').textContent='MNT';
