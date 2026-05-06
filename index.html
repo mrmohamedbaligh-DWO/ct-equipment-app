@@ -2059,7 +2059,7 @@ async function renderMNTList(c){
 
   // Group by status
   var underMNT = recs.filter(function(r){return r.status==='Under MNT';});
-  var pending   = recs.filter(function(r){return r.status==='Pending QAQC'||r.status==='Done';});
+  var pending   = recs.filter(function(r){return r.status==='Awaiting QAQC'||r.status==='Done';});
 
   function mntCard(r){
     var sc = r.status==='Under MNT'?'a':r.status==='Pending QAQC'?'b':'g';
