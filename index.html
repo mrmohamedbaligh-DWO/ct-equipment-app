@@ -2056,7 +2056,46 @@ async function renderMNTList(c){
   document.getElementById('tb-title').textContent='MNT';
   const res=await get({action:'getMNT'});
   const recs=res.records||[];
-  c.innerHTML=`<div class="card">${recs.map(r=>`<div class="crow nc"><div class="ci" style="background:${r.status==='Under MNT'?'var(--amber-bg)':r.status==='Done'?'var(--green-bg)':'var(--blue-bg)'}">🔧</div><div class="cb"><div class="ct2">${r.equipmentId}</div><div class="cs">${r.mntType} · ${r.startDate}</div></div><span class="bdg ${r.status==='Under MNT'?'a':r.status==='Done'?'g':'b'}">${r.status}</span></div>`).join('')}${recs.length===0?'<div class="empty">No MNT records</div>':''}</div>`;
+
+  // Group by status
+  var underMNT = recs.filter(function(r){return r.status==='Under MNT';});
+  var pending   = recs.filter(function(r){return r.status==='Pending QAQC'||r.status==='Done';});
+
+  function mntCard(r){
+    var sc = r.status==='Under MNT'?'a':r.status==='Pending QAQC'?'b':'g';
+    var btns = '';
+    if(r.status==='Under MNT'){
+      btns = '<button onclick="openMntAction(this)" data-mntid="'+r.mntId+'" data-eqid="'+r.equipmentId+'"'
+        +' style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap">'
+        +'✓ Mark done — Send to QAQC</button>';
+    }
+    return '<div class="card" style="margin-bottom:8px;padding:12px 13px">'
+      +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">'
+      +'<div style="flex:1">'
+      +'<div style="font-size:13px;font-weight:600;color:var(--t1);font-family:monospace">'+r.equipmentId+'</div>'
+      +'<div style="font-size:11px;color:var(--t2);margin-top:2px">'+r.equipmentType+' · '+r.mntType+'</div>'
+      +'<div style="font-size:10px;color:var(--t3);margin-top:2px">Started: '+r.startDate+'</div>'
+      +(r.reason?'<div style="font-size:11px;color:var(--amber);margin-top:4px">Reason: '+r.reason+'</div>':'')
+      +'</div>'
+      +'<span class="bdg '+sc+'">'+r.status+'</span>'
+      +'</div>'
+      +(btns?'<div style="margin-top:10px">'+btns+'</div>':'')
+      +'</div>';
+  }
+
+  var html2 = '';
+  if(underMNT.length>0){
+    html2 += '<div class="slbl">Under MNT ('+underMNT.length+')</div>';
+    underMNT.forEach(function(r){ html2 += mntCard(r); });
+  }
+  if(pending.length>0){
+    html2 += '<div class="slbl" style="margin-top:8px">Pending QAQC / Done ('+pending.length+')</div>';
+    pending.forEach(function(r){ html2 += mntCard(r); });
+  }
+  if(recs.length===0){
+    html2 = '<div class="empty">No MNT records</div>';
+  }
+  c.innerHTML = html2;
 }
 
 async function renderJobDetail(c,job){
@@ -2603,7 +2642,9 @@ async function submitExemption(){
 }
 
 // ─── MNT ACTIONS ────────────────────────────────
-function openMntAction(mntId, eqId){
+function openMntAction(btn){
+  var mntId = btn.dataset ? btn.dataset.mntid : btn;
+  var eqId  = btn.dataset ? btn.dataset.eqid  : '';
   openMod('<div class="modal-title">MNT Complete — '+eqId+'</div>'
     +'<div class="fg"><label class="flbl">Completion notes</label>'
     +'<textarea class="finput" id="mnt-done-note" rows="3" placeholder="Work done, parts replaced..."></textarea></div>'
@@ -2620,9 +2661,16 @@ async function submitMntDone(){
 }
 
 // ─── QAQC ───────────────────────────────────────
-async function qaqcDecision(mntId, decision, btnEl){
+async function qaqcDec(mntId, decision){
+  // Called from QAQC dashboard template
+  var notes = (document.getElementById('qr-'+mntId)||{value:''}).value.trim();
+  var btn = event.target;
+  await qaqcDecision(mntId, decision, btn, notes);
+}
+
+async function qaqcDecision(mntId, decision, btnEl, notes){
   if(btnEl){ btnEl.textContent='Saving...'; btnEl.disabled=true; }
-  var res = await post({action:'qaqcDecision', mntId:mntId, decision:decision, reviewedBy:USER.username});
+  var res = await post({action:'qaqcDecision', mntId:mntId, decision:decision, reviewedBy:USER.username, notes:notes||''});
   if(res.success){
     alert(decision==='Approved'?'✓ Equipment returned to Pool.':'Equipment sent back to MNT.');
     Object.keys(CACHE).forEach(function(k){delete CACHE[k];}); loadView('home');
